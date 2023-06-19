@@ -18,7 +18,9 @@ public struct LogsView: View {
         if searchText.isEmpty {
             return networkLogsService.networkTraffic
         } else {
-            return networkLogsService.networkTraffic.filter { $0.method.localizedCaseInsensitiveContains(searchText) }
+            return networkLogsService.networkTraffic.filter { $0.method.localizedCaseInsensitiveContains(searchText) ||
+                $0.url.localizedCaseInsensitiveContains(searchText)
+            }
         }
     }
     
@@ -36,6 +38,7 @@ public struct LogsView: View {
             .listStyle(.grouped)
             .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search logs")
             .autocorrectionDisabled(true)
+            .textInputAutocapitalization(.never)
         }
         .onAppear {
             networkLogsService.loadNetworkLogs()
