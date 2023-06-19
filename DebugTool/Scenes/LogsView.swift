@@ -37,13 +37,6 @@ public struct LogsView: View {
             .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search logs")
             .autocorrectionDisabled(true)
         }
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button(action: networkLogsService.createNetworkLogDemo) {
-                    Label("Add Item", systemImage: "plus")
-                }
-            }
-        }
         .onAppear {
             networkLogsService.loadNetworkLogs()
         }

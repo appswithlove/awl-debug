@@ -35,7 +35,6 @@ public class NetworkLogsService: ObservableObject {
         print(Constants.Actions.configureDT)
         configureLogLimit()
         configureFileName()
-        showSettings()
     }
     
     private func configureLogLimit() {
@@ -54,16 +53,15 @@ public class NetworkLogsService: ObservableObject {
     
     private func configureFileName() {
         useCustomFileName = UserDefaults.standard.bool(forKey: Constants.UserDefaults.useCustomFilename)
-        //        if useCustomFileName {
-        //            customFileName = UserDefaults.standard.string(forKey: "customFilename") ?? Constants.Defaults.defaultFilename
-        //            url = FileManager.documentsDirectory.appendingPathExtension("\(customFileName)")
-        //        } else {
-        //            let date = Date.now
-        //            let df = DateFormatter()
-        //            df.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
-        //            url = FileManager.documentsDirectory.appendingPathExtension("NL\(df.string(from: date)).txt")
-        //        }
-        url = FileManager.documentsDirectory.appendingPathExtension("NetworkLogs.txt")
+        if useCustomFileName {
+            customFileName = UserDefaults.standard.string(forKey: "customFilename") ?? Constants.Defaults.defaultFilename
+            url = FileManager.documentsDirectory.appendingPathExtension("\(customFileName)")
+        } else {
+            let date = Date.now
+            let df = DateFormatter()
+            df.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+            url = FileManager.documentsDirectory.appendingPathExtension("NL\(df.string(from: date)).txt")
+        }
     }
     
     // MARK: - Network logs
@@ -143,24 +141,6 @@ public class NetworkLogsService: ObservableObject {
         
         if useCustomFileName {
             UserDefaults.standard.set(customFileName, forKey: Constants.UserDefaults.customFilename)
-        }
-    }
-    
-    // MARK: - Helpers
-    func createNetworkLogDemo() {
-        print(Constants.Actions.creatingDemoNL)
-        let date = Date.now
-        let log = NetworkLog(id: UUID(), method: Constants.Values.methods.randomElement() ?? "GET", url: "https://\(date)")
-        networkTraffic.append(log)
-        saveNetworkLogs()
-    }
-    
-    func showSettings() {
-        print("Settings (URL): \(url)")
-        if useCustomLogLimit {
-            print("Settings (log number C): \(customLogLimit)")
-        } else {
-            print("Settings (log number S): \(standardLogLimit)")
         }
     }
 }
