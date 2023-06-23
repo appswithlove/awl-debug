@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		CB03DD9B2A38956C00D82AE1 /* NetworkLogsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB03DD9A2A38956C00D82AE1 /* NetworkLogsService.swift */; };
+		CB277A9B2A432683007D16BE /* DebugToolViewModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB277A9A2A432683007D16BE /* DebugToolViewModifier.swift */; };
 		CB42C3512A3B3E1C007AF233 /* String.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB42C3502A3B3E1C007AF233 /* String.swift */; };
 		CB6406582A3C584A00EE32FD /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB6406572A3C584A00EE32FD /* Constants.swift */; };
 		CB6AC4A72A4037E30084496A /* TextDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB6AC4A62A4037E30084496A /* TextDocument.swift */; };
@@ -33,6 +34,7 @@
 
 /* Begin PBXFileReference section */
 		CB03DD9A2A38956C00D82AE1 /* NetworkLogsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkLogsService.swift; sourceTree = "<group>"; };
+		CB277A9A2A432683007D16BE /* DebugToolViewModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugToolViewModifier.swift; sourceTree = "<group>"; };
 		CB42C3502A3B3E1C007AF233 /* String.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = String.swift; sourceTree = "<group>"; };
 		CB6406572A3C584A00EE32FD /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
 		CB6AC4A62A4037E30084496A /* TextDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextDocument.swift; sourceTree = "<group>"; };
@@ -74,9 +76,18 @@
 			path = Services;
 			sourceTree = "<group>";
 		};
+		CB277A992A432661007D16BE /* ViewModifiers */ = {
+			isa = PBXGroup;
+			children = (
+				CB277A9A2A432683007D16BE /* DebugToolViewModifier.swift */,
+			);
+			path = ViewModifiers;
+			sourceTree = "<group>";
+		};
 		CB6406562A3C583C00EE32FD /* Common */ = {
 			isa = PBXGroup;
 			children = (
+				CB277A992A432661007D16BE /* ViewModifiers */,
 				CB6406572A3C584A00EE32FD /* Constants.swift */,
 				CB6AC4A62A4037E30084496A /* TextDocument.swift */,
 			);
@@ -261,6 +272,7 @@
 				CBC425B02A3844740024376A /* DebugView.swift in Sources */,
 				CBC425B52A38449F0024376A /* NetworkLog.swift in Sources */,
 				CB03DD9B2A38956C00D82AE1 /* NetworkLogsService.swift in Sources */,
+				CB277A9B2A432683007D16BE /* DebugToolViewModifier.swift in Sources */,
 				CBC425B12A3844740024376A /* LogsView.swift in Sources */,
 				CB6AC4A72A4037E30084496A /* TextDocument.swift in Sources */,
 				CB42C3512A3B3E1C007AF233 /* String.swift in Sources */,
