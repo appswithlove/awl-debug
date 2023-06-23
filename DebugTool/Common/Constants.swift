@@ -9,7 +9,7 @@ import Foundation
 
 struct Constants {
     struct Defaults {
-        static let defaultFilename = "NetworkLogs.txt"
+        static let defaultFilename = "NetworkLogs"
         static let defaultLogLimit = 750
     }
     
@@ -18,6 +18,10 @@ struct Constants {
         static let methods = ["GET", "POST", "PATCH", "DELETE"]
     }
     
+    struct Strings {
+        static let unknown = "unknown"
+    }
+
     struct UserDefaults {
         static let useCustomLogLimit = "useCustomLogLimit"
         static let customLogLimit = "customLogLimit"

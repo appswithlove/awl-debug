@@ -12,7 +12,7 @@ public struct DebugView: View {
     @StateObject private var networkLogsService = NetworkLogsService.shared
     @Environment(\.dismiss) var dismiss
     
-    private var fcmToken: String = ""
+    private var fcmToken: String = "unknown token"
     
     public init(fcmToken: String) {
         self.fcmToken = fcmToken
@@ -46,7 +46,7 @@ public struct DebugView: View {
         } message: {
             Text(Constants.Alert.alertMessage)
         }
-        .fileExporter( isPresented: $networkLogsService.exporting, document: networkLogsService.document, contentType: .plainText) { result in
+        .fileExporter(isPresented: $networkLogsService.isShowingFileExporter, document: networkLogsService.document, contentType: .plainText, defaultFilename: networkLogsService.filename) { result in
             switch result {
             case .success(let file):
                 print(file)
@@ -110,7 +110,7 @@ public struct DebugView: View {
             }
             Toggle("Custom file name for network logs", isOn: $networkLogsService.useCustomFileName)
             if networkLogsService.useCustomFileName {
-                TextField("NetworkLogs.txt", text: $networkLogsService.customFileName)
+                TextField("NetworkLogs", text: $networkLogsService.customFileName)
             }
         } header: {
             Text("Settings")

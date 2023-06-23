@@ -10,7 +10,7 @@ import Foundation
 public class NetworkLogsService: ObservableObject {
     
     public static let shared = NetworkLogsService()
-    private var url: URL = FileManager.documentsDirectory.appendingPathExtension(Constants.Defaults.defaultFilename)
+    private var url: URL = FileManager.documentsDirectory.appendingPathExtension(Constants.Strings.unknown)
     @Published var networkTraffic: [NetworkLog] = []
     
     @Published var areSettingsChanged = false
@@ -20,10 +20,11 @@ public class NetworkLogsService: ObservableObject {
     @Published var logLimit = Constants.Defaults.defaultLogLimit
     
     @Published var useCustomFileName = false
-    var customFileName = ""
+    var customFileName = Constants.Defaults.defaultFilename
     
-    @Published var exporting = false
+    @Published var isShowingFileExporter = false
     @Published var document = TextDocument(text: "")
+    @Published var filename = Constants.Strings.unknown
     
     private init() {
         print(Constants.Actions.initilize)
@@ -55,13 +56,14 @@ public class NetworkLogsService: ObservableObject {
         useCustomFileName = UserDefaults.standard.bool(forKey: Constants.UserDefaults.useCustomFilename)
         if useCustomFileName {
             customFileName = UserDefaults.standard.string(forKey: "customFilename") ?? Constants.Defaults.defaultFilename
-            url = FileManager.documentsDirectory.appendingPathExtension("\(customFileName)")
+            filename = customFileName
         } else {
             let date = Date.now
             let df = DateFormatter()
             df.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
-            url = FileManager.documentsDirectory.appendingPathExtension("NL\(df.string(from: date)).txt")
+            filename = "NL\(df.string(from: date))"
         }
+        url = FileManager.documentsDirectory.appendingPathExtension(filename)
     }
     
     // MARK: - Network logs
@@ -107,7 +109,7 @@ public class NetworkLogsService: ObservableObject {
     func exportNetworkLogs() {
         print(Constants.Actions.exportingNL)
         document.text = fetchNetworkLogsAsString()
-        self.exporting = true
+        self.isShowingFileExporter = true
     }
     
     private func fetchNetworkLogsAsString() -> String {
@@ -141,6 +143,7 @@ public class NetworkLogsService: ObservableObject {
         
         if useCustomFileName {
             UserDefaults.standard.set(customFileName, forKey: Constants.UserDefaults.customFilename)
+            filename = customFileName
         }
     }
 }
