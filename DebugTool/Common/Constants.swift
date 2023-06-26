@@ -32,6 +32,15 @@ struct Constants {
         static let standardFilename = "standardFilename"
     }
     
+    struct Alert {
+        static let alertTitle = "Debug Tool"
+        static let alertMessage = "Settings are recorded"
+    }
+    
+    struct Errors {
+        static let savingDataToFile = "Unable to save network logs to file"
+    }
+    
     struct Actions {
         static let initilize = "DT: init..."
         static let configureDT = "DT: configuring debug tool..."
@@ -42,14 +51,5 @@ struct Constants {
         static let savingNL = "DT: saving network logs..."
         static let exportingNL = "DT: exporting logs..."
         static let savingSettings = "DT: saving settings..."
-    }
-    
-    struct Alert {
-        static let alertTitle = "Alert title"
-        static let alertMessage = "Alert message"
-    }
-    
-    struct Errors {
-        static let savingDataToFile = "Unable to save network logs to file"
     }
 }

@@ -27,7 +27,6 @@ public class NetworkLogsService: ObservableObject {
     @Published var isShowingFileExporter = false
     @Published var document = TextDocument(text: Constants.Strings.unknown)
 
-    
     private init() {
         print(Constants.Actions.initilize)
         displaySettings()
@@ -167,14 +166,12 @@ public class NetworkLogsService: ObservableObject {
 
     private func refreshNetworkTraffic() {
         var counter = networkTraffic.count - 1
-
         repeat {
             if counter >= logLimit {
                 networkTraffic.remove(at: counter)
             }
             counter -= 1
         } while (counter >= logLimit)
-
         saveNetworkLogs()
     }
 
