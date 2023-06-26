@@ -20,7 +20,7 @@ public class NetworkLogsService: ObservableObject {
     @Published var logLimit = Constants.Defaults.defaultLogLimit
     
     @Published var filename = Constants.Strings.unknown
-    var useCustomFileName = false
+    @Published var useCustomFileName = false
     var customFileName = Constants.Strings.unknown
     var standardFileName = Constants.Strings.unknown
     
