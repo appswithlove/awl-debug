@@ -22,6 +22,7 @@ public struct DebugView: View {
         NavigationView {
             Form {
                 LogOptionsView()
+                FirebaseView()
                 FCMPushTokenView()
                 SettingsView()
             }
@@ -70,7 +71,7 @@ public struct DebugView: View {
                 HStack {
                     Text("Clear network logs")
                     Spacer()
-                    Image(systemName: "delete.right")
+                    Image(systemName: "trash")
                 }
             }
             Button {
@@ -92,6 +93,22 @@ public struct DebugView: View {
             Text("\(fcmToken)")
         } header: {
             Text("FCM push token")
+        }
+    }
+    
+    @ViewBuilder private func FirebaseView() -> some View {
+        Section {
+            Button {
+                networkLogsService.simulateFirebaseCrash()
+            } label: {
+                HStack {
+                    Text("Simulate crash")
+                    Spacer()
+                    Image(systemName: "pip.remove")
+                }
+            }
+        } header: {
+            Text("Firebase actions")
         }
     }
     

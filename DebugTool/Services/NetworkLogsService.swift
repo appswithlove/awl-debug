@@ -26,7 +26,7 @@ public class NetworkLogsService: ObservableObject {
     
     @Published var isShowingFileExporter = false
     @Published var document = TextDocument(text: Constants.Strings.unknown)
-
+    
     private init() {
         print(Constants.Actions.initilize)
         displaySettings()
@@ -65,7 +65,7 @@ public class NetworkLogsService: ObservableObject {
             filename = createStandardFilename()
         }
     }
-
+    
     private func createStandardFilename() -> String {
         let date = Date.now
         let df = DateFormatter()
@@ -152,7 +152,7 @@ public class NetworkLogsService: ObservableObject {
         }
         
         refreshNetworkTraffic()
-
+        
         if useCustomFileName {
             UserDefaults.standard.set(customFileName, forKey: Constants.UserDefaults.customFilename)
             filename = customFileName
@@ -160,10 +160,10 @@ public class NetworkLogsService: ObservableObject {
             UserDefaults.standard.set(customFileName, forKey: Constants.UserDefaults.standardFilename)
             filename = standardFileName
         }
-
+        
         displaySettings()
     }
-
+    
     private func refreshNetworkTraffic() {
         var counter = networkTraffic.count - 1
         repeat {
@@ -173,6 +173,20 @@ public class NetworkLogsService: ObservableObject {
             counter -= 1
         } while (counter >= logLimit)
         saveNetworkLogs()
+    }
+
+    func simulateFirebaseCrash() {
+        doTestCrash2()
+    }
+    
+    private func doTestCrash1() {
+        fatalError("Don't worry be happy.")
+    }
+
+    private func doTestCrash2() {
+        var testArray: [Int] = []
+        _ = testArray.removeFirst()
+        _ = 1 / testArray.count
     }
 
     // MARK: - Helpers
