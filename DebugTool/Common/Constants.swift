@@ -9,7 +9,7 @@ import Foundation
 
 struct Constants {
     struct Defaults {
-        static let defaultFilename = "NetworkLogs"
+        static let defaultUrlFilename = "NetworkLogs"
         static let defaultLogLimit = 750
     }
     
@@ -19,7 +19,7 @@ struct Constants {
     }
     
     struct Strings {
-        static let unknown = "unknown"
+        static let unknown = "n/a"
     }
 
     struct UserDefaults {
@@ -29,18 +29,19 @@ struct Constants {
         
         static let useCustomFilename = "useCustomFilename"
         static let customFilename = "customFilename"
+        static let standardFilename = "standardFilename"
     }
     
     struct Actions {
-        static let initilize = "Init..."
-        static let configureDT = "Configuring network log..."
-        static let creatingDemoNL = "Creating demo network log..."
-        static let creatingNL = "Creating network log..."
-        static let loadingNL = "Loading network logs..."
-        static let deletingNL = "Deleting network logs..."
-        static let savingNL = "Saving network logs..."
-        static let exportingNL = "Exporting logs..."
-        static let savingSettings = "Saving settings..."
+        static let initilize = "DT: init..."
+        static let configureDT = "DT: configuring debug tool..."
+        static let creatingDemoNL = "DT: creating demo network log..."
+        static let creatingNL = "DT: creating network log..."
+        static let loadingNL = "DT: loading network logs..."
+        static let deletingNL = "DT: deleting network logs..."
+        static let savingNL = "DT: saving network logs..."
+        static let exportingNL = "DT: exporting logs..."
+        static let savingSettings = "DT: saving settings..."
     }
     
     struct Alert {
