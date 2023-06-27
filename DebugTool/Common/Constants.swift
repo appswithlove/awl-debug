@@ -33,8 +33,8 @@ struct Constants {
     }
     
     struct Alert {
-        static let alertTitle = "Debug Tool"
-        static let alertMessage = "Settings are recorded"
+        static let alertTitle = "Settings are recorded"
+        static let alertMessage = "Restart app for proper Debug Tool behaviour using your new settings"
     }
     
     struct Errors {
