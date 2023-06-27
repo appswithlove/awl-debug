@@ -56,13 +56,13 @@ public class NetworkLogsService: ObservableObject {
     }
     
     private func configureFileName() {
+        filename = createStandardFilename()
+        UserDefaults.standard.set(filename, forKey: Constants.UserDefaults.standardFilename)
+
         useCustomFileName = UserDefaults.standard.bool(forKey: Constants.UserDefaults.useCustomFilename)
         if useCustomFileName {
             customFileName = UserDefaults.standard.string(forKey: Constants.UserDefaults.customFilename) ?? Constants.Strings.unknown
             filename = customFileName
-        } else {
-            standardFileName = UserDefaults.standard.string(forKey: Constants.UserDefaults.standardFilename) ?? Constants.Strings.unknown
-            filename = createStandardFilename()
         }
     }
     
@@ -154,11 +154,10 @@ public class NetworkLogsService: ObservableObject {
         refreshNetworkTraffic()
         
         if useCustomFileName {
-            UserDefaults.standard.set(customFileName, forKey: Constants.UserDefaults.customFilename)
             filename = customFileName
+            UserDefaults.standard.set(customFileName, forKey: Constants.UserDefaults.customFilename)
         } else {
-            UserDefaults.standard.set(customFileName, forKey: Constants.UserDefaults.standardFilename)
-            filename = standardFileName
+            filename = UserDefaults.standard.string(forKey: Constants.UserDefaults.standardFilename) ?? Constants.Strings.unknown
         }
         
         displaySettings()
@@ -191,6 +190,7 @@ public class NetworkLogsService: ObservableObject {
         print("DT - use custom filename: \(useCustomFileName)")
         print("DT - use custom log limit: \(useCustomLogLimit)")
         print("DT - Filename: \(filename)")
+        print("DT - Standard filename: \(standardFileName)")
         print("DT - Custom filename: \(customFileName)")
         print("DT - Log limit: \(logLimit)")
         print("DT - Custom log limit: \(customLogLimit)")
