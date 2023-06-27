@@ -175,15 +175,11 @@ public class NetworkLogsService: ObservableObject {
         saveNetworkLogs()
     }
 
-    func simulateFirebaseCrash() {
-        doTestCrash2()
-    }
-    
-    private func doTestCrash1() {
+    func doTestCrash1() {
         fatalError("Don't worry be happy.")
     }
 
-    private func doTestCrash2() {
+    func doTestCrash2() {
         var testArray: [Int] = []
         _ = testArray.removeFirst()
         _ = 1 / testArray.count

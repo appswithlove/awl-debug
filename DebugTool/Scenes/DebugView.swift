@@ -99,10 +99,23 @@ public struct DebugView: View {
     @ViewBuilder private func FirebaseView() -> some View {
         Section {
             Button {
-                networkLogsService.simulateFirebaseCrash()
+                networkLogsService.doTestCrash1()
             } label: {
                 HStack {
                     Text("Simulate crash")
+                    Text("- explicit fatal error")
+                        .font(.caption)
+                    Spacer()
+                    Image(systemName: "pip.remove")
+                }
+            }
+            Button {
+                networkLogsService.doTestCrash2()
+            } label: {
+                HStack {
+                    Text("Simulate crash")
+                    Text("- implicit fatal error")
+                        .font(.caption)
                     Spacer()
                     Image(systemName: "pip.remove")
                 }
