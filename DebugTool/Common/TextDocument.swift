@@ -13,7 +13,7 @@ struct TextDocument: FileDocument {
         [.plainText]
     }
     
-    var text = ""
+    var text = Constants.Strings.emptyString
     
     init(text: String) {
         self.text = text
@@ -23,7 +23,7 @@ struct TextDocument: FileDocument {
         if let data = configuration.file.regularFileContents {
             text = String(decoding: data, as: UTF8.self)
         } else {
-            text = ""
+            text = Constants.Strings.emptyString
         }
     }
     

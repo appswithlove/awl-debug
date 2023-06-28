@@ -9,7 +9,7 @@ import SwiftUI
 
 public struct DebugToolViewModifier: ViewModifier {
     @State private var isShowingDebugTool = false
-    var fcmToken: String = "unknown token"
+    var fcmToken: String = Constants.Strings.unknownValue
 
     public func body(content: Content) -> some View {
         content
