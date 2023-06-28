@@ -46,8 +46,14 @@ public class NetworkLogsService: ObservableObject {
         useCustomLogLimit = UserDefaults.standard.bool(forKey: Constants.UserDefaults.useCustomLogLimit)
         if useCustomLogLimit {
             customLogLimit = UserDefaults.standard.integer(forKey: Constants.UserDefaults.customLogLimit)
+            if customLogLimit == 0 {
+                customLogLimit = Constants.Defaults.defaultLogLimit
+            }
             logLimit = customLogLimit
         } else {
+            customLogLimit = Constants.Defaults.defaultLogLimit
+            UserDefaults.standard.set(customLogLimit, forKey: Constants.UserDefaults.customLogLimit)
+
             standardLogLimit = UserDefaults.standard.integer(forKey: Constants.UserDefaults.standardLogLimit)
             if standardLogLimit == 0 {
                 standardLogLimit = Constants.Defaults.defaultLogLimit
