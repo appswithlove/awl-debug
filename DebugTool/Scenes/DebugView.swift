@@ -40,12 +40,12 @@ public struct DebugView: View {
             }
         }
         .onAppear(perform: networkLogsService.refreshData)
-        .alert(Constants.Alert.alertTitle, isPresented: $networkLogsService.areSettingsChanged) {
-            Button("OK") {
+        .alert(Constants.Alert.saveSettingsTitle, isPresented: $networkLogsService.areSettingsChanged) {
+            Button(Constants.Alert.btnOK) {
                 dismiss()
             }
         } message: {
-            Text(Constants.Alert.alertMessage)
+            Text(Constants.Alert.saveSettingsMessage)
         }
         .fileExporter(isPresented: $networkLogsService.isShowingFileExporter, document: networkLogsService.document, contentType: .plainText, defaultFilename: networkLogsService.filename) { result in
             switch result {
@@ -66,7 +66,7 @@ public struct DebugView: View {
                 Text("Show network logs")
             }
             Button {
-                networkLogsService.deleteNetworkLogs()
+                networkLogsService.isShowingDeleteNetworkLogs = true
             } label: {
                 HStack {
                     Text("Clear network logs")
@@ -86,6 +86,15 @@ public struct DebugView: View {
         } header: {
             Text("Logs")
         }
+        .alert(Constants.Alert.deleteNLTitle, isPresented: $networkLogsService.isShowingDeleteNetworkLogs) {
+            Button(Constants.Alert.btnCancel, role: .cancel) {}
+            Button(Constants.Alert.btnDelete, role: .destructive) {
+                networkLogsService.deleteNetworkLogs()
+            }
+        } message: {
+            Text(Constants.Alert.deleteNLMessage)
+        }
+        .textCase(nil)
     }
     
     @ViewBuilder private func FCMPushTokenView() -> some View {

@@ -33,8 +33,15 @@ struct Constants {
     }
     
     struct Alert {
-        static let alertTitle = "Settings are recorded"
-        static let alertMessage = "Restart app for proper Debug Tool behaviour using your new settings"
+        static let saveSettingsTitle = "Settings are recorded"
+        static let saveSettingsMessage = "Restart app for proper Debug Tool behaviour using your new settings"
+
+        static let deleteNLTitle = "Deleting network logs"
+        static let deleteNLMessage = "Are you sure you want to delete all network logs?"
+
+        static let btnOK = "OK"
+        static let btnCancel = "Cancel"
+        static let btnDelete = "Delete"
     }
     
     struct Errors {

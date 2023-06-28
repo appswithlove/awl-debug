@@ -24,6 +24,7 @@ public class NetworkLogsService: ObservableObject {
     var customFileName = Constants.Strings.unknown
     var standardFileName = Constants.Strings.unknown
     
+    @Published var isShowingDeleteNetworkLogs = false
     @Published var isShowingFileExporter = false
     @Published var document = TextDocument(text: Constants.Strings.unknown)
     
