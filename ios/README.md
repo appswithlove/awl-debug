@@ -3,26 +3,11 @@
 DebugTool is in-house tool developed for easier app debugging in development process.
 Main functionality is to follow network traffic that the app makes during usage.
 
-### Relevant Links
-
-- Issue Tracker: <placeholder>
-- Documentation: <placeholder>
-- UI Design: <placeholder>
-- Google Drive: <placeholder>
-- Slack Channel: <placeholder>
-- 1Password Folder Name: <placeholder>
-
 # Technical Requirements
 
 - Target Platforms: iOS 15.0+
 
-## Noteworthy technical decisions/constraints
-<placeholder>
-
 # Getting started
-
-## Prerequisites
-*Specify any prerequisites that developers should have installed or set up before working with the project (e.g., Bundler, CocoaPods, etc.).*
 
 ## Installation
 1. add DebugTool as Framework to project
