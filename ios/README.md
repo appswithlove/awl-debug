@@ -1,15 +1,33 @@
-DebugTool
+# DebugTool
 
 DebugTool is in-house tool developed for easier app debugging in development process.
 Main functionality is to follow network traffic that the app makes during usage.
 
+### Relevant Links
 
-Installation
-Add DebugTool as Framework to project
+- Issue Tracker: <placeholder>
+- Documentation: <placeholder>
+- UI Design: <placeholder>
+- Google Drive: <placeholder>
+- Slack Channel: <placeholder>
+- 1Password Folder Name: <placeholder>
 
+# Technical Requirements
 
-Usage
-1. add DebugTool to App.swift as ViewModifier
+- Target Platforms: iOS 15.0+
+
+## Noteworthy technical decisions/constraints
+<placeholder>
+
+# Getting started
+
+## Prerequisites
+*Specify any prerequisites that developers should have installed or set up before working with the project (e.g., Bundler, CocoaPods, etc.).*
+
+## Installation
+1. add DebugTool as Framework to project
+
+2. add DebugTool to App.swift as ViewModifier
 
 import SwiftUI
 
@@ -25,8 +43,7 @@ struct MyApp: App {
     }
 }
 
-
-2. add DebugTool as singleton to code where requests are made and track them using "createNetworkLog()" method
+3. add DebugTool as singleton to code where requests are made and track them using "createNetworkLog()" method
 
 import DebugTool
 
@@ -36,9 +53,9 @@ struct BaseLoader: Loader {
     networkLogsService.createNetworkLog(method: method.rawValue, url: urlString)
 }
 
-3. open DebugTool inside app by clicking 10 times on HomeScreen View
+4. open DebugTool inside app by clicking 10 times on screen
 
-
+## Usage
 Functionalities
 1. Show network logs
 User can see information about total number of logs (e.g. 24 / 100).
@@ -58,14 +75,8 @@ User can see currently used FCM pushed token
 
 
 DebugTool settings
-User can define maximal number of logs for specific report, both standard (250, 500, 750, 100)
+1. User can define maximal number of logs for specific report, both standard (250, 500, 750, 100)
 or custom (e.g. 15, 122, 800, ...)
-User can define filename for network logs. By default, tool will create file with
+2. User can define filename for network logs. By default, tool will create file with
 current timestamp (e.g. NL2023-06-21T11:37:25.txt) or user can define its own filename.
-
-Every change inside settings must be confirmed by click on toolbar button "Save and exit".
-
-
-
-
-
+3. Every change inside settings must be confirmed by click on toolbar button "Save and exit".
