@@ -19,17 +19,17 @@ public class NetworkLogsService: ObservableObject {
     @Published var customLogLimit = Constants.Defaults.defaultLogLimit
     @Published var logLimit = Constants.Defaults.defaultLogLimit
     
-    @Published var filename = Constants.Strings.unknown
+    @Published var filename = Constants.Strings.unknownValue
     @Published var useCustomFileName = false
-    var customFileName = Constants.Strings.unknown
-    var standardFileName = Constants.Strings.unknown
+    var customFileName = Constants.Strings.unknownValue
+    var standardFileName = Constants.Strings.unknownValue
     
     @Published var isShowingDeleteNetworkLogs = false
     @Published var isShowingFileExporter = false
-    @Published var document = TextDocument(text: Constants.Strings.unknown)
+    @Published var document = TextDocument(text: Constants.Strings.unknownValue)
     
     private init() {
-        print(Constants.Actions.initilize)
+        print(Constants.Logs.initilize)
         displaySettings()
         configureDebugTool()
         displaySettings()
@@ -37,7 +37,7 @@ public class NetworkLogsService: ObservableObject {
     
     // MARK: - Configuration
     private func configureDebugTool() {
-        print(Constants.Actions.configureDT)
+        print(Constants.Logs.configureDT)
         configureLogLimit()
         configureFileName()
     }
@@ -58,11 +58,12 @@ public class NetworkLogsService: ObservableObject {
     
     private func configureFileName() {
         filename = createStandardFilename()
-        UserDefaults.standard.set(filename, forKey: Constants.UserDefaults.standardFilename)
+        standardFileName = filename
+        UserDefaults.standard.set(standardFileName, forKey: Constants.UserDefaults.standardFilename)
 
         useCustomFileName = UserDefaults.standard.bool(forKey: Constants.UserDefaults.useCustomFilename)
         if useCustomFileName {
-            customFileName = UserDefaults.standard.string(forKey: Constants.UserDefaults.customFilename) ?? Constants.Strings.unknown
+            customFileName = UserDefaults.standard.string(forKey: Constants.UserDefaults.customFilename) ?? Constants.Defaults.defaultFilename
             filename = customFileName
         }
     }
@@ -70,13 +71,13 @@ public class NetworkLogsService: ObservableObject {
     private func createStandardFilename() -> String {
         let date = Date.now
         let df = DateFormatter()
-        df.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+        df.dateFormat = Constants.Date.dateFormat
         return "NL\(df.string(from: date))"
     }
     
     // MARK: - Network logs
     public func createNetworkLog(method: String, url: String) {
-        print(Constants.Actions.creatingNL)
+        print(Constants.Logs.creatingNL)
         if checkLogLimit() {
             let log = NetworkLog(id: UUID(), method: method, url: url)
             networkTraffic.append(log)
@@ -90,7 +91,7 @@ public class NetworkLogsService: ObservableObject {
     
     func loadNetworkLogs() {
         do {
-            print(Constants.Actions.loadingNL)
+            print(Constants.Logs.loadingNL)
             let data = try Data(contentsOf: url)
             networkTraffic = try JSONDecoder().decode([NetworkLog].self, from: data)
         } catch {
@@ -99,14 +100,14 @@ public class NetworkLogsService: ObservableObject {
     }
     
     func deleteNetworkLogs() {
-        print(Constants.Actions.deletingNL)
+        print(Constants.Logs.deletingNL)
         networkTraffic = []
         saveNetworkLogs()
     }
     
     private func saveNetworkLogs() {
         do {
-            print(Constants.Actions.savingNL)
+            print(Constants.Logs.savingNL)
             let data = try JSONEncoder().encode(networkTraffic)
             try data.write(to: url, options: [.atomicWrite, .completeFileProtection])
         } catch {
@@ -115,7 +116,7 @@ public class NetworkLogsService: ObservableObject {
     }
     
     func exportNetworkLogs() {
-        print(Constants.Actions.exportingNL)
+        print(Constants.Logs.exportingNL)
         document.text = fetchNetworkLogsAsString()
         self.isShowingFileExporter = true
     }
@@ -133,13 +134,13 @@ public class NetworkLogsService: ObservableObject {
         useCustomLogLimit = UserDefaults.standard.bool(forKey: Constants.UserDefaults.useCustomLogLimit)
         useCustomFileName = UserDefaults.standard.bool(forKey: Constants.UserDefaults.useCustomFilename)
         customLogLimit = UserDefaults.standard.integer(forKey: Constants.UserDefaults.customLogLimit)
-        customFileName = UserDefaults.standard.string(forKey: Constants.UserDefaults.customFilename) ?? Constants.Strings.unknown
-        standardFileName = UserDefaults.standard.string(forKey: Constants.UserDefaults.standardFilename) ?? Constants.Strings.unknown
+        customFileName = UserDefaults.standard.string(forKey: Constants.UserDefaults.customFilename) ?? Constants.Defaults.defaultFilename
+        standardFileName = UserDefaults.standard.string(forKey: Constants.UserDefaults.standardFilename) ?? Constants.Defaults.defaultFilename
     }
     
     // MARK: - Settings
     func saveSettings() {
-        print(Constants.Actions.savingSettings)
+        print(Constants.Logs.savingSettings)
         
         UserDefaults.standard.set(useCustomLogLimit, forKey: Constants.UserDefaults.useCustomLogLimit)
         UserDefaults.standard.set(useCustomFileName, forKey: Constants.UserDefaults.useCustomFilename)
@@ -158,7 +159,7 @@ public class NetworkLogsService: ObservableObject {
             filename = customFileName
             UserDefaults.standard.set(customFileName, forKey: Constants.UserDefaults.customFilename)
         } else {
-            filename = UserDefaults.standard.string(forKey: Constants.UserDefaults.standardFilename) ?? Constants.Strings.unknown
+            filename = UserDefaults.standard.string(forKey: Constants.UserDefaults.standardFilename) ?? Constants.Defaults.defaultFilename
         }
         
         displaySettings()
@@ -175,11 +176,11 @@ public class NetworkLogsService: ObservableObject {
         saveNetworkLogs()
     }
 
-    func doTestCrash1() {
-        fatalError("Don't worry be happy.")
+    func simulateCrashExplicitly() {
+        fatalError(Constants.Strings.fatalErrorMsg)
     }
 
-    func doTestCrash2() {
+    func simulateCrashImplicitly() {
         var testArray: [Int] = []
         _ = testArray.removeFirst()
         _ = 1 / testArray.count
@@ -187,13 +188,16 @@ public class NetworkLogsService: ObservableObject {
 
     // MARK: - Helpers
     func displaySettings() {
-        print("DT - Url: \(url)")
-        print("DT - use custom filename: \(useCustomFileName)")
-        print("DT - use custom log limit: \(useCustomLogLimit)")
-        print("DT - Filename: \(filename)")
-        print("DT - Standard filename: \(standardFileName)")
-        print("DT - Custom filename: \(customFileName)")
-        print("DT - Log limit: \(logLimit)")
-        print("DT - Custom log limit: \(customLogLimit)")
+        print("-----------------------------------------------")
+        print("Url: \(url.lastPathComponent)")
+        print("Use custom log limit: \(useCustomLogLimit)")
+        print("Log limit: \(logLimit)")
+        print("Standard log limit: \(standardLogLimit)")
+        print("Custom log limit: \(customLogLimit)")
+        print("Use custom filename: \(useCustomFileName)")
+        print("Filename: \(filename)")
+        print("Standard filename: \(standardFileName)")
+        print("Custom filename: \(customFileName)")
+        print("-----------------------------------------------")
     }
 }

@@ -12,7 +12,7 @@ public struct DebugView: View {
     @StateObject private var networkLogsService = NetworkLogsService.shared
     @Environment(\.dismiss) var dismiss
     
-    private var fcmToken: String = "unknown token"
+    private var fcmToken: String = Constants.Strings.unknownValue
     
     public init(fcmToken: String) {
         self.fcmToken = fcmToken
@@ -27,14 +27,14 @@ public struct DebugView: View {
                 SettingsView()
             }
             .navigationBarTitleDisplayMode(.inline)
-            .navigationTitle("Debug Tool")
+            .navigationTitle(Constants.Strings.appName)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
                         networkLogsService.saveSettings()
                         networkLogsService.areSettingsChanged = true
                     } label: {
-                        Text("Save and exit")
+                        Text(Constants.Toolbar.saveAndExit)
                     }
                 }
             }
@@ -63,28 +63,28 @@ public struct DebugView: View {
             NavigationLink {
                 LogsView()
             } label: {
-                Text("Show network logs")
+                Text(Constants.Actions.showNetworkLogs)
             }
             Button {
                 networkLogsService.isShowingDeleteNetworkLogs = true
             } label: {
                 HStack {
-                    Text("Clear network logs")
+                    Text(Constants.Actions.clearNetworkLogs)
                     Spacer()
-                    Image(systemName: "trash")
+                    Image(systemName: Constants.Image.clear)
                 }
             }
             Button {
                 networkLogsService.exportNetworkLogs()
             } label: {
                 HStack {
-                    Text("Export network logs")
+                    Text(Constants.Actions.exportNetworkLogs)
                     Spacer()
-                    Image(systemName: "square.and.arrow.up")
+                    Image(systemName: Constants.Image.export)
                 }
             }
         } header: {
-            Text("Logs")
+            Text(Constants.Headers.logs)
         }
         .alert(Constants.Alert.deleteNLTitle, isPresented: $networkLogsService.isShowingDeleteNetworkLogs) {
             Button(Constants.Alert.btnCancel, role: .cancel) {}
@@ -101,58 +101,58 @@ public struct DebugView: View {
         Section {
             Text("\(fcmToken)")
         } header: {
-            Text("FCM push token")
+            Text(Constants.Headers.fcm)
         }
     }
     
     @ViewBuilder private func FirebaseView() -> some View {
         Section {
             Button {
-                networkLogsService.doTestCrash1()
+                networkLogsService.simulateCrashExplicitly()
             } label: {
                 HStack {
-                    Text("Simulate crash")
-                    Text("- explicit fatal error")
+                    Text(Constants.Actions.simulateCrash)
+                    Text(Constants.Actions.explicitCrash)
                         .font(.caption)
                     Spacer()
-                    Image(systemName: "pip.remove")
+                    Image(systemName: Constants.Image.crash)
                 }
             }
             Button {
-                networkLogsService.doTestCrash2()
+                networkLogsService.simulateCrashImplicitly()
             } label: {
                 HStack {
-                    Text("Simulate crash")
-                    Text("- implicit fatal error")
+                    Text(Constants.Actions.simulateCrash)
+                    Text(Constants.Actions.implicitCrash)
                         .font(.caption)
                     Spacer()
-                    Image(systemName: "pip.remove")
+                    Image(systemName: Constants.Image.crash)
                 }
             }
         } header: {
-            Text("Firebase actions")
+            Text(Constants.Headers.firebaseActions)
         }
     }
     
     @ViewBuilder private func SettingsView() -> some View {
         Section {
-            Picker("Number of logs per session", selection: $networkLogsService.standardLogLimit) {
-                ForEach(Constants.Values.numberOfLogs, id: \.self) {
+            Picker(Constants.Settings.standardLogLimit, selection: $networkLogsService.standardLogLimit) {
+                ForEach(Constants.Defaults.defaultNumberOfLogs, id: \.self) {
                     Text("\($0)")
                 }
             }
             .disabled(networkLogsService.useCustomLogLimit)
-            Toggle("Custom number of network logs", isOn: $networkLogsService.useCustomLogLimit)
+            Toggle(Constants.Settings.customLogLimit, isOn: $networkLogsService.useCustomLogLimit)
             if networkLogsService.useCustomLogLimit {
-                TextField("750", value: $networkLogsService.customLogLimit, format: .number)
+                TextField("\(Constants.Defaults.defaultLogLimit)", value: $networkLogsService.customLogLimit, format: .number)
                     .keyboardType(.numberPad)
             }
-            Toggle("Custom file name for network logs", isOn: $networkLogsService.useCustomFileName)
+            Toggle(Constants.Settings.customFileName, isOn: $networkLogsService.useCustomFileName)
             if networkLogsService.useCustomFileName {
-                TextField("NetworkLogs", text: $networkLogsService.customFileName)
+                TextField(Constants.Defaults.defaultFilename, text: $networkLogsService.customFileName)
             }
         } header: {
-            Text("Settings")
+            Text(Constants.Headers.settings)
         }
     }
 }

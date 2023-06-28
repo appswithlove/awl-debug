@@ -10,7 +10,7 @@ import SwiftUI
 
 public struct LogsView: View {
     @EnvironmentObject private var networkLogsService: NetworkLogsService
-    @State private var searchText = ""
+    @State private var searchText = Constants.Strings.emptyString
     
     public init() {}
     
@@ -36,7 +36,7 @@ public struct LogsView: View {
                 }
             }
             .listStyle(.grouped)
-            .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search logs")
+            .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: Constants.Strings.searchLogs)
             .autocorrectionDisabled(true)
             .textInputAutocapitalization(.never)
         }
