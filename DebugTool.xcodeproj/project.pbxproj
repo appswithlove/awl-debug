@@ -9,7 +9,6 @@
 /* Begin PBXBuildFile section */
 		CB03DD9B2A38956C00D82AE1 /* NetworkLogsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB03DD9A2A38956C00D82AE1 /* NetworkLogsService.swift */; };
 		CB277A9B2A432683007D16BE /* DebugToolViewModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB277A9A2A432683007D16BE /* DebugToolViewModifier.swift */; };
-		CB42C3512A3B3E1C007AF233 /* String.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB42C3502A3B3E1C007AF233 /* String.swift */; };
 		CB6406582A3C584A00EE32FD /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB6406572A3C584A00EE32FD /* Constants.swift */; };
 		CB6AC4A72A4037E30084496A /* TextDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB6AC4A62A4037E30084496A /* TextDocument.swift */; };
 		CBC425972A3842640024376A /* DebugTool.docc in Sources */ = {isa = PBXBuildFile; fileRef = CBC425962A3842640024376A /* DebugTool.docc */; };
@@ -35,7 +34,6 @@
 /* Begin PBXFileReference section */
 		CB03DD9A2A38956C00D82AE1 /* NetworkLogsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkLogsService.swift; sourceTree = "<group>"; };
 		CB277A9A2A432683007D16BE /* DebugToolViewModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugToolViewModifier.swift; sourceTree = "<group>"; };
-		CB42C3502A3B3E1C007AF233 /* String.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = String.swift; sourceTree = "<group>"; };
 		CB6406572A3C584A00EE32FD /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
 		CB6AC4A62A4037E30084496A /* TextDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextDocument.swift; sourceTree = "<group>"; };
 		CBC425922A3842640024376A /* DebugTool.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = DebugTool.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -87,9 +85,9 @@
 		CB6406562A3C583C00EE32FD /* Common */ = {
 			isa = PBXGroup;
 			children = (
-				CB277A992A432661007D16BE /* ViewModifiers */,
 				CB6406572A3C584A00EE32FD /* Constants.swift */,
 				CB6AC4A62A4037E30084496A /* TextDocument.swift */,
+				CB277A992A432661007D16BE /* ViewModifiers */,
 			);
 			path = Common;
 			sourceTree = "<group>";
@@ -155,7 +153,6 @@
 			isa = PBXGroup;
 			children = (
 				CBC425B72A3845400024376A /* FileManager.swift */,
-				CB42C3502A3B3E1C007AF233 /* String.swift */,
 			);
 			path = Extensions;
 			sourceTree = "<group>";
@@ -275,7 +272,6 @@
 				CB277A9B2A432683007D16BE /* DebugToolViewModifier.swift in Sources */,
 				CBC425B12A3844740024376A /* LogsView.swift in Sources */,
 				CB6AC4A72A4037E30084496A /* TextDocument.swift in Sources */,
-				CB42C3512A3B3E1C007AF233 /* String.swift in Sources */,
 				CBC425B82A3845400024376A /* FileManager.swift in Sources */,
 				CBC425972A3842640024376A /* DebugTool.docc in Sources */,
 				CB6406582A3C584A00EE32FD /* Constants.swift in Sources */,
