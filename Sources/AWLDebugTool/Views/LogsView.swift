@@ -9,7 +9,7 @@
 import SwiftUI
 
 public struct LogsView: View {
-    @EnvironmentObject private var networkLogsService: NetworkLogsService
+    @EnvironmentObject private var networkLogsService: AWLDebugTool
     @State private var searchText = Constants.Strings.emptyString
     
     public init() {}

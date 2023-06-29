@@ -9,7 +9,7 @@
 import SwiftUI
 
 public struct DebugView: View {
-    @StateObject private var networkLogsService = NetworkLogsService.shared
+    @StateObject private var networkLogsService = AWLDebugTool.shared
     @Environment(\.dismiss) var dismiss
     
     private var fcmToken: String = Constants.Strings.unknownValue
