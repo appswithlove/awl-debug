@@ -15,6 +15,7 @@ Main functionality is to follow network traffic that the app makes during usage.
 2. add DebugTool to App.swift as ViewModifier
 
 ```
+import DebugTool
 import SwiftUI
 
 @main
@@ -57,7 +58,7 @@ struct BaseLoader: Loader {
 3. Export network logs
 - user can export network logs into text file on their local device or any folder in iCloud.
 
-4. Simualte Firebase crash
+4. Simulate Firebase crash
 - user can simulate crash to check if firebase integration works.
 
 5. Display FCM push token
