@@ -72,15 +72,22 @@ public class AWLDebugTool: ObservableObject {
     private func createStandardFilename() -> String {
         let date = Date.now
         let df = DateFormatter()
-        df.dateFormat = Constants.Date.dateFormat
+        df.dateFormat = Constants.Date.dateFormatPrimary
         return "NL\(df.string(from: date))"
     }
     
+    private func createDateAsString() -> String {
+        let date = Date.now
+        let df = DateFormatter()
+        df.dateFormat = Constants.Date.dateFormatSecondary
+        return "\(df.string(from: date))"
+    }
+
     // MARK: - Network logs
     public func createNetworkLog(method: String, url: String) {
         print(Constants.Logs.creatingNL)
         if checkLogLimit() {
-            let log = NetworkLog(id: UUID(), method: method, url: url)
+            let log = NetworkLog(id: UUID(), method: method, url: url, date: createDateAsString())
             networkTraffic.append(log)
             saveNetworkLogs()
         }

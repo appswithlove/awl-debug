@@ -24,7 +24,8 @@ struct Constants {
     }
     
     struct Date {
-        static let dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+        static let dateFormatPrimary = "yyyy-MM-dd'T'HH:mm:ss"
+        static let dateFormatSecondary = "yyyy-MM-dd HH:mm:ss.SSS"
     }
 
     struct UserDefaults {

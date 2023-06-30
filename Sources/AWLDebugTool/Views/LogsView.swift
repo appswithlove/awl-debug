@@ -29,10 +29,22 @@ public struct LogsView: View {
             Text("Number of requests: \(filteredLogs.count) / \(networkLogsService.logLimit)")
                 .padding(.horizontal)
                 .padding(.bottom, 8)
+                .font(.callout)
             List(filteredLogs) { log in
-                HStack {
-                    Text(log.method)
-                    Text(log.url)
+                VStack(alignment: .leading) {
+                    HStack {
+                        Text("\(log.date)")
+                            .font(.caption2)
+                            .foregroundColor(.accentColor)
+                        Spacer()
+                    }
+                    HStack {
+                        Text(log.method)
+                        Text(log.url)
+                    }
+                    .font(.callout)
+                    .foregroundColor(.primary)
+                    .padding(.vertical, 2)
                 }
             }
             .listStyle(.grouped)
