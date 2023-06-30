@@ -32,6 +32,7 @@ public class AWLDebugTool: ObservableObject {
     // MARK: - Configuration
     private func configureDebugTool() {
         print(Constants.Logs.configureDT)
+        deleteNetworkLogs()
         configureLogLimit()
         configureFileName()
     }
