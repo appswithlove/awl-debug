@@ -11,7 +11,7 @@ Main functionality is to follow network traffic that the app makes during usage.
 
 ## Installation
 1. add AWLDebugTool as Swift package to project
-link: https://gitlab.appswithlove.net/ios-infra/awldebugtool
+link: https://gitlab.appswithlove.net/ios-infra/awldebugtool <br>
 path: Xcode -> File -> Add Packages... -> "Search or Enter Package URL"
 
 2. add AWLDebugTool to App.swift as ViewModifier
