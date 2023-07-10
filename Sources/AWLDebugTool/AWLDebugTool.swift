@@ -6,6 +6,8 @@ public class AWLDebugTool: ObservableObject {
     public static let shared = AWLDebugTool()
     private var url: URL = FileManager.documentsDirectory.appendingPathExtension(Constants.Defaults.defaultUrlFilename)
     @Published var networkTraffic: [NetworkLog] = []
+    @Published var isTrackingNetworkLogs = true
+    @Published var trackNetworkLogs = true
     
     @Published var areSettingsChanged = false
     @Published var standardLogLimit = Constants.Defaults.defaultLogLimit
@@ -35,6 +37,7 @@ public class AWLDebugTool: ObservableObject {
         deleteNetworkLogs()
         configureLogLimit()
         configureFileName()
+        configureTracking()
     }
     
     private func configureLogLimit() {
@@ -69,6 +72,19 @@ public class AWLDebugTool: ObservableObject {
         }
     }
     
+    private func configureTracking() {
+        let userDefautls = UserDefaults.standard
+
+        if userDefautls.value(forKey: Constants.UserDefaults.trackNetworkLogs) == nil {
+            trackNetworkLogs = true
+            isTrackingNetworkLogs = trackNetworkLogs
+            UserDefaults.standard.set(trackNetworkLogs, forKey: Constants.UserDefaults.trackNetworkLogs)
+        } else {
+            trackNetworkLogs = UserDefaults.standard.bool(forKey: Constants.UserDefaults.trackNetworkLogs)
+            isTrackingNetworkLogs = trackNetworkLogs
+        }
+    }
+
     private func createStandardFilename() -> String {
         let date = Date.now
         let df = DateFormatter()
@@ -86,7 +102,7 @@ public class AWLDebugTool: ObservableObject {
     // MARK: - Network logs
     public func createNetworkLog(method: String, url: String) {
         print(Constants.Logs.creatingNL)
-        if checkLogLimit() {
+        if isTrackingNetworkLogs && checkLogLimit() {
             let log = NetworkLog(id: UUID(), method: method, url: url, date: createDateAsString())
             networkTraffic.append(log)
             saveNetworkLogs()
@@ -139,6 +155,7 @@ public class AWLDebugTool: ObservableObject {
     }
     
     func refreshData() {
+        trackNetworkLogs = UserDefaults.standard.bool(forKey: Constants.UserDefaults.trackNetworkLogs)
         useCustomLogLimit = UserDefaults.standard.bool(forKey: Constants.UserDefaults.useCustomLogLimit)
         useCustomFileName = UserDefaults.standard.bool(forKey: Constants.UserDefaults.useCustomFilename)
         customLogLimit = UserDefaults.standard.integer(forKey: Constants.UserDefaults.customLogLimit)
@@ -153,6 +170,9 @@ public class AWLDebugTool: ObservableObject {
         UserDefaults.standard.set(useCustomLogLimit, forKey: Constants.UserDefaults.useCustomLogLimit)
         UserDefaults.standard.set(useCustomFileName, forKey: Constants.UserDefaults.useCustomFilename)
         
+        UserDefaults.standard.set(trackNetworkLogs, forKey: Constants.UserDefaults.trackNetworkLogs)
+        isTrackingNetworkLogs = trackNetworkLogs
+
         if useCustomLogLimit {
             UserDefaults.standard.set(customLogLimit, forKey: Constants.UserDefaults.customLogLimit)
             logLimit = customLogLimit

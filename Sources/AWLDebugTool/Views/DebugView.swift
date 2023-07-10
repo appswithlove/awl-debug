@@ -60,6 +60,7 @@ public struct DebugView: View {
     
     @ViewBuilder private func LogOptionsView() -> some View {
         Section {
+            StatusBar()
             NavigationLink {
                 LogsView()
             } label: {
@@ -136,6 +137,7 @@ public struct DebugView: View {
     
     @ViewBuilder private func SettingsView() -> some View {
         Section {
+            Toggle(Constants.Strings.tracking, isOn: $networkLogsService.trackNetworkLogs)
             Picker(Constants.Settings.standardLogLimit, selection: $networkLogsService.standardLogLimit) {
                 ForEach(Constants.Defaults.defaultNumberOfLogs, id: \.self) {
                     Text("\($0)")
@@ -155,10 +157,24 @@ public struct DebugView: View {
             Text(Constants.Headers.settings)
         }
     }
+
+    @ViewBuilder private func StatusBar() -> some View {
+        Label {
+            Text(networkLogsService.isTrackingNetworkLogs ? Constants.Strings.stopTracking : Constants.Strings.startTracking)
+                .foregroundColor(.secondary)
+        } icon: {
+            Button {
+                networkLogsService.isTrackingNetworkLogs.toggle()
+            } label: {
+                Image(systemName:networkLogsService.isTrackingNetworkLogs ? Constants.Image.pause : Constants.Image.play)
+                    .foregroundColor(networkLogsService.isTrackingNetworkLogs ? .red : .green)
+            }
+        }
+    }
 }
 
 struct DebugView_Previews: PreviewProvider {
     static var previews: some View {
-        DebugView(fcmToken: "qwert1234")
+        DebugView(fcmToken: Constants.Strings.testFcmToken)
     }
 }

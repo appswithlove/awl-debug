@@ -19,8 +19,12 @@ struct Constants {
         static let appName = "Debug Tool"
         static let unknownValue = "n/a"
         static let emptyString = ""
+        static let testFcmToken = "qwert1234"
         static let fatalErrorMsg = "Don't worry be happy."
         static let searchLogs = "Search logs"
+        static let tracking = "Track network logs"
+        static let stopTracking = "stop tracking network logs"
+        static let startTracking = "start tracking network logs"
     }
     
     struct Date {
@@ -29,6 +33,7 @@ struct Constants {
     }
 
     struct UserDefaults {
+        static let trackNetworkLogs = "trackNetworkLogs"
         static let useCustomLogLimit = "useCustomLogLimit"
         static let customLogLimit = "customLogLimit"
         static let standardLogLimit = "standardLogLimit"
@@ -65,6 +70,8 @@ struct Constants {
         static let clear = "trash"
         static let export = "square.and.arrow.up"
         static let crash = "pip.remove"
+        static let play = "play.fill"
+        static let pause = "pause.fill"
     }
 
     struct Settings {

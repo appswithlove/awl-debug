@@ -1,7 +1,7 @@
 # AWLDebugTool
 
-AWLDebugTool is in-house tool developed for easier app debugging in development process.
-Main functionality is to follow network traffic that the app makes during usage.
+AWLDebugTool is in-house tool developed for easier app debugging in development process.<br>
+Main functionality is to follow network traffic that the app makes during usage.<br>
 
 # Technical Requirements
 
@@ -22,12 +22,12 @@ import SwiftUI
 
 @main
 struct MyApp: App {
-    @InjectedObject private var userNotificationsService: UserNotificationService
+    @InjectedObject private var userNotificationService: UserNotificationService
 
     var body: some Scene {
         WindowGroup {
             ContentView()
-              .includeDebugTool(fcmToken: userNotificationsService.fcmToken ?? "")
+              .includeDebugTool(fcmToken: userNotificationService.fcmToken ?? "")
         }
     }
 }
@@ -50,26 +50,30 @@ struct BaseLoader: Loader {
 
 ## Usage
 <b>Functionalities</b>
-1. Show network logs
+1. Start/stop network logs recording
+- user can record network logs when it is appropriate
+
+2. Show network logs
 - user can see information about total number of logs (e.g. 24 / 100).
 - user can see network logs in real time and filter them by both components: method or url.
 
-2. Delete network logs
+3. Delete network logs
 - user can delete network logs recorded until that moment.
 
-3. Export network logs
+4. Export network logs
 - user can export network logs into text file on their local device or any folder in iCloud.
 
-4. Simulate crash
+5. Simulate crash
 - user can simulate crash to check if firebase integration works.
 
-5. Display FCM push token
+6. Display FCM push token
 - user can see currently used FCM pushed token.
 
 
 <b>AWLDebugTool settings</b>
-1. User can define maximal number of logs for specific report, both standard (250, 500, 750, 100)
+1. User can define to track network logs or not
+2. User can define maximal number of logs for specific report, both standard (250, 500, 750, 100)
 or custom (e.g. 15, 122, 800, ...)
-2. User can define filename for network logs. By default, tool will create file with
+3. User can define filename for network logs. By default, tool will create file with
 current timestamp (e.g. NL2023-06-21T11:37:25.txt) or user can define its own filename.
-3. Every change inside settings must be confirmed by click on toolbar button "Save and exit".
+4. Every change inside settings must be confirmed by click on toolbar button "Save and exit".
