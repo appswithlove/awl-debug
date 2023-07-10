@@ -2,9 +2,8 @@ import Foundation
 import SwiftUI
 
 public class AWLDebugTool: ObservableObject {
-    
     public static let shared = AWLDebugTool()
-    private var url: URL = FileManager.documentsDirectory.appendingPathExtension(Constants.Defaults.defaultUrlFilename)
+
     @Published var networkTraffic: [NetworkLog] = []
     @Published var isTrackingNetworkLogs = true
     @Published var trackNetworkLogs = true
@@ -25,16 +24,11 @@ public class AWLDebugTool: ObservableObject {
     @Published var document = TextDocument(text: Constants.Strings.unknownValue)
     
     private init() {
-        print(Constants.Logs.initilize)
-        displaySettings()
         configureDebugTool()
-        displaySettings()
     }
     
     // MARK: - Configuration
     private func configureDebugTool() {
-        print(Constants.Logs.configureDT)
-        deleteNetworkLogs()
         configureLogLimit()
         configureFileName()
         configureTracking()
@@ -101,46 +95,21 @@ public class AWLDebugTool: ObservableObject {
 
     // MARK: - Network logs
     public func createNetworkLog(method: String, url: String) {
-        print(Constants.Logs.creatingNL)
         if isTrackingNetworkLogs && checkLogLimit() {
             let log = NetworkLog(id: UUID(), method: method, url: url, date: createDateAsString())
             networkTraffic.append(log)
-            saveNetworkLogs()
         }
     }
     
     private func checkLogLimit() -> Bool {
         return networkTraffic.count < logLimit ? true : false
     }
-    
-    func loadNetworkLogs() {
-        do {
-            print(Constants.Logs.loadingNL)
-            let data = try Data(contentsOf: url)
-            networkTraffic = try JSONDecoder().decode([NetworkLog].self, from: data)
-        } catch {
-            networkTraffic = []
-        }
-    }
-    
+
     func deleteNetworkLogs() {
-        print(Constants.Logs.deletingNL)
         networkTraffic = []
-        saveNetworkLogs()
-    }
-    
-    private func saveNetworkLogs() {
-        do {
-            print(Constants.Logs.savingNL)
-            let data = try JSONEncoder().encode(networkTraffic)
-            try data.write(to: url, options: [.atomicWrite, .completeFileProtection])
-        } catch {
-            print(Constants.Errors.savingDataToFile)
-        }
     }
     
     func exportNetworkLogs() {
-        print(Constants.Logs.exportingNL)
         document.text = fetchNetworkLogsAsString()
         self.isShowingFileExporter = true
     }
@@ -165,8 +134,6 @@ public class AWLDebugTool: ObservableObject {
     
     // MARK: - Settings
     func saveSettings() {
-        print(Constants.Logs.savingSettings)
-        
         UserDefaults.standard.set(useCustomLogLimit, forKey: Constants.UserDefaults.useCustomLogLimit)
         UserDefaults.standard.set(useCustomFileName, forKey: Constants.UserDefaults.useCustomFilename)
         
@@ -189,8 +156,6 @@ public class AWLDebugTool: ObservableObject {
         } else {
             filename = UserDefaults.standard.string(forKey: Constants.UserDefaults.standardFilename) ?? Constants.Defaults.defaultFilename
         }
-        
-        displaySettings()
     }
     
     private func refreshNetworkTraffic() {
@@ -201,7 +166,6 @@ public class AWLDebugTool: ObservableObject {
             }
             counter -= 1
         } while (counter >= logLimit)
-        saveNetworkLogs()
     }
 
     func simulateCrashExplicitly() {
@@ -217,7 +181,6 @@ public class AWLDebugTool: ObservableObject {
     // MARK: - Helpers
     func displaySettings() {
         print("-----------------------------------------------")
-        print("Url: \(url.lastPathComponent)")
         print("Use custom log limit: \(useCustomLogLimit)")
         print("Log limit: \(logLimit)")
         print("Standard log limit: \(standardLogLimit)")

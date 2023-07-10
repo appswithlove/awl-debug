@@ -52,9 +52,6 @@ public struct LogsView: View {
             .autocorrectionDisabled(true)
             .textInputAutocapitalization(.never)
         }
-        .onAppear {
-            networkLogsService.loadNetworkLogs()
-        }
     }
 }
 
