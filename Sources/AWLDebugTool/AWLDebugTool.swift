@@ -22,7 +22,7 @@ public class AWLDebugTool: ObservableObject {
     @Published var isShowingDeleteNetworkLogs = false
     @Published var isShowingFileExporter = false
     @Published var document = TextDocument(text: Constants.Strings.unknownValue)
-    
+
     private init() {
         configureDebugTool()
     }
@@ -94,6 +94,7 @@ public class AWLDebugTool: ObservableObject {
     }
 
     // MARK: - Network logs
+    @MainActor
     public func createNetworkLog(method: String, url: String) {
         if isTrackingNetworkLogs && checkLogLimit() {
             let log = NetworkLog(id: UUID(), method: method, url: url, date: createDateAsString())
@@ -101,19 +102,23 @@ public class AWLDebugTool: ObservableObject {
         }
     }
     
+    @MainActor
     private func checkLogLimit() -> Bool {
-        return networkTraffic.count < logLimit ? true : false
+        return networkTraffic.count < logLimit
     }
 
+    @MainActor
     func deleteNetworkLogs() {
         networkTraffic = []
     }
     
+    @MainActor
     func exportNetworkLogs() {
         document.text = fetchNetworkLogsAsString()
         self.isShowingFileExporter = true
     }
     
+    @MainActor
     private func fetchNetworkLogsAsString() -> String {
         var result = ""
         for log in networkTraffic {
@@ -148,8 +153,9 @@ public class AWLDebugTool: ObservableObject {
             logLimit = standardLogLimit
         }
         
-        refreshNetworkTraffic()
-        
+        Task {
+            await refreshNetworkTraffic()
+        }
         if useCustomFileName {
             filename = customFileName
             UserDefaults.standard.set(customFileName, forKey: Constants.UserDefaults.customFilename)
@@ -158,6 +164,7 @@ public class AWLDebugTool: ObservableObject {
         }
     }
     
+    @MainActor
     private func refreshNetworkTraffic() {
         var counter = networkTraffic.count - 1
         repeat {
