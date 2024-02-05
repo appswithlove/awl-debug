@@ -98,7 +98,9 @@ public class AWLDebugTool: ObservableObject {
     public func createNetworkLog(method: String, url: String) {
         if isTrackingNetworkLogs && checkLogLimit() {
             let log = NetworkLog(id: UUID(), method: method, url: url, date: createDateAsString())
-            networkTraffic.append(log)
+            networkTrafficQueue.async {
+                networkTraffic.append(log)
+            }
         }
     }
     
@@ -121,9 +123,11 @@ public class AWLDebugTool: ObservableObject {
     @MainActor
     private func fetchNetworkLogsAsString() -> String {
         var result = ""
-        for log in networkTraffic {
-            let logAsString = "\(log.method) \(log.url)\n"
-            result += logAsString
+        networkTrafficQueue.sync {
+            for log in networkTraffic {
+                let logAsString = "\(log.method) \(log.url)\n"
+                result += logAsString
+            }
         }
         return result
     }
@@ -166,13 +170,15 @@ public class AWLDebugTool: ObservableObject {
     
     @MainActor
     private func refreshNetworkTraffic() {
-        var counter = networkTraffic.count - 1
-        repeat {
-            if counter >= logLimit {
-                networkTraffic.remove(at: counter)
-            }
-            counter -= 1
-        } while (counter >= logLimit)
+        networkTrafficQueue.sync {
+            var counter = networkTraffic.count - 1
+            repeat {
+                if counter >= logLimit {
+                    networkTraffic.remove(at: counter)
+                }
+                counter -= 1
+            } while (counter >= logLimit)
+        }
     }
 
     func simulateCrashExplicitly() {
