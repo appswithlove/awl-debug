@@ -23,6 +23,8 @@ public class AWLDebugTool: ObservableObject {
     @Published var isShowingFileExporter = false
     @Published var document = TextDocument(text: Constants.Strings.unknownValue)
     
+    private let networkTrafficQueue = DispatchQueue(label: "com.awlDebugTool.networkTrafficQueue")
+
     private init() {
         configureDebugTool()
     }
@@ -97,12 +99,18 @@ public class AWLDebugTool: ObservableObject {
     public func createNetworkLog(method: String, url: String) {
         if isTrackingNetworkLogs && checkLogLimit() {
             let log = NetworkLog(id: UUID(), method: method, url: url, date: createDateAsString())
-            networkTraffic.append(log)
+            networkTrafficQueue.async {
+                networkTraffic.append(log)
+            }
         }
     }
     
     private func checkLogLimit() -> Bool {
-        return networkTraffic.count < logLimit ? true : false
+        var isUnderLimit = false
+        networkTrafficQueue.sync {
+            isUnderLimit = networkTraffic.count < logLimit
+        }
+        return isUnderLimit
     }
 
     func deleteNetworkLogs() {
@@ -116,9 +124,11 @@ public class AWLDebugTool: ObservableObject {
     
     private func fetchNetworkLogsAsString() -> String {
         var result = ""
-        for log in networkTraffic {
-            let logAsString = "\(log.method) \(log.url)\n"
-            result += logAsString
+        networkTrafficQueue.sync {
+            for log in networkTraffic {
+                let logAsString = "\(log.method) \(log.url)\n"
+                result += logAsString
+            }
         }
         return result
     }
@@ -159,13 +169,15 @@ public class AWLDebugTool: ObservableObject {
     }
     
     private func refreshNetworkTraffic() {
-        var counter = networkTraffic.count - 1
-        repeat {
-            if counter >= logLimit {
-                networkTraffic.remove(at: counter)
-            }
-            counter -= 1
-        } while (counter >= logLimit)
+        networkTrafficQueue.sync {
+            var counter = networkTraffic.count - 1
+            repeat {
+                if counter >= logLimit {
+                    networkTraffic.remove(at: counter)
+                }
+                counter -= 1
+            } while (counter >= logLimit)
+        }
     }
 
     func simulateCrashExplicitly() {
