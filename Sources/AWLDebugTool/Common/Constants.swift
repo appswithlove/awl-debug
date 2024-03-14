@@ -9,9 +9,7 @@ import Foundation
 
 struct Constants {
     struct Defaults {
-        static let defaultUrlFilename = "NetworkLogs"
-        static let defaultFilename = "Test1"
-        static let defaultNumberOfLogs = [250, 500, 750, 1000]
+        static let defaultNumberOfLogs = [10, 50, 250, 500, defaultLogLimit, 1000]
         static let defaultLogLimit = 750
     }
     
@@ -19,35 +17,25 @@ struct Constants {
         static let appName = "Debug Tool"
         static let unknownValue = "n/a"
         static let emptyString = ""
-        static let testFcmToken = "qwert1234"
         static let fatalErrorMsg = "Don't worry be happy."
         static let searchLogs = "Search logs"
         static let tracking = "Track network logs"
+        static let trackingInfo = "Add AWLDebugTool.shared.networkLogger.start() into AppDelegate/App init() to enable this."
         static let stopTracking = "stop tracking network logs"
         static let startTracking = "start tracking network logs"
     }
     
     struct Date {
-        static let dateFormatPrimary = "yyyy-MM-dd'T'HH:mm:ss"
         static let dateFormatSecondary = "yyyy-MM-dd HH:mm:ss.SSS"
     }
 
     struct UserDefaults {
-        static let trackNetworkLogs = "trackNetworkLogs"
-        static let useCustomLogLimit = "useCustomLogLimit"
-        static let customLogLimit = "customLogLimit"
-        static let standardLogLimit = "standardLogLimit"
-        
-        static let useCustomFilename = "useCustomFilename"
-        static let customFilename = "customFilename"
-        static let standardFilename = "standardFilename"
+        private static let prefix = "AWLDebugTool_"
+        static let networkLogsLimit = prefix + "networkLogsLimit"
     }
     
-    struct Toolbar {
-        static let saveAndExit = "Save and exit"
-    }
-
     struct Headers {
+        static let btnClose = "Close"
         static let logs = "Logs"
         static let fcm = "FCM push token"
         static let firebaseActions = "Firebase actions"
@@ -55,9 +43,6 @@ struct Constants {
     }
 
     struct Alert {
-        static let saveSettingsTitle = "Settings are recorded"
-        static let saveSettingsMessage = "Restart app for proper Debug Tool behaviour using your new settings"
-
         static let deleteNLTitle = "Deleting network logs"
         static let deleteNLMessage = "Are you sure you want to delete all network logs?"
 
@@ -75,9 +60,8 @@ struct Constants {
     }
 
     struct Settings {
-        static let standardLogLimit = "Number of logs per session"
-        static let customLogLimit = "Custom number of network logs"
-        static let customFileName = "Custom file name for network logs"
+        static let logLimit = "Number of logs per session"
+        static let exportFileName = "Export file name"
     }
 
     struct Errors {

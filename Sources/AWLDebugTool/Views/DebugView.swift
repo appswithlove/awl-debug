@@ -9,10 +9,34 @@
 import SwiftUI
 
 public struct DebugView: View {
-    @StateObject private var networkLogsService = AWLDebugTool.shared
+    @ObservedObject private var debugTool = AWLDebugTool.shared
+    @ObservedObject private var networkLogger = AWLDebugTool.shared.networkLogger
+    
     @Environment(\.dismiss) var dismiss
     
     private var fcmToken: String = Constants.Strings.unknownValue
+    
+    @State private var isShowingDeleteNetworkLogs = false
+    @State private var isShowingFileExporter = false
+    
+    @State private var document = TextDocument(text: "")
+    @State private var filename: String = {
+        let date = Date.now
+        let df = DateFormatter()
+        df.dateFormat = "yyyy-MM-dd_HH.mm.ss"
+        return "NL\(df.string(from: date)).txt"
+    }()
+    
+    func fetchNetworkLogsAsString() -> String {
+        let df = DateFormatter()
+        df.dateFormat = Constants.Date.dateFormatSecondary
+        var result = ""
+        for log in networkLogger.networkTraffic {
+            let logAsString = "\(df.string(from: log.date)) \(log.method) (\(log.statusCode)) \(log.duration)ms - \(log.url)\n"
+            result += logAsString
+        }
+        return result
+    }
     
     public init(fcmToken: String) {
         self.fcmToken = fcmToken
@@ -31,23 +55,14 @@ public struct DebugView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
-                        networkLogsService.saveSettings()
-                        networkLogsService.areSettingsChanged = true
+                        dismiss()
                     } label: {
-                        Text(Constants.Toolbar.saveAndExit)
+                        Text(Constants.Headers.btnClose)
                     }
                 }
             }
         }
-        .onAppear(perform: networkLogsService.refreshData)
-        .alert(Constants.Alert.saveSettingsTitle, isPresented: $networkLogsService.areSettingsChanged) {
-            Button(Constants.Alert.btnOK) {
-                dismiss()
-            }
-        } message: {
-            Text(Constants.Alert.saveSettingsMessage)
-        }
-        .fileExporter(isPresented: $networkLogsService.isShowingFileExporter, document: networkLogsService.document, contentType: .plainText, defaultFilename: networkLogsService.filename) { result in
+        .fileExporter(isPresented: $isShowingFileExporter, document: document, contentType: .plainText, defaultFilename: filename) { result in
             switch result {
             case .success(let file):
                 print(file)
@@ -55,19 +70,17 @@ public struct DebugView: View {
                 print(error)
             }
         }
-        .environmentObject(networkLogsService)
     }
     
     @ViewBuilder private func LogOptionsView() -> some View {
         Section {
-            StatusBar()
             NavigationLink {
                 LogsView()
             } label: {
                 Text(Constants.Actions.showNetworkLogs)
             }
             Button {
-                networkLogsService.isShowingDeleteNetworkLogs = true
+                isShowingDeleteNetworkLogs = true
             } label: {
                 HStack {
                     Text(Constants.Actions.clearNetworkLogs)
@@ -75,22 +88,28 @@ public struct DebugView: View {
                     Image(systemName: Constants.Image.clear)
                 }
             }
-            Button {
-                networkLogsService.exportNetworkLogs()
-            } label: {
-                HStack {
-                    Text(Constants.Actions.exportNetworkLogs)
-                    Spacer()
-                    Image(systemName: Constants.Image.export)
+            
+            VStack {
+                Button {
+                    document.text = fetchNetworkLogsAsString()
+                    self.isShowingFileExporter = true
+                } label: {
+                    HStack {
+                        Text(Constants.Actions.exportNetworkLogs)
+                        Spacer()
+                        Image(systemName: Constants.Image.export)
+                    }
                 }
+                
+                TextField(Constants.Settings.exportFileName, text: $filename)
             }
         } header: {
             Text(Constants.Headers.logs)
         }
-        .alert(Constants.Alert.deleteNLTitle, isPresented: $networkLogsService.isShowingDeleteNetworkLogs) {
+        .alert(Constants.Alert.deleteNLTitle, isPresented: $isShowingDeleteNetworkLogs) {
             Button(Constants.Alert.btnCancel, role: .cancel) {}
             Button(Constants.Alert.btnDelete, role: .destructive) {
-                networkLogsService.deleteNetworkLogs()
+                networkLogger.deleteNetworkLogs()
             }
         } message: {
             Text(Constants.Alert.deleteNLMessage)
@@ -109,7 +128,7 @@ public struct DebugView: View {
     @ViewBuilder private func FirebaseView() -> some View {
         Section {
             Button {
-                networkLogsService.simulateCrashExplicitly()
+                debugTool.simulateCrashExplicitly()
             } label: {
                 HStack {
                     Text(Constants.Actions.simulateCrash)
@@ -120,7 +139,7 @@ public struct DebugView: View {
                 }
             }
             Button {
-                networkLogsService.simulateCrashImplicitly()
+                debugTool.simulateCrashImplicitly()
             } label: {
                 HStack {
                     Text(Constants.Actions.simulateCrash)
@@ -137,44 +156,30 @@ public struct DebugView: View {
     
     @ViewBuilder private func SettingsView() -> some View {
         Section {
-            Toggle(Constants.Strings.tracking, isOn: $networkLogsService.trackNetworkLogs)
-            Picker(Constants.Settings.standardLogLimit, selection: $networkLogsService.standardLogLimit) {
+            VStack {
+                Toggle(Constants.Strings.tracking, isOn: $networkLogger.didStart)
+                    .disabled(true)
+                
+                if networkLogger.didStart == false {
+                    Text(Constants.Strings.trackingInfo)
+                        .font(.footnote)
+                        .foregroundColor(.accentColor)
+                }
+            }
+            
+            Picker(Constants.Settings.logLimit, selection: $networkLogger.networkLogsLimit) {
                 ForEach(Constants.Defaults.defaultNumberOfLogs, id: \.self) {
                     Text("\($0)")
                 }
             }
-            .disabled(networkLogsService.useCustomLogLimit)
-            Toggle(Constants.Settings.customLogLimit, isOn: $networkLogsService.useCustomLogLimit)
-            if networkLogsService.useCustomLogLimit {
-                TextField("\(Constants.Defaults.defaultLogLimit)", value: $networkLogsService.customLogLimit, format: .number)
-                    .keyboardType(.numberPad)
-            }
-            Toggle(Constants.Settings.customFileName, isOn: $networkLogsService.useCustomFileName)
-            if networkLogsService.useCustomFileName {
-                TextField(Constants.Defaults.defaultFilename, text: $networkLogsService.customFileName)
-            }
         } header: {
             Text(Constants.Headers.settings)
-        }
-    }
-
-    @ViewBuilder private func StatusBar() -> some View {
-        Label {
-            Text(networkLogsService.isTrackingNetworkLogs ? Constants.Strings.stopTracking : Constants.Strings.startTracking)
-                .foregroundColor(.secondary)
-        } icon: {
-            Button {
-                networkLogsService.isTrackingNetworkLogs.toggle()
-            } label: {
-                Image(systemName:networkLogsService.isTrackingNetworkLogs ? Constants.Image.pause : Constants.Image.play)
-                    .foregroundColor(networkLogsService.isTrackingNetworkLogs ? .red : .green)
-            }
         }
     }
 }
 
 struct DebugView_Previews: PreviewProvider {
     static var previews: some View {
-        DebugView(fcmToken: Constants.Strings.testFcmToken)
+        DebugView(fcmToken: "qwert1234")
     }
 }

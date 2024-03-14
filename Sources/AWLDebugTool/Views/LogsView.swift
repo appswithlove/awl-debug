@@ -9,42 +9,55 @@
 import SwiftUI
 
 public struct LogsView: View {
-    @EnvironmentObject private var networkLogsService: AWLDebugTool
+    @ObservedObject private var debugTool = AWLDebugTool.shared
+    @ObservedObject private var networkLogger = AWLDebugTool.shared.networkLogger
+    
     @State private var searchText = Constants.Strings.emptyString
     
     public init() {}
     
-    var filteredLogs: [NetworkLog] {
+    private var filteredLogs: [NetworkLog] {
         if searchText.isEmpty {
-            return networkLogsService.networkTraffic
+            return networkLogger.networkTraffic
         } else {
-            return networkLogsService.networkTraffic.filter { $0.method.localizedCaseInsensitiveContains(searchText) ||
+            return networkLogger.networkTraffic.filter { $0.method.localizedCaseInsensitiveContains(searchText) ||
                 $0.url.localizedCaseInsensitiveContains(searchText)
             }
         }
     }
     
+    private let dateFormatter: DateFormatter = {
+        let df = DateFormatter()
+        df.dateFormat = Constants.Date.dateFormatSecondary
+        return df
+    }()
+    
     public var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("Number of requests: \(filteredLogs.count) / \(networkLogsService.logLimit)")
+            Text("Number of requests: \(filteredLogs.count) / \(networkLogger.networkLogsLimit)")
                 .padding(.horizontal)
                 .padding(.bottom, 8)
                 .font(.callout)
             List(filteredLogs) { log in
                 VStack(alignment: .leading) {
+                    Text(dateFormatter.string(from: log.date))
+                        .font(.caption2)
+                        .foregroundColor(.accentColor)
+                    
                     HStack {
-                        Text("\(log.date)")
-                            .font(.caption2)
-                            .foregroundColor(.accentColor)
-                        Spacer()
-                    }
-                    HStack {
-                        Text(log.method)
                         Text(log.url)
                     }
                     .font(.callout)
                     .foregroundColor(.primary)
                     .padding(.vertical, 2)
+                    
+                    HStack {
+                        Text(log.method)
+                        Text("\(log.statusCode)")
+                        Text("(\(log.duration)ms)")
+                    }
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
                 }
             }
             .listStyle(.grouped)
