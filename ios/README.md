@@ -38,7 +38,7 @@ struct MyApp: App {
             ContentView()
 #if DEBUG || STAGING
               .includeDebugTool(fcmToken: userNotificationService.fcmToken) // 2. Add view
-              // of .includeDebugTool() if you no need display fcmToken
+              // or .includeDebugTool() if you no need display fcmToken
 #endif
         }
     }
