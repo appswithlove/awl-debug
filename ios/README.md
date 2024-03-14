@@ -26,8 +26,7 @@ import AWLDebugTool
 
 @main
 struct MyApp: App {
-    @InjectedObject private var userNotificationService: UserNotificationService
-
+    
     init() {
 #if DEBUG || STAGING
         AWLDebugTool.shared.networkLogger.start() // 1. Enable logging
@@ -38,7 +37,8 @@ struct MyApp: App {
         WindowGroup {
             ContentView()
 #if DEBUG || STAGING
-              .includeDebugTool(fcmToken: userNotificationService.fcmToken ?? "") // 2. Add view
+              .includeDebugTool(fcmToken: userNotificationService.fcmToken) // 2. Add view
+              // of .includeDebugTool() if you no need display fcmToken
 #endif
         }
     }
@@ -58,4 +58,4 @@ struct MyApp: App {
 - user can simulate crash to check if firebase integration works.
 
 3. Display FCM push token
-- user can see currently used FCM pushed token.
+- user can see currently used FCM pushed token. It useful for tester to send push directly on the device.

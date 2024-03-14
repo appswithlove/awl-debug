@@ -14,7 +14,7 @@ public struct DebugView: View {
     
     @Environment(\.dismiss) var dismiss
     
-    private var fcmToken: String = Constants.Strings.unknownValue
+    private var fcmToken: String?
     
     @State private var isShowingDeleteNetworkLogs = false
     @State private var isShowingFileExporter = false
@@ -38,7 +38,7 @@ public struct DebugView: View {
         return result
     }
     
-    public init(fcmToken: String) {
+    public init(fcmToken: String?) {
         self.fcmToken = fcmToken
     }
     
@@ -119,7 +119,7 @@ public struct DebugView: View {
     
     @ViewBuilder private func FCMPushTokenView() -> some View {
         Section {
-            Text("\(fcmToken)")
+            Text("\(fcmToken ?? Constants.Strings.unknownValue)")
         } header: {
             Text(Constants.Headers.fcm)
         }
