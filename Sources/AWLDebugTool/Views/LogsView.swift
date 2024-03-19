@@ -32,6 +32,16 @@ public struct LogsView: View {
         return df
     }()
     
+    private func colorFor(statusCode: Int) -> Color {
+        switch statusCode {
+        case 200...299: return .green
+        case 300...399: return .blue
+        case 400...499: return .orange
+        case 500...599: return .red
+        default: return .purple
+        }
+    }
+    
     public var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text("Number of requests: \(filteredLogs.count) / \(networkLogger.networkLogsLimit)")
@@ -42,7 +52,7 @@ public struct LogsView: View {
                 VStack(alignment: .leading) {
                     Text(dateFormatter.string(from: log.date))
                         .font(.caption2)
-                        .foregroundColor(.accentColor)
+                        .foregroundColor(.gray)
                     
                     HStack {
                         Text(log.url)
@@ -56,8 +66,8 @@ public struct LogsView: View {
                         Text("\(log.statusCode)")
                         Text("(\(log.duration)ms)")
                     }
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
+                    .font(.callout)
+                    .foregroundColor(colorFor(statusCode: log.statusCode))
                 }
             }
             .listStyle(.grouped)
