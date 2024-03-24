@@ -1,7 +1,7 @@
 # AWLDebugTool
 
-AWLDebugTool is in-house tool developed for easier app debugging in development process.<br>
-Main functionality is to follow network traffic that the app makes during usage.<br>
+AWLDebugTool is an in-house tool developed for easier app debugging in the development process.<br>
+The main functionality is to log network traffic that the app produces during usage.<br>
 
 # Technical Requirements
 
@@ -29,7 +29,7 @@ struct MyApp: App {
     
     init() {
 #if DEBUG || STAGING
-        AWLDebugTool.shared.networkLogger.start() // 1. Enable logging
+        AWLDebugTool.start() // 1. Enable logging
 #endif
     }
 
@@ -38,7 +38,7 @@ struct MyApp: App {
             ContentView()
 #if DEBUG || STAGING
               .includeDebugTool(fcmToken: userNotificationService.fcmToken) // 2. Add view
-              // or .includeDebugTool() if you no need display fcmToken
+              // fcmToken is optional, if you do not support pushes or don't want to expose the token, you can omit it.
 #endif
         }
     }
@@ -58,4 +58,4 @@ struct MyApp: App {
 - user can simulate crash to check if firebase integration works.
 
 3. Display FCM push token
-- user can see currently used FCM pushed token. It useful for tester to send push directly on the device.
+- user can see currently used FCM pushed token. It's useful during testing to send pushes directly to the device.
