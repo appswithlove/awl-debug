@@ -9,10 +9,11 @@ import SwiftUI
 
 public struct DebugToolViewModifier: ViewModifier {
     @State private var isShowingDebugTool = false
-    var fcmToken: String = Constants.Strings.unknownValue
+    let fcmToken: String?
 
     public func body(content: Content) -> some View {
         content
+            .contentShape(Rectangle())
             .onTapGesture(count: 3) {
                 isShowingDebugTool = true
             }
@@ -23,7 +24,7 @@ public struct DebugToolViewModifier: ViewModifier {
 }
 
 extension View {
-    public func includeDebugTool(fcmToken: String) -> some View {
+    public func includeDebugTool(fcmToken: String? = nil) -> some View {
          modifier(DebugToolViewModifier(fcmToken: fcmToken))
     }
 }

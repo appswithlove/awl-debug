@@ -1,7 +1,7 @@
 # AWLDebugTool
 
-AWLDebugTool is in-house tool developed for easier app debugging in development process.<br>
-Main functionality is to follow network traffic that the app makes during usage.<br>
+AWLDebugTool is an in-house tool developed for easier app debugging in the development process.<br>
+The main functionality is to log network traffic that the app produces during usage.<br>
 
 # Technical Requirements
 
@@ -10,70 +10,52 @@ Main functionality is to follow network traffic that the app makes during usage.
 # Getting started
 
 ## Installation
-1. add AWLDebugTool as Swift package to project <br>
+1. Add AWLDebugTool as Swift package to project <br>
 link: https://gitlab.appswithlove.net/ios-infra/awldebugtool <br>
 path: Xcode -> File -> Add Packages... -> "Search or Enter Package URL" <br>
 
-2. add AWLDebugTool to App.swift as ViewModifier
+2. Update your App.swift file <br>
+IMPORTANT: avoid to publishing on PROD!
 
 ```
-import AWLDebugTool
 import SwiftUI
+
+#if DEBUG || STAGING
+import AWLDebugTool
+#endif
 
 @main
 struct MyApp: App {
-    @InjectedObject private var userNotificationService: UserNotificationService
+    
+    init() {
+#if DEBUG || STAGING
+        AWLDebugTool.start() // 1. Enable logging
+#endif
+    }
 
     var body: some Scene {
         WindowGroup {
             ContentView()
-              .includeDebugTool(fcmToken: userNotificationService.fcmToken ?? "")
+#if DEBUG || STAGING
+              .includeDebugTool(fcmToken: userNotificationService.fcmToken) // 2. Add view
+              // fcmToken is optional, if you do not support pushes or don't want to expose the token, you can omit it.
+#endif
         }
     }
 }
 ```
 
-3. add AWLDebugTool as singleton to code where requests are made and track them using "createNetworkLog()" method
-```
-import AWLDebugTool
-
-struct BaseLoader: Loader {
-
-    let networkLogsService = AWLDebugTool.shared
-
-    networkLogsService.createNetworkLog(method: method.rawValue, url: urlString)
-
-}
-```
-
-4. open AWLDebugTool inside app by clicking 10 times on screen
+3. Open AWLDebugTool inside app by clicking 3 times on screen
 
 ## Usage
 <b>Functionalities</b>
-1. Start/stop network logs recording
-- user can record network logs when it is appropriate
+1. Network logging
+- app record network logs.
+- user can see network logs in real time and filter them.
+- user can export network logs.
 
-2. Show network logs
-- user can see information about total number of logs (e.g. 24 / 100).
-- user can see network logs in real time and filter them by both components: method or url.
-
-3. Delete network logs
-- user can delete network logs recorded until that moment.
-
-4. Export network logs
-- user can export network logs into text file on their local device or any folder in iCloud.
-
-5. Simulate crash
+2. Simulate crash
 - user can simulate crash to check if firebase integration works.
 
-6. Display FCM push token
-- user can see currently used FCM pushed token.
-
-
-<b>AWLDebugTool settings</b>
-1. User can define to track network logs or not
-2. User can define maximal number of logs for specific report, both standard (250, 500, 750, 100)
-or custom (e.g. 15, 122, 800, ...)
-3. User can define filename for network logs. By default, tool will create file with
-current timestamp (e.g. NL2023-06-21T11:37:25.txt) or user can define its own filename.
-4. Every change inside settings must be confirmed by click on toolbar button "Save and exit".
+3. Display FCM push token
+- user can see currently used FCM pushed token. It's useful during testing to send pushes directly to the device.
