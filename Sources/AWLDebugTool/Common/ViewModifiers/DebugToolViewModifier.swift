@@ -13,6 +13,7 @@ public struct DebugToolViewModifier: ViewModifier {
 
     public func body(content: Content) -> some View {
         content
+            .contentShape(Rectangle())
             .onTapGesture(count: 3) {
                 isShowingDebugTool = true
             }

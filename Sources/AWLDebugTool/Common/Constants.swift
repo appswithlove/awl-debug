@@ -20,7 +20,7 @@ struct Constants {
         static let fatalErrorMsg = "Don't worry be happy."
         static let searchLogs = "Search logs"
         static let tracking = "Track network logs"
-        static let trackingInfo = "Add AWLDebugTool.shared.networkLogger.start() into AppDelegate/App init() to enable this."
+        static let trackingInfo = "Add AWLDebugTool.start() into AppDelegate/App init() to enable this."
         static let stopTracking = "stop tracking network logs"
         static let startTracking = "start tracking network logs"
     }

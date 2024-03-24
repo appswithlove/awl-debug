@@ -13,11 +13,7 @@ public class NetworkLogger: ObservableObject {
         }
     }
     
-    init() {
-        //
-    }
-    
-    public func start() {
+    func start() {
         didStart = true
         URLSessionConfiguration.setupSwizzle()
     }
@@ -48,5 +44,4 @@ public class NetworkLogger: ObservableObject {
         }
         self.networkTraffic = networkTraffic
     }
-    
 }
