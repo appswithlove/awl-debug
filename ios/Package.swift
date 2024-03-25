@@ -24,9 +24,10 @@ let package = Package(
         .target(
             name: "AWLDebugTool",
             dependencies: [],
-            path: "Sources"),
+            path: "AWLDebugTool/Sources"),
         .testTarget(
             name: "AWLDebugToolTests",
-            dependencies: ["AWLDebugTool"]),
+            dependencies: ["AWLDebugTool"],
+            path: "AWLDebugTool/Tests"),
     ]
 )
