@@ -3,11 +3,12 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 60;
+	objectVersion = 56;
 	objects = {
 
 /* Begin PBXBuildFile section */
 		0E93C8BE2BAC9EDC009B5EA3 /* AWLDebugTool in Frameworks */ = {isa = PBXBuildFile; productRef = 0E93C8BD2BAC9EDC009B5EA3 /* AWLDebugTool */; };
+		0EBDF6EE2BB30D7A00645B54 /* AWLDebugTool in Frameworks */ = {isa = PBXBuildFile; productRef = 0EBDF6ED2BB30D7A00645B54 /* AWLDebugTool */; };
 		0ED440062BAC9DD400B5D013 /* AWLDebugTool_ExampleApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0ED440052BAC9DD400B5D013 /* AWLDebugTool_ExampleApp.swift */; };
 		0ED440082BAC9DD400B5D013 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0ED440072BAC9DD400B5D013 /* ContentView.swift */; };
 		0ED4400A2BAC9DD500B5D013 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0ED440092BAC9DD500B5D013 /* Assets.xcassets */; };
@@ -30,6 +31,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0EBDF6EE2BB30D7A00645B54 /* AWLDebugTool in Frameworks */,
 				0ED440172BAC9E7700B5D013 /* AWLDebugTool in Frameworks */,
 				0E93C8BE2BAC9EDC009B5EA3 /* AWLDebugTool in Frameworks */,
 			);
@@ -94,6 +96,7 @@
 			packageProductDependencies = (
 				0ED440162BAC9E7700B5D013 /* AWLDebugTool */,
 				0E93C8BD2BAC9EDC009B5EA3 /* AWLDebugTool */,
+				0EBDF6ED2BB30D7A00645B54 /* AWLDebugTool */,
 			);
 			productName = "AWLDebugTool-Example";
 			productReference = 0ED440022BAC9DD400B5D013 /* AWLDebugTool-Example.app */;
@@ -124,7 +127,7 @@
 			);
 			mainGroup = 0ED43FF92BAC9DD400B5D013;
 			packageReferences = (
-				0E93C8BC2BAC9EDC009B5EA3 /* XCLocalSwiftPackageReference "../AWLDebugTool" */,
+				0EBDF6EC2BB30D7A00645B54 /* XCRemoteSwiftPackageReference "awldebugtool" */,
 			);
 			productRefGroup = 0ED440032BAC9DD400B5D013 /* Products */;
 			projectDirPath = "";
@@ -375,16 +378,25 @@
 		};
 /* End XCConfigurationList section */
 
-/* Begin XCLocalSwiftPackageReference section */
-		0E93C8BC2BAC9EDC009B5EA3 /* XCLocalSwiftPackageReference "../AWLDebugTool" */ = {
-			isa = XCLocalSwiftPackageReference;
-			relativePath = ../AWLDebugTool;
+/* Begin XCRemoteSwiftPackageReference section */
+		0EBDF6EC2BB30D7A00645B54 /* XCRemoteSwiftPackageReference "awldebugtool" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "ssh://git@gitlab.appswithlove.net:22222/ios-infra/awldebugtool.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.1;
+			};
 		};
-/* End XCLocalSwiftPackageReference section */
+/* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
 		0E93C8BD2BAC9EDC009B5EA3 /* AWLDebugTool */ = {
 			isa = XCSwiftPackageProductDependency;
+			productName = AWLDebugTool;
+		};
+		0EBDF6ED2BB30D7A00645B54 /* AWLDebugTool */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0EBDF6EC2BB30D7A00645B54 /* XCRemoteSwiftPackageReference "awldebugtool" */;
 			productName = AWLDebugTool;
 		};
 		0ED440162BAC9E7700B5D013 /* AWLDebugTool */ = {

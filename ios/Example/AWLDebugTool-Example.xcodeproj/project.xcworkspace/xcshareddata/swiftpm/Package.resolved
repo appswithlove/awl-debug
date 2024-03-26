@@ -1,0 +1,15 @@
+{
+  "originHash" : "90e2276d0b2d1214f5eee4a7a5f335ef12d74d037289c75066a80829daa084c7",
+  "pins" : [
+    {
+      "identity" : "awldebugtool",
+      "kind" : "remoteSourceControl",
+      "location" : "ssh://git@gitlab.appswithlove.net:22222/ios-infra/awldebugtool.git",
+      "state" : {
+        "revision" : "003a1f617b08bda2cfc68276aa0cea9119574896",
+        "version" : "1.0.1"
+      }
+    }
+  ],
+  "version" : 3
+}
