@@ -27,6 +27,10 @@ public struct DebugView: View {
         return "NL\(df.string(from: date)).txt"
     }()
     
+    var isDeleteLogsButtonDisabled: Bool {
+        return networkLogger.networkTraffic.isEmpty ? true : false
+    }
+    
     func fetchNetworkLogsAsString() -> String {
         let df = DateFormatter()
         df.dateFormat = Constants.Date.dateFormatSecondary
@@ -86,8 +90,11 @@ public struct DebugView: View {
                     Text(Constants.Actions.clearNetworkLogs)
                     Spacer()
                     Image(systemName: Constants.Image.clear)
+                        .foregroundColor(.red)
+                        .opacity(isDeleteLogsButtonDisabled ? Constants.Values.disabledBtnOpacity : Constants.Values.enabledBtnOpacity)
                 }
             }
+            .disabled(isDeleteLogsButtonDisabled)
             
             VStack {
                 Button {

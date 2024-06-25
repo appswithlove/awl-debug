@@ -90,4 +90,9 @@ struct Constants {
         static let exportingNL = "DT: exporting logs..."
         static let savingSettings = "DT: saving settings..."
     }
+    
+    struct Values {
+        static let enabledBtnOpacity: Double = 1
+        static let disabledBtnOpacity: Double = 0.44
+    }
 }

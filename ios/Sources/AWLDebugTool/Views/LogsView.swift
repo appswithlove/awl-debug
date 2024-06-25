@@ -49,12 +49,13 @@ public struct LogsView: View {
         }
     }
     
+    var isDeleteLogsButtonDisabled: Bool {
+        return networkLogger.networkTraffic.isEmpty ? true : false
+    }
+    
     public var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("Number of requests: \(filteredLogs.count) / \(networkLogger.networkLogsLimit)")
-                .padding(.horizontal)
-                .padding(.bottom, 8)
-                .font(.callout)
+            LogsOptions
             List(filteredLogs) { log in
                 VStack(alignment: .leading) {
                     Text(dateFormatter.string(from: log.date))
@@ -94,6 +95,26 @@ public struct LogsView: View {
             .autocorrectionDisabled(true)
             .textInputAutocapitalization(.never)
         }
+    }
+    
+    @ViewBuilder var LogsOptions: some View {
+        HStack(alignment: .center) {
+            Text("Number of requests: \(filteredLogs.count) / \(networkLogger.networkLogsLimit)")
+                .font(.callout)
+            
+            Spacer()
+            Button {
+                networkLogger.deleteNetworkLogs()
+            } label: {
+                Image(systemName: Constants.Image.clear)
+                    .foregroundColor(.red)
+                    .opacity(isDeleteLogsButtonDisabled ? Constants.Values.disabledBtnOpacity : Constants.Values.enabledBtnOpacity)
+            }
+            .padding(4)
+            .disabled(isDeleteLogsButtonDisabled)
+        }
+        .padding(.vertical, 6)
+        .padding(.horizontal, 16)
     }
 }
 
