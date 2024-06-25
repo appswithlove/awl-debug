@@ -3,17 +3,15 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 56;
+	objectVersion = 60;
 	objects = {
 
 /* Begin PBXBuildFile section */
-		0E93C8BE2BAC9EDC009B5EA3 /* AWLDebugTool in Frameworks */ = {isa = PBXBuildFile; productRef = 0E93C8BD2BAC9EDC009B5EA3 /* AWLDebugTool */; };
-		0EBDF6EE2BB30D7A00645B54 /* AWLDebugTool in Frameworks */ = {isa = PBXBuildFile; productRef = 0EBDF6ED2BB30D7A00645B54 /* AWLDebugTool */; };
 		0ED440062BAC9DD400B5D013 /* AWLDebugTool_ExampleApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0ED440052BAC9DD400B5D013 /* AWLDebugTool_ExampleApp.swift */; };
 		0ED440082BAC9DD400B5D013 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0ED440072BAC9DD400B5D013 /* ContentView.swift */; };
 		0ED4400A2BAC9DD500B5D013 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0ED440092BAC9DD500B5D013 /* Assets.xcassets */; };
 		0ED4400E2BAC9DD500B5D013 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0ED4400D2BAC9DD500B5D013 /* Preview Assets.xcassets */; };
-		0ED440172BAC9E7700B5D013 /* AWLDebugTool in Frameworks */ = {isa = PBXBuildFile; productRef = 0ED440162BAC9E7700B5D013 /* AWLDebugTool */; };
+		CBC466692C2ACE4200B00AE2 /* AWLDebugTool in Frameworks */ = {isa = PBXBuildFile; productRef = CBC466682C2ACE4200B00AE2 /* AWLDebugTool */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -31,9 +29,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0EBDF6EE2BB30D7A00645B54 /* AWLDebugTool in Frameworks */,
-				0ED440172BAC9E7700B5D013 /* AWLDebugTool in Frameworks */,
-				0E93C8BE2BAC9EDC009B5EA3 /* AWLDebugTool in Frameworks */,
+				CBC466692C2ACE4200B00AE2 /* AWLDebugTool in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -94,9 +90,7 @@
 			);
 			name = "AWLDebugTool-Example";
 			packageProductDependencies = (
-				0ED440162BAC9E7700B5D013 /* AWLDebugTool */,
-				0E93C8BD2BAC9EDC009B5EA3 /* AWLDebugTool */,
-				0EBDF6ED2BB30D7A00645B54 /* AWLDebugTool */,
+				CBC466682C2ACE4200B00AE2 /* AWLDebugTool */,
 			);
 			productName = "AWLDebugTool-Example";
 			productReference = 0ED440022BAC9DD400B5D013 /* AWLDebugTool-Example.app */;
@@ -127,7 +121,7 @@
 			);
 			mainGroup = 0ED43FF92BAC9DD400B5D013;
 			packageReferences = (
-				0EBDF6EC2BB30D7A00645B54 /* XCRemoteSwiftPackageReference "awldebugtool" */,
+				CBC466672C2ACE4200B00AE2 /* XCLocalSwiftPackageReference ".." */,
 			);
 			productRefGroup = 0ED440032BAC9DD400B5D013 /* Products */;
 			projectDirPath = "";
@@ -215,6 +209,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.2;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
@@ -270,6 +265,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.2;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
@@ -300,7 +296,7 @@
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.4;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.2;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.3;
@@ -339,7 +335,7 @@
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.4;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.2;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.3;
@@ -378,28 +374,15 @@
 		};
 /* End XCConfigurationList section */
 
-/* Begin XCRemoteSwiftPackageReference section */
-		0EBDF6EC2BB30D7A00645B54 /* XCRemoteSwiftPackageReference "awldebugtool" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "ssh://git@gitlab.appswithlove.net:22222/ios-infra/awldebugtool.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 1.0.1;
-			};
+/* Begin XCLocalSwiftPackageReference section */
+		CBC466672C2ACE4200B00AE2 /* XCLocalSwiftPackageReference ".." */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ..;
 		};
-/* End XCRemoteSwiftPackageReference section */
+/* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		0E93C8BD2BAC9EDC009B5EA3 /* AWLDebugTool */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = AWLDebugTool;
-		};
-		0EBDF6ED2BB30D7A00645B54 /* AWLDebugTool */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 0EBDF6EC2BB30D7A00645B54 /* XCRemoteSwiftPackageReference "awldebugtool" */;
-			productName = AWLDebugTool;
-		};
-		0ED440162BAC9E7700B5D013 /* AWLDebugTool */ = {
+		CBC466682C2ACE4200B00AE2 /* AWLDebugTool */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = AWLDebugTool;
 		};
