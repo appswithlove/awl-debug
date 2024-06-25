@@ -9,12 +9,19 @@
 import SwiftUI
 
 public struct LogsView: View {
+    @Environment(\.dismiss)
+    var dismiss
+    
     @ObservedObject private var debugTool = AWLDebugTool.shared
     @ObservedObject private var networkLogger = AWLDebugTool.shared.networkLogger
     
     @State private var searchText = Constants.Strings.emptyString
     
-    public init() {}
+    let onClose: () -> ()
+    
+    public init(onClose: @escaping () -> ()) {
+        self.onClose = onClose
+    }
     
     private var filteredLogs: [NetworkLog] {
         if searchText.isEmpty {
@@ -72,6 +79,16 @@ public struct LogsView: View {
             }
             .navigationBarTitleDisplayMode(.inline)
             .navigationTitle(Constants.Strings.logs)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        onClose()
+                        dismiss()
+                    } label: {
+                        Text(Constants.Headers.btnClose)
+                    }
+                }
+            }
             .listStyle(.grouped)
             .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: Constants.Strings.searchLogs)
             .autocorrectionDisabled(true)
@@ -83,7 +100,7 @@ public struct LogsView: View {
 struct LogsView_Previews: PreviewProvider {
     static var previews: some View {
         NavigationView {
-            LogsView()
+            LogsView(onClose: {})
         }
     }
 }

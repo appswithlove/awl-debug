@@ -75,7 +75,7 @@ public struct DebugView: View {
     @ViewBuilder private func LogOptionsView() -> some View {
         Section {
             NavigationLink {
-                LogsView()
+                LogsView(onClose: { dismiss() })
             } label: {
                 Text(Constants.Actions.showNetworkLogs)
             }
