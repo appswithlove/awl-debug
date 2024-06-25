@@ -23,6 +23,7 @@ struct Constants {
         static let trackingInfo = "Add AWLDebugTool.start() into AppDelegate/App init() to enable this."
         static let stopTracking = "stop tracking network logs"
         static let startTracking = "start tracking network logs"
+        static let logs = "Logs"
     }
     
     struct Date {

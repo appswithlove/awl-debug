@@ -70,6 +70,8 @@ public struct LogsView: View {
                     .foregroundColor(colorFor(statusCode: log.statusCode))
                 }
             }
+            .navigationBarTitleDisplayMode(.inline)
+            .navigationTitle(Constants.Strings.logs)
             .listStyle(.grouped)
             .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: Constants.Strings.searchLogs)
             .autocorrectionDisabled(true)
