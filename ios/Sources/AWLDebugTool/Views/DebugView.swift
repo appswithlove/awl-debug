@@ -179,6 +179,18 @@ public struct DebugView: View {
                     Text("\($0)")
                 }
             }
+
+            HStack {
+                Text(Constants.Settings.sortingState)
+                Picker(Constants.Settings.sortingState, selection: $networkLogger.sortingState) {
+                    ForEach(Constants.SortingState.allCases) { sortingState in
+                        Text(sortingState.rawValue)
+                            .tag(sortingState)
+                    }
+                }
+                .pickerStyle(.segmented)
+            }
+
         } header: {
             Text(Constants.Headers.settings)
         }

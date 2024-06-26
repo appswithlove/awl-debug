@@ -65,6 +65,14 @@ struct Constants {
     struct Settings {
         static let logLimit = "Number of logs per session"
         static let exportFileName = "Export file name"
+        static let sortingState = "Sort network logs"
+    }
+    
+    enum SortingState: String, CaseIterable, Identifiable {
+        case ascending = "Ascending"
+        case descending = "Descending"
+        
+        var id: String { self.rawValue }
     }
 
     struct Errors {

@@ -24,11 +24,17 @@ public struct LogsView: View {
     }
     
     private var filteredLogs: [NetworkLog] {
-        if searchText.isEmpty {
-            return networkLogger.networkTraffic
-        } else {
-            return networkLogger.networkTraffic.filter { $0.method.localizedCaseInsensitiveContains(searchText) ||
-                $0.url.localizedCaseInsensitiveContains(searchText)
+        let filtered = searchText.isEmpty ? networkLogger.networkTraffic : networkLogger.networkTraffic.filter {
+            $0.method.localizedCaseInsensitiveContains(searchText) ||
+            $0.url.localizedCaseInsensitiveContains(searchText)
+        }
+        
+        return filtered.sorted { log1, log2 in
+            switch networkLogger.sortingState {
+            case .ascending:
+                return log1.date < log2.date
+            case .descending:
+                return log1.date > log2.date
             }
         }
     }

@@ -13,6 +13,8 @@ public class NetworkLogger: ObservableObject {
         }
     }
     
+    @Published var sortingState: Constants.SortingState = .ascending
+    
     func start() {
         didStart = true
         URLSessionConfiguration.setupSwizzle()
