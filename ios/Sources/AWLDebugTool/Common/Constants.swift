@@ -24,6 +24,7 @@ struct Constants {
         static let stopTracking = "stop tracking network logs"
         static let startTracking = "start tracking network logs"
         static let logs = "Logs"
+        static let numberOfLogs = "Number of requests: "
     }
     
     struct Date {
