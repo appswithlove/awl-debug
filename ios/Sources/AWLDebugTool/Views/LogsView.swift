@@ -30,7 +30,7 @@ public struct LogsView: View {
         }
         
         return filtered.sorted { log1, log2 in
-            switch networkLogger.sortingState {
+            switch networkLogger.sortingOrder {
             case .ascending:
                 return log1.date < log2.date
             case .descending:
@@ -53,6 +53,10 @@ public struct LogsView: View {
         case 500...599: return .red
         default: return .purple
         }
+    }
+    
+    var isSortingOrderButtonDisabled: Bool {
+        return networkLogger.networkTraffic.count < 2 ? true : false
     }
     
     var isDeleteLogsButtonDisabled: Bool {
@@ -91,6 +95,7 @@ public struct LogsView: View {
         HStack(alignment: .center) {
             NumberOfRequestsText
             Spacer()
+            SortingOrderToggleButton
             RemoveAllLogsButton
         }
         .padding(.vertical, 6)
@@ -104,6 +109,16 @@ public struct LogsView: View {
                 .bold()
         }
         .font(.system(size: 12))
+    }
+    
+    @ViewBuilder var SortingOrderToggleButton: some View {
+        Button {
+            networkLogger.sortingOrder = networkLogger.sortingOrder == .ascending ? .descending : .ascending
+        } label: {
+            Image(systemName: Constants.Image.sortingOrder)
+        }
+        .padding(4)
+        .disabled(isSortingOrderButtonDisabled)
     }
     
     @ViewBuilder var RemoveAllLogsButton: some View {

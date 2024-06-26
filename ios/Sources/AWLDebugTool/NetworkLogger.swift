@@ -13,7 +13,7 @@ public class NetworkLogger: ObservableObject {
         }
     }
     
-    @Published var sortingState: Constants.SortingState = .ascending
+    @Published var sortingOrder: Constants.sortingOrder = .ascending
     
     func start() {
         didStart = true

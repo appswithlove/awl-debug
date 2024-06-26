@@ -60,15 +60,16 @@ struct Constants {
         static let crash = "pip.remove"
         static let play = "play.fill"
         static let pause = "pause.fill"
+        static let sortingOrder = "arrow.up.arrow.down"
     }
 
     struct Settings {
         static let logLimit = "Number of logs per session"
         static let exportFileName = "Export file name"
-        static let sortingState = "Sort network logs"
+        static let sortingOrder = "Sort network logs"
     }
     
-    enum SortingState: String, CaseIterable, Identifiable {
+    enum sortingOrder: String, CaseIterable, Identifiable {
         case ascending = "Ascending"
         case descending = "Descending"
         
