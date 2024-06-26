@@ -58,6 +58,27 @@ public struct LogsView: View {
             LogsOptions
             LogsList
         }
+        .overlay {
+            EmptyLogsList
+        }
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationTitle(Constants.Strings.logs)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
+                    onClose()
+                    dismiss()
+                } label: {
+                    Text(Constants.Headers.btnClose)
+                }
+            }
+        }
+    }
+    
+    @ViewBuilder var EmptyLogsList: some View {
+        if filteredLogs.isEmpty {
+            Text(Constants.Strings.emptyListOfLogs)
+        }
     }
     
     @ViewBuilder var LogsOptions: some View {
@@ -95,28 +116,16 @@ public struct LogsView: View {
         List(filteredLogs) { log in
             VStack(alignment: .leading) {
                 LogDate(date: log.date)
-                
                 LogUrl(url: log.url)
-                
                 LogInfo(method: log.method, statusCode: log.statusCode, duration: log.duration)
             }
         }
-        .listStyle(.grouped)
+        .listStyle(.plain)
         .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: Constants.Strings.searchLogs)
         .autocorrectionDisabled(true)
         .textInputAutocapitalization(.never)
-        .navigationBarTitleDisplayMode(.inline)
-        .navigationTitle(Constants.Strings.logs)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button {
-                    onClose()
-                    dismiss()
-                } label: {
-                    Text(Constants.Headers.btnClose)
-                }
-            }
-        }
+        .padding(.leading, -4)
+        .padding(.trailing, 16)
     }
     
     @ViewBuilder 
