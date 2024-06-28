@@ -68,6 +68,8 @@ struct Constants {
         static let sortingOrder = "arrow.up.arrow.down"
         static let filtersUnset = "line.3.horizontal.decrease.circle"
         static let filtersSet = "line.3.horizontal.decrease.circle.fill"
+        static let chevronRight = "chevron.right"
+        static let chevronDown = "chevron.down"
     }
     
     struct Settings {

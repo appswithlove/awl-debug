@@ -12,6 +12,16 @@ struct FilterView: View {
     @ObservedObject private var filtersStorage = FiltersStorage()
     
     @Binding var isFilterActive: Bool
+    @State private var isRequestMethodsSectionShown: Bool = true
+    @State private var isResponseCodesSectionShown: Bool = true
+    
+    private var requestMethodsSectionIcon: String {
+        return isRequestMethodsSectionShown ? Constants.Image.chevronRight : Constants.Image.chevronDown
+    }
+    
+    private var responseCodesSectionIcon: String {
+        return isResponseCodesSectionShown ? Constants.Image.chevronRight : Constants.Image.chevronDown
+    }
     
     var body: some View {
         NavigationView {
@@ -37,10 +47,15 @@ struct FilterView: View {
     
     @ViewBuilder private var RequestMethodsSection: some View {
         Section {
-            RequestMethodsList
-            RequestMethodsActions
+            if isRequestMethodsSectionShown {
+                RequestMethodsList
+                ActionButtonsSection(deselectAction: networkLogger.deselectAllMethods,
+                                     selectAction: networkLogger.selectAllMethods)
+            }
         } header: {
-            RequestMethodsHeader
+            FilterHeader(title: Constants.Headers.requestMethods,
+                         icon: requestMethodsSectionIcon,
+                         action: { isRequestMethodsSectionShown.toggle() })
         }
     }
     
@@ -62,33 +77,19 @@ struct FilterView: View {
         }
     }
     
-    @ViewBuilder private var RequestMethodsActions: some View {
-        HStack {
-            Spacer()
-            ActionButton(title: Constants.Buttons.deselectAllBtn) {
-                networkLogger.deselectAllMethods()
-            }
-            ActionButton(title: Constants.Buttons.selectAllBtn) {
-                networkLogger.selectAllMethods()
-            }
-        }
-    }
-    
-    @ViewBuilder private var RequestMethodsHeader: some View {
-        HStack {
-            Text(Constants.Headers.requestMethods)
-            // TODO: add collapsible icon
-        }
-    }
-    
     // MARK: - ResponseCodes
     
     @ViewBuilder private var ResponseCodesSection: some View {
         Section {
-            ResponseCodesList
-            ResponseCodesActions
+            if isResponseCodesSectionShown {
+                ResponseCodesList
+                ActionButtonsSection(deselectAction: networkLogger.deselectAllCodes,
+                                     selectAction: networkLogger.selectAllCodes)
+            }
         } header: {
-            ResponseCodesHeader
+            FilterHeader(title: Constants.Headers.responseCodes,
+                         icon: responseCodesSectionIcon,
+                         action: { isResponseCodesSectionShown.toggle() })
         }
     }
     
@@ -110,26 +111,35 @@ struct FilterView: View {
         }
     }
     
-    @ViewBuilder private var ResponseCodesActions: some View {
+    // MARK: - Filter Subviews
+    
+    @ViewBuilder
+    private func FilterHeader(title: String, icon: String, action: @escaping () -> Void) -> some View {
+        HStack {
+            Text(title)
+            Spacer()
+            Button {
+                action()
+            } label: {
+                Image(systemName: icon)
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private func ActionButtonsSection(deselectAction: @escaping () -> Void,
+                                      selectAction: @escaping() -> Void) -> some View {
         HStack {
             Spacer()
             ActionButton(title: Constants.Buttons.deselectAllBtn) {
-                networkLogger.deselectAllCodes()
+                deselectAction()
             }
             ActionButton(title: Constants.Buttons.selectAllBtn) {
-                networkLogger.selectAllCodes()
+                selectAction()
             }
         }
+        .padding(.vertical, 4)
     }
-    
-    @ViewBuilder private var ResponseCodesHeader: some View {
-        HStack {
-            Text(Constants.Headers.responseCodes)
-            // TODO: add collapsible icon
-        }
-    }
-    
-    // MARK: - Buttons
     
     @ViewBuilder
     private func ActionButton(title: String, action: @escaping () -> Void) -> some View {
