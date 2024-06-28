@@ -14,7 +14,18 @@ public class NetworkLogger: ObservableObject {
             UserDefaults.standard.set(networkLogsLimit, forKey: Constants.UserDefaults.networkLogsLimit)
         }
     }
-    @Published var sortingOrder: Constants.SortingOrder = .ascending
+    @Published var sortingOrder: Constants.SortingOrder = {
+        if let result = UserDefaults.standard.string(forKey: Constants.UserDefaults.networkLogsSortingOrder),
+           let sortingOrder = Constants.SortingOrder(rawValue: result) {
+            return sortingOrder
+        } else {
+            return .ascending
+        }
+    }() {
+        didSet {
+            UserDefaults.standard.set(sortingOrder.rawValue, forKey: Constants.UserDefaults.networkLogsSortingOrder)
+        }
+    }
     @Published var methods: [String: Bool] = [:]
     @Published var codes: [Int: Bool] = [:]
 

@@ -36,6 +36,7 @@ struct Constants {
     struct UserDefaults {
         private static let prefix = "AWLDebugTool_"
         static let networkLogsLimit = prefix + "networkLogsLimit"
+        static let networkLogsSortingOrder = prefix + "networkLogsSortingOrder"
     }
     
     struct Headers {
