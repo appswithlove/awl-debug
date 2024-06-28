@@ -183,7 +183,7 @@ public struct DebugView: View {
             HStack {
                 Text(Constants.Settings.sortingOrder)
                 Picker(Constants.Settings.sortingOrder, selection: $networkLogger.sortingOrder) {
-                    ForEach(Constants.sortingOrder.allCases) { sortingOrder in
+                    ForEach(Constants.SortingOrder.allCases) { sortingOrder in
                         Text(sortingOrder.rawValue)
                             .tag(sortingOrder)
                     }

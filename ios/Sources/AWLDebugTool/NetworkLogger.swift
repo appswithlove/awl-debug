@@ -2,6 +2,8 @@ import Foundation
 import SwiftUI
 
 public class NetworkLogger: ObservableObject {
+    var filtersStorage = FiltersStorage()
+    
     @Published var didStart = false
     @Published var networkTraffic: [NetworkLog] = []
     @Published var networkLogsLimit: Int = {
@@ -12,8 +14,19 @@ public class NetworkLogger: ObservableObject {
             UserDefaults.standard.set(networkLogsLimit, forKey: Constants.UserDefaults.networkLogsLimit)
         }
     }
-    
-    @Published var sortingOrder: Constants.sortingOrder = .ascending
+    @Published var sortingOrder: Constants.SortingOrder = .ascending
+    @Published var methods: [String: Bool] = [:]
+    @Published var codes: [Int: Bool] = [:]
+
+    init() {
+        for method in Constants.RequestMethod.allCases {
+            methods[method.rawValue] = filtersStorage.isMethodFilterActive(for: method.rawValue)
+        }
+        
+        for code in Constants.ResponseCodes.allCases {
+            codes[code.rawValue] = filtersStorage.isCodeFilterActive(for: code.rawValue)
+        }
+    }
     
     func start() {
         didStart = true
@@ -21,6 +34,7 @@ public class NetworkLogger: ObservableObject {
     }
     
     // MARK: - Network logs
+    
     @MainActor
     func appendNetworkLog(requestInfo: AWLDebugURLProtocol.RequestInfo) {
         let log = NetworkLog(id: UUID(),
@@ -45,5 +59,38 @@ public class NetworkLogger: ObservableObject {
             networkTraffic.removeFirst()
         }
         self.networkTraffic = networkTraffic
+    }
+    
+    // MARK: - Filters
+    
+    func deselectAllMethods() {
+        updateAllFilters(for: &methods, with: false) { value, key in
+            self.filtersStorage.updateMethodFilter(value, for: key)
+        }
+    }
+
+    func selectAllMethods() {
+        updateAllFilters(for: &methods, with: true) { value, key in
+            self.filtersStorage.updateMethodFilter(value, for: key)
+        }
+    }
+
+    func deselectAllCodes() {
+        updateAllFilters(for: &codes, with: false) { value, key in
+            self.filtersStorage.updateCodeFilter(value, for: key)
+        }
+    }
+
+    func selectAllCodes() {
+        updateAllFilters(for: &codes, with: true) { value, key in
+            self.filtersStorage.updateCodeFilter(value, for: key)
+        }
+    }
+    
+    func updateAllFilters<T>(for dictionary: inout [T: Bool], with value: Bool, updateFilter: (Bool, T) -> Void) {
+        dictionary.keys.forEach { key in
+            updateFilter(value, key)
+            dictionary[key] = value
+        }
     }
 }

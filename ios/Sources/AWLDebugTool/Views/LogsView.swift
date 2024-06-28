@@ -17,6 +17,8 @@ public struct LogsView: View {
     
     @State private var searchText = Constants.Strings.emptyString
     
+    @State private var isFilterActive = false
+    
     let onClose: () -> ()
     
     public init(onClose: @escaping () -> ()) {
@@ -24,12 +26,26 @@ public struct LogsView: View {
     }
     
     private var filteredLogs: [NetworkLog] {
-        let filtered = searchText.isEmpty ? networkLogger.networkTraffic : networkLogger.networkTraffic.filter {
+        let searched = searchText.isEmpty ? networkLogger.networkTraffic : networkLogger.networkTraffic.filter {
             $0.method.localizedCaseInsensitiveContains(searchText) ||
             $0.url.localizedCaseInsensitiveContains(searchText)
         }
         
-        return filtered.sorted { log1, log2 in
+        let filteredByRequestMethods = searched.filter { log in
+            if let isActive = networkLogger.methods[log.method] {
+                return isActive
+            }
+            return false
+        }
+        
+        let filteredByResponseCodes = filteredByRequestMethods.filter { log in
+            if let isActive = networkLogger.codes[log.statusCode] {
+                return isActive
+            }
+            return false
+        }
+        
+        return filteredByResponseCodes.sorted { log1, log2 in
             switch networkLogger.sortingOrder {
             case .ascending:
                 return log1.date < log2.date
@@ -61,6 +77,12 @@ public struct LogsView: View {
     
     var isDeleteLogsButtonDisabled: Bool {
         return networkLogger.networkTraffic.isEmpty ? true : false
+    }
+    
+    
+    var isFilterChangedByUser: String {
+        return networkLogger.methods.values.contains(false) || networkLogger.codes.values.contains(false) ?
+        Constants.Image.filtersSet : Constants.Image.filtersUnset
     }
     
     public var body: some View {
@@ -96,10 +118,14 @@ public struct LogsView: View {
             NumberOfRequestsText
             Spacer()
             SortingOrderToggleButton
+            FilterLogsButton
             RemoveAllLogsButton
         }
         .padding(.vertical, 6)
         .padding(.horizontal, 16)
+        .sheet(isPresented: $isFilterActive) {
+            FilterView(isFilterActive: $isFilterActive)
+        }
     }
     
     @ViewBuilder var NumberOfRequestsText: some View {
@@ -109,6 +135,15 @@ public struct LogsView: View {
                 .bold()
         }
         .font(.system(size: 12))
+    }
+    
+    @ViewBuilder var FilterLogsButton: some View {
+        Button {
+            isFilterActive = true
+        } label: {
+            Image(systemName: isFilterChangedByUser)
+        }
+        .padding(4)
     }
     
     @ViewBuilder var SortingOrderToggleButton: some View {
