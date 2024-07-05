@@ -14,6 +14,7 @@ struct FilterView: View {
     @Binding var isFilterActive: Bool
     @State private var isRequestMethodsSectionShown: Bool = true
     @State private var isResponseCodesSectionShown: Bool = true
+    @State private var isEndpointsSectionShown: Bool = true
     
     private var requestMethodsSectionIcon: String {
         return isRequestMethodsSectionShown ? Constants.Image.chevronRight : Constants.Image.chevronDown
@@ -23,11 +24,16 @@ struct FilterView: View {
         return isResponseCodesSectionShown ? Constants.Image.chevronRight : Constants.Image.chevronDown
     }
     
+    private var endpointsCodesSectionIcon: String {
+        return isEndpointsSectionShown ? Constants.Image.chevronRight : Constants.Image.chevronDown
+    }
+    
     var body: some View {
         NavigationView {
             Form {
                 RequestMethodsSection
                 ResponseCodesSection
+                EndpointsSection
             }
             .navigationBarTitleDisplayMode(.inline)
             .navigationTitle(Constants.Strings.filters)
@@ -106,6 +112,39 @@ struct FilterView: View {
                     Text(String(code))
                     Text(Constants.ResponseCodes[code] ?? Constants.Strings.unknownValue)
                         .font(.caption2)
+                }
+            }
+        }
+    }
+    
+    // MARK: - Endpoints
+    
+    @ViewBuilder private var EndpointsSection: some View {
+        Section {
+            if isEndpointsSectionShown {
+                EndpointsList
+                ActionButtonsSection(deselectAction: networkLogger.deselectAllEndpoints,
+                                     selectAction: networkLogger.selectAllEndpoints)
+            }
+        } header: {
+            FilterHeader(title: Constants.Headers.endpoints,
+                         icon: endpointsCodesSectionIcon,
+                         action: { isEndpointsSectionShown.toggle() })
+        }
+    }
+    
+    
+    @ViewBuilder private var EndpointsList: some View {
+        ForEach(Array(networkLogger.endpoints.keys).sorted(), id: \.self) { endpoint in
+            Toggle(isOn: Binding<Bool>(
+                get: { self.filtersStorage.isEndpointFilterActive(for: endpoint) },
+                set: { newValue in
+                    self.filtersStorage.updateEndpointFilter(newValue, for: endpoint)
+                    networkLogger.endpointsHasChanged = true
+                }
+            )) {
+                VStack(alignment: .leading) {
+                    Text(String(endpoint))
                 }
             }
         }

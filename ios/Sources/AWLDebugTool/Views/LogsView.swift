@@ -44,8 +44,15 @@ public struct LogsView: View {
             }
             return false
         }
+
+        let filteredByEndpoints = filteredByResponseCodes.filter { log in
+            if let isActive = networkLogger.endpoints[networkLogger.findFirstMatch(in: log.url, with: Constants.Regex.endpointsPattern) ?? ""] {
+                return isActive
+            }
+            return false
+        }
         
-        return filteredByResponseCodes.sorted { log1, log2 in
+        return filteredByEndpoints.sorted { log1, log2 in
             switch networkLogger.sortingOrder {
             case .ascending:
                 return log1.date < log2.date
@@ -78,7 +85,6 @@ public struct LogsView: View {
     var isDeleteLogsButtonDisabled: Bool {
         return networkLogger.networkTraffic.isEmpty ? true : false
     }
-    
     
     var isFilterChangedByUser: String {
         return networkLogger.methods.values.contains(false) || networkLogger.codes.values.contains(false) ?

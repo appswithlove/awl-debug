@@ -6,6 +6,7 @@ public class NetworkLogger: ObservableObject {
     
     @Published var didStart = false
     @Published var networkTraffic: [NetworkLog] = []
+    
     @Published var networkLogsLimit: Int = {
         let result = UserDefaults.standard.integer(forKey: Constants.UserDefaults.networkLogsLimit)
         return result <= 0 ? Constants.Defaults.defaultLogLimit : result
@@ -14,6 +15,7 @@ public class NetworkLogger: ObservableObject {
             UserDefaults.standard.set(networkLogsLimit, forKey: Constants.UserDefaults.networkLogsLimit)
         }
     }
+    
     @Published var sortingOrder: Constants.SortingOrder = {
         if let result = UserDefaults.standard.string(forKey: Constants.UserDefaults.networkLogsSortingOrder),
            let sortingOrder = Constants.SortingOrder(rawValue: result) {
@@ -28,6 +30,24 @@ public class NetworkLogger: ObservableObject {
     }
     @Published var methods: [String: Bool] = [:]
     @Published var codes: [Int: Bool] = [:]
+    @Published var endpointsHasChanged: Bool = false
+    
+    var endpoints: [String: Bool] {
+        
+        let regex = try! NSRegularExpression(pattern: Constants.Regex.endpointsPattern, options: [])
+        
+        var endpoints: [String: Bool] = [:]
+        
+        for log in networkTraffic {
+            let matches = findFirstMatch(in: log.url, with: Constants.Regex.endpointsPattern)
+            
+            if let matches = matches {
+                endpoints[matches] = filtersStorage.isEndpointFilterActive(for: matches)
+            }
+        }
+         
+        return endpoints
+    }
 
     init() {
         for method in Constants.RequestMethod.allCases {
@@ -103,5 +123,35 @@ public class NetworkLogger: ObservableObject {
             updateFilter(value, key)
             dictionary[key] = value
         }
+    }
+    
+    func deselectAllEndpoints() {
+        updateAllEndpoints(to: false)
+    }
+
+    func selectAllEndpoints() {
+        updateAllEndpoints(to: true)
+    }
+    
+    func updateAllEndpoints(to isSelected: Bool) {
+        for endpoint in endpoints {
+            self.filtersStorage.updateEndpointFilter(isSelected, for: endpoint.key)
+            self.endpointsHasChanged = true
+        }
+    }
+    
+    // MARK: - Regex
+    
+    func findFirstMatch(in text: String, with pattern: String) -> String? {
+        do {
+            let regex = try NSRegularExpression(pattern: pattern)
+            let nsString = text as NSString
+            if let match = regex.firstMatch(in: text, range: NSRange(location: 0, length: nsString.length)) {
+                return nsString.substring(with: match.range)
+            }
+        } catch let error {
+            print("Invalid regex: \(error.localizedDescription)")
+        }
+        return nil
     }
 }

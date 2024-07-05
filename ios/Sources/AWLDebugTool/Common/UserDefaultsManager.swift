@@ -8,42 +8,66 @@
 import SwiftUI
 
 class FiltersStorage: ObservableObject {
-    private let methodprefix = "method_"
-    private let codeprefix = "code_"
-
+    private let methodPrefix = "method_"
+    private let codePrefix = "code_"
+    private let endpointPrefix = "endpoint_"
+    
+    // MARK: - Methods
+    
     func getMethodKey(for method: String) -> String {
-        return methodprefix + method
+        return getKey(prefix: methodPrefix, value: method)
     }
     
     func isMethodFilterActive(for method: String) -> Bool {
-        let key = getMethodKey(for: method)
-        
-        if UserDefaults.standard.object(forKey: key) == nil {
-            UserDefaults.standard.set(true, forKey: key)
-        }
-        
-        return UserDefaults.standard.bool(forKey: key)
+        return isFilterActive(forKey: getMethodKey(for: method))
     }
     
     func updateMethodFilter(_ value: Bool, for method: String) {
-        UserDefaults.standard.set(value, forKey: getMethodKey(for: method))
+        updateFilter(value, forKey: getMethodKey(for: method))
     }
     
+    // MARK: - Codes
+    
     func getCodeKey(for code: Int) -> String {
-        return codeprefix + String(code)
+        return getKey(prefix: codePrefix, value: code)
     }
     
     func isCodeFilterActive(for code: Int) -> Bool {
-        let key = getCodeKey(for: code)
-        
-        if UserDefaults.standard.object(forKey: key) == nil {
-            UserDefaults.standard.set(true, forKey: key)
-        }
-        
-        return UserDefaults.standard.bool(forKey: key)
+        return isFilterActive(forKey: getCodeKey(for: code))
     }
     
     func updateCodeFilter(_ value: Bool, for code: Int) {
-        UserDefaults.standard.set(value, forKey: getCodeKey(for: code))
+        updateFilter(value, forKey: getCodeKey(for: code))
+    }
+    
+    // MARK: - Endpoints
+    
+    func getEndpointKey(for endpoint: String) -> String {
+        return getKey(prefix: endpointPrefix, value: endpoint)
+    }
+    
+    func isEndpointFilterActive(for endpoint: String) -> Bool {
+        return isFilterActive(forKey: getEndpointKey(for: endpoint))
+    }
+    
+    func updateEndpointFilter(_ value: Bool, for endpoint: String) {
+        updateFilter(value, forKey: getEndpointKey(for: endpoint))
+    }
+    
+    // MARK: - Helper Methods
+    
+    private func getKey(prefix: String, value: CustomStringConvertible) -> String {
+        return prefix + String(describing: value)
+    }
+    
+    private func isFilterActive(forKey key: String) -> Bool {
+        if UserDefaults.standard.object(forKey: key) == nil {
+            UserDefaults.standard.set(true, forKey: key)
+        }
+        return UserDefaults.standard.bool(forKey: key)
+    }
+    
+    private func updateFilter(_ value: Bool, forKey key: String) {
+        UserDefaults.standard.set(value, forKey: key)
     }
 }

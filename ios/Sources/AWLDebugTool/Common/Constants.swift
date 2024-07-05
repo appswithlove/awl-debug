@@ -48,6 +48,7 @@ struct Constants {
         static let settings = "Settings"
         static let requestMethods = "Request Methods"
         static let responseCodes = "Response Codes"
+        static let endpoints = "Endpoints"
     }
     
     struct Alert {
@@ -119,6 +120,10 @@ struct Constants {
     struct Buttons {
         static let deselectAllBtn: String = "DeselectAll"
         static let selectAllBtn: String = "SelectAll"
+    }
+    
+    struct Regex {
+        static let endpointsPattern = #"https?:\/\/[a-zA-Z0-9.-]+(?=\/)"#
     }
     
     // https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods
