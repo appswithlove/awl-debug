@@ -17,15 +17,15 @@ struct FilterView: View {
     @State private var isEndpointsSectionShown: Bool = true
     
     private var requestMethodsSectionIcon: String {
-        return isRequestMethodsSectionShown ? Constants.Image.chevronRight : Constants.Image.chevronDown
+        return isRequestMethodsSectionShown ? Constants.Image.chevronUp : Constants.Image.chevronDown
     }
     
     private var responseCodesSectionIcon: String {
-        return isResponseCodesSectionShown ? Constants.Image.chevronRight : Constants.Image.chevronDown
+        return isResponseCodesSectionShown ? Constants.Image.chevronUp : Constants.Image.chevronDown
     }
     
     private var endpointsCodesSectionIcon: String {
-        return isEndpointsSectionShown ? Constants.Image.chevronRight : Constants.Image.chevronDown
+        return isEndpointsSectionShown ? Constants.Image.chevronUp : Constants.Image.chevronDown
     }
     
     var body: some View {
@@ -161,6 +161,7 @@ struct FilterView: View {
                 action()
             } label: {
                 Image(systemName: icon)
+                    .padding(6)
             }
         }
     }
