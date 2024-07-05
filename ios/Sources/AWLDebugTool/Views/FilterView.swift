@@ -12,20 +12,17 @@ struct FilterView: View {
     @ObservedObject private var filtersStorage = FiltersStorage()
     
     @Binding var isFilterActive: Bool
-    @State private var isRequestMethodsSectionShown: Bool = true
-    @State private var isResponseCodesSectionShown: Bool = true
-    @State private var isEndpointsSectionShown: Bool = true
     
     private var requestMethodsSectionIcon: String {
-        return isRequestMethodsSectionShown ? Constants.Image.chevronUp : Constants.Image.chevronDown
+        return filtersStorage.isRequestMethodsContentShown ? Constants.Image.chevronUp : Constants.Image.chevronDown
     }
     
     private var responseCodesSectionIcon: String {
-        return isResponseCodesSectionShown ? Constants.Image.chevronUp : Constants.Image.chevronDown
+        return filtersStorage.isResponseCodesContentShown ? Constants.Image.chevronUp : Constants.Image.chevronDown
     }
     
     private var endpointsCodesSectionIcon: String {
-        return isEndpointsSectionShown ? Constants.Image.chevronUp : Constants.Image.chevronDown
+        return filtersStorage.isEndpointsContentShown ? Constants.Image.chevronUp : Constants.Image.chevronDown
     }
     
     var body: some View {
@@ -53,7 +50,7 @@ struct FilterView: View {
     
     @ViewBuilder private var RequestMethodsSection: some View {
         Section {
-            if isRequestMethodsSectionShown {
+            if filtersStorage.isRequestMethodsContentShown {
                 RequestMethodsList
                 ActionButtonsSection(deselectAction: networkLogger.deselectAllMethods,
                                      selectAction: networkLogger.selectAllMethods)
@@ -61,7 +58,7 @@ struct FilterView: View {
         } header: {
             FilterHeader(title: Constants.Headers.requestMethods,
                          icon: requestMethodsSectionIcon,
-                         action: { isRequestMethodsSectionShown.toggle() })
+                         action: { filtersStorage.isRequestMethodsContentShown.toggle() })
         }
     }
     
@@ -87,7 +84,7 @@ struct FilterView: View {
     
     @ViewBuilder private var ResponseCodesSection: some View {
         Section {
-            if isResponseCodesSectionShown {
+            if filtersStorage.isResponseCodesContentShown {
                 ResponseCodesList
                 ActionButtonsSection(deselectAction: networkLogger.deselectAllCodes,
                                      selectAction: networkLogger.selectAllCodes)
@@ -95,7 +92,7 @@ struct FilterView: View {
         } header: {
             FilterHeader(title: Constants.Headers.responseCodes,
                          icon: responseCodesSectionIcon,
-                         action: { isResponseCodesSectionShown.toggle() })
+                         action: { filtersStorage.isResponseCodesContentShown.toggle() })
         }
     }
     
@@ -121,7 +118,7 @@ struct FilterView: View {
     
     @ViewBuilder private var EndpointsSection: some View {
         Section {
-            if isEndpointsSectionShown {
+            if filtersStorage.isEndpointsContentShown {
                 EndpointsList
                 ActionButtonsSection(deselectAction: networkLogger.deselectAllEndpoints,
                                      selectAction: networkLogger.selectAllEndpoints)
@@ -129,7 +126,7 @@ struct FilterView: View {
         } header: {
             FilterHeader(title: Constants.Headers.endpoints,
                          icon: endpointsCodesSectionIcon,
-                         action: { isEndpointsSectionShown.toggle() })
+                         action: { filtersStorage.isEndpointsContentShown.toggle() })
         }
     }
     

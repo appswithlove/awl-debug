@@ -12,6 +12,15 @@ class FiltersStorage: ObservableObject {
     private let codePrefix = "code_"
     private let endpointPrefix = "endpoint_"
     
+    @AppStorage("isRequestMethodsContentShown")
+    var isRequestMethodsContentShown: Bool = true
+    
+    @AppStorage("isResponseCodesContentShown")
+    var isResponseCodesContentShown: Bool = true
+    
+    @AppStorage("isEndpointsContentShown")
+    var isEndpointsContentShown: Bool = true
+    
     // MARK: - Methods
     
     func getMethodKey(for method: String) -> String {
