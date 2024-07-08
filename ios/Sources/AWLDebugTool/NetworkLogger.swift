@@ -38,6 +38,17 @@ public class NetworkLogger: ObservableObject {
         }
     }
     
+    @Published var isEducationalaModeOn: Bool = {
+        if UserDefaults.standard.object(forKey: Constants.UserDefaults.networkLogsEducationalMode) == nil {
+            UserDefaults.standard.set(true, forKey: Constants.UserDefaults.networkLogsEducationalMode)
+        }
+        return UserDefaults.standard.bool(forKey: Constants.UserDefaults.networkLogsEducationalMode)
+    }() {
+        didSet {
+            UserDefaults.standard.set(isEducationalaModeOn, forKey: Constants.UserDefaults.networkLogsEducationalMode)
+        }
+    }
+    
     @Published var methodsAsStaticDict: [String: Bool] = [:]
     var methodsAsDynamicDict: [String: Bool] {
         var methods: [String: Bool] = [:]

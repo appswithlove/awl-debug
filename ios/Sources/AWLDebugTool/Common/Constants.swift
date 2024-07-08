@@ -38,6 +38,7 @@ struct Constants {
         static let networkLogsLimit = prefix + "networkLogsLimit"
         static let networkLogsSortingOrder = prefix + "networkLogsSortingOrder"
         static let networkLogsDynamicData = prefix + "networkLogsDynamicData"
+        static let networkLogsEducationalMode = prefix + "networkLogsEducationalMode"
     }
     
     struct Headers {
@@ -78,7 +79,8 @@ struct Constants {
         static let logLimit = "Number of logs per session"
         static let exportFileName = "Export file name"
         static let sortingOrder = "Sort network logs"
-        static let preferDynamicData = "Prefer dynamic data"
+        static let dynamicData = "Dynamic data"
+        static let educationalMode = "Educational mode"
     }
     
     enum SortingOrder: String, CaseIterable, Identifiable {

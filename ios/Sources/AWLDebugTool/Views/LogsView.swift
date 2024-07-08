@@ -16,7 +16,6 @@ public struct LogsView: View {
     @ObservedObject private var networkLogger = AWLDebugTool.shared.networkLogger
     
     @State private var searchText = Constants.Strings.emptyString
-    
     @State private var isFilterActive = false
     
     let onClose: () -> ()

@@ -73,8 +73,10 @@ struct FilterView: View {
             )) {
                 VStack(alignment: .leading) {
                     Text(String(method))
-                    Text(Constants.RequestMethod[method] ?? Constants.Strings.unknownValue)
-                        .font(.caption2)
+                    if networkLogger.isEducationalaModeOn {
+                        Text(Constants.RequestMethod[method] ?? Constants.Strings.unknownValue)
+                            .font(.caption2)
+                    }
                 }
             }
         }
@@ -107,8 +109,10 @@ struct FilterView: View {
             )) {
                 VStack(alignment: .leading) {
                     Text(String(code))
-                    Text(Constants.ResponseCodes[code] ?? Constants.Strings.unknownValue)
-                        .font(.caption2)
+                    if networkLogger.isEducationalaModeOn {
+                        Text(Constants.ResponseCodes[code] ?? Constants.Strings.unknownValue)
+                            .font(.caption2)
+                    }
                 }
             }
         }

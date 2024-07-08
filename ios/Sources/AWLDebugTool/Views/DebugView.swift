@@ -178,6 +178,10 @@ public struct DebugView: View {
                 }
             }
             
+            Toggle(Constants.Settings.dynamicData, isOn: $networkLogger.isDynamicDataModeOn)
+            
+            Toggle(Constants.Settings.educationalMode, isOn: $networkLogger.isEducationalaModeOn)
+
             Picker(Constants.Settings.logLimit, selection: $networkLogger.networkLogsLimit) {
                 ForEach(Constants.Defaults.defaultNumberOfLogs, id: \.self) {
                     Text("\($0)")
@@ -194,8 +198,6 @@ public struct DebugView: View {
                 }
                 .pickerStyle(.segmented)
             }
-            
-            Toggle(Constants.Settings.preferDynamicData, isOn: $networkLogger.isDynamicDataModeOn)
         } header: {
             Text(Constants.Headers.settings)
         }
