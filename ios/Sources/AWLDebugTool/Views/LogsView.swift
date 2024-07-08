@@ -87,7 +87,8 @@ public struct LogsView: View {
     }
     
     var isFilterChangedByUser: String {
-        return networkLogger.methods.values.contains(false) || networkLogger.codes.values.contains(false) ?
+        return networkLogger.methods.values.contains(false) || networkLogger.codes.values.contains(false)
+        || networkLogger.endpoints.values.contains(false)  ?
         Constants.Image.filtersSet : Constants.Image.filtersUnset
     }
     

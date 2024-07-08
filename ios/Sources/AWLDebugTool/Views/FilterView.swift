@@ -51,9 +51,9 @@ struct FilterView: View {
     @ViewBuilder private var RequestMethodsSection: some View {
         Section {
             if filtersStorage.isRequestMethodsContentShown {
-                RequestMethodsList
                 ActionButtonsSection(deselectAction: networkLogger.deselectAllMethods,
                                      selectAction: networkLogger.selectAllMethods)
+                RequestMethodsList
             }
         } header: {
             FilterHeader(title: Constants.Headers.requestMethods,
@@ -85,9 +85,9 @@ struct FilterView: View {
     @ViewBuilder private var ResponseCodesSection: some View {
         Section {
             if filtersStorage.isResponseCodesContentShown {
-                ResponseCodesList
                 ActionButtonsSection(deselectAction: networkLogger.deselectAllCodes,
                                      selectAction: networkLogger.selectAllCodes)
+                ResponseCodesList
             }
         } header: {
             FilterHeader(title: Constants.Headers.responseCodes,
@@ -119,9 +119,9 @@ struct FilterView: View {
     @ViewBuilder private var EndpointsSection: some View {
         Section {
             if filtersStorage.isEndpointsContentShown {
-                EndpointsList
                 ActionButtonsSection(deselectAction: networkLogger.deselectAllEndpoints,
                                      selectAction: networkLogger.selectAllEndpoints)
+                EndpointsList
             }
         } header: {
             FilterHeader(title: Constants.Headers.endpoints,
