@@ -68,7 +68,7 @@ struct FilterView: View {
                 get: { self.filtersStorage.isMethodFilterActive(for: method) },
                 set: { newValue in
                     self.filtersStorage.updateMethodFilter(newValue, for: method)
-                    networkLogger.methods[method] = newValue
+                    networkLogger.methodsAsStaticDict[method] = newValue
                 }
             )) {
                 VStack(alignment: .leading) {
@@ -102,7 +102,7 @@ struct FilterView: View {
                 get: { self.filtersStorage.isCodeFilterActive(for: code) },
                 set: { newValue in
                     self.filtersStorage.updateCodeFilter(newValue, for: code)
-                    networkLogger.codes[code] = newValue
+                    networkLogger.codesAsStaticDict[code] = newValue
                 }
             )) {
                 VStack(alignment: .leading) {

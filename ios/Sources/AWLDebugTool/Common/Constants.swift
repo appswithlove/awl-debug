@@ -37,6 +37,7 @@ struct Constants {
         private static let prefix = "AWLDebugTool_"
         static let networkLogsLimit = prefix + "networkLogsLimit"
         static let networkLogsSortingOrder = prefix + "networkLogsSortingOrder"
+        static let networkLogsDynamicData = prefix + "networkLogsDynamicData"
     }
     
     struct Headers {
@@ -77,6 +78,7 @@ struct Constants {
         static let logLimit = "Number of logs per session"
         static let exportFileName = "Export file name"
         static let sortingOrder = "Sort network logs"
+        static let preferDynamicData = "Prefer dynamic data"
     }
     
     enum SortingOrder: String, CaseIterable, Identifiable {

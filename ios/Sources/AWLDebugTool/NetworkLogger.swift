@@ -28,10 +28,59 @@ public class NetworkLogger: ObservableObject {
             UserDefaults.standard.set(sortingOrder.rawValue, forKey: Constants.UserDefaults.networkLogsSortingOrder)
         }
     }
-    @Published var methods: [String: Bool] = [:]
-    @Published var codes: [Int: Bool] = [:]
-    @Published var endpointsHasChanged: Bool = false
     
+    @Published var isDynamicDataModeOn: Bool = {
+        let result = UserDefaults.standard.bool(forKey: Constants.UserDefaults.networkLogsDynamicData)
+        return result
+    }() {
+        didSet {
+            UserDefaults.standard.set(isDynamicDataModeOn, forKey: Constants.UserDefaults.networkLogsDynamicData)
+        }
+    }
+    
+    @Published var methodsAsStaticDict: [String: Bool] = [:]
+    var methodsAsDynamicDict: [String: Bool] {
+        var methods: [String: Bool] = [:]
+        
+        for log in networkTraffic {
+            let method = log.method
+            
+            methods[method] = filtersStorage.isMethodFilterActive(for: method)
+        }
+        
+        return methods
+    }
+    
+    var methods: [String: Bool] {
+        if isDynamicDataModeOn {
+            return methodsAsDynamicDict
+        } else {
+            return methodsAsStaticDict
+        }
+    }
+    
+    @Published var codesAsStaticDict: [Int: Bool] = [:]
+    var codesAsDynamicDict: [Int: Bool] {
+        var codes: [Int: Bool] = [:]
+        
+        for log in networkTraffic {
+            let code = log.statusCode
+            
+            codes[code] = filtersStorage.isCodeFilterActive(for: code)
+        }
+        
+        return codes
+    }
+    
+    var codes: [Int: Bool] {
+        if isDynamicDataModeOn {
+            return codesAsDynamicDict
+        } else {
+            return codesAsStaticDict
+        }
+    }
+    
+    @Published var endpointsHasChanged: Bool = false
     var endpoints: [String: Bool] {
         
         let regex = try! NSRegularExpression(pattern: Constants.Regex.endpointsPattern, options: [])
@@ -51,11 +100,11 @@ public class NetworkLogger: ObservableObject {
 
     init() {
         for method in Constants.RequestMethod.allCases {
-            methods[method.rawValue] = filtersStorage.isMethodFilterActive(for: method.rawValue)
+            methodsAsStaticDict[method.rawValue] = filtersStorage.isMethodFilterActive(for: method.rawValue)
         }
         
         for code in Constants.ResponseCodes.allCases {
-            codes[code.rawValue] = filtersStorage.isCodeFilterActive(for: code.rawValue)
+            codesAsStaticDict[code.rawValue] = filtersStorage.isCodeFilterActive(for: code.rawValue)
         }
     }
     
@@ -95,25 +144,25 @@ public class NetworkLogger: ObservableObject {
     // MARK: - Filters
     
     func deselectAllMethods() {
-        updateAllFilters(for: &methods, with: false) { value, key in
+        updateAllFilters(for: &methodsAsStaticDict, with: false) { value, key in
             self.filtersStorage.updateMethodFilter(value, for: key)
         }
     }
 
     func selectAllMethods() {
-        updateAllFilters(for: &methods, with: true) { value, key in
+        updateAllFilters(for: &methodsAsStaticDict, with: true) { value, key in
             self.filtersStorage.updateMethodFilter(value, for: key)
         }
     }
 
     func deselectAllCodes() {
-        updateAllFilters(for: &codes, with: false) { value, key in
+        updateAllFilters(for: &codesAsStaticDict, with: false) { value, key in
             self.filtersStorage.updateCodeFilter(value, for: key)
         }
     }
 
     func selectAllCodes() {
-        updateAllFilters(for: &codes, with: true) { value, key in
+        updateAllFilters(for: &codesAsStaticDict, with: true) { value, key in
             self.filtersStorage.updateCodeFilter(value, for: key)
         }
     }

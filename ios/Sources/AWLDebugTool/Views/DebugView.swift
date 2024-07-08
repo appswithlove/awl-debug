@@ -49,10 +49,10 @@ public struct DebugView: View {
     public var body: some View {
         NavigationView {
             Form {
-                LogOptionsView()
-                FirebaseView()
-                FCMPushTokenView()
-                SettingsView()
+                LogOptionsView
+                FirebaseView
+                FCMPushTokenView
+                SettingsView
             }
             .navigationBarTitleDisplayMode(.inline)
             .navigationTitle(Constants.Strings.appName)
@@ -76,7 +76,8 @@ public struct DebugView: View {
         }
     }
     
-    @ViewBuilder private func LogOptionsView() -> some View {
+    @ViewBuilder 
+    private var LogOptionsView: some View {
         Section {
             NavigationLink {
                 LogsView(onClose: { dismiss() })
@@ -124,7 +125,8 @@ public struct DebugView: View {
         .textCase(nil)
     }
     
-    @ViewBuilder private func FCMPushTokenView() -> some View {
+    @ViewBuilder 
+    private var FCMPushTokenView: some View {
         Section {
             Text("\(fcmToken ?? Constants.Strings.unknownValue)")
         } header: {
@@ -132,7 +134,8 @@ public struct DebugView: View {
         }
     }
     
-    @ViewBuilder private func FirebaseView() -> some View {
+    @ViewBuilder 
+    private var FirebaseView: some View {
         Section {
             Button {
                 debugTool.simulateCrashExplicitly()
@@ -161,7 +164,8 @@ public struct DebugView: View {
         }
     }
     
-    @ViewBuilder private func SettingsView() -> some View {
+    @ViewBuilder 
+    private var SettingsView: some View {
         Section {
             VStack {
                 Toggle(Constants.Strings.tracking, isOn: $networkLogger.didStart)
@@ -190,7 +194,8 @@ public struct DebugView: View {
                 }
                 .pickerStyle(.segmented)
             }
-
+            
+            Toggle(Constants.Settings.preferDynamicData, isOn: $networkLogger.isDynamicDataModeOn)
         } header: {
             Text(Constants.Headers.settings)
         }
