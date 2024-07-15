@@ -27,6 +27,10 @@ public struct DebugView: View {
         return "NL\(df.string(from: date)).txt"
     }()
     
+    var isDeleteLogsButtonDisabled: Bool {
+        return networkLogger.networkTraffic.isEmpty ? true : false
+    }
+    
     func fetchNetworkLogsAsString() -> String {
         let df = DateFormatter()
         df.dateFormat = Constants.Date.dateFormatSecondary
@@ -45,10 +49,10 @@ public struct DebugView: View {
     public var body: some View {
         NavigationView {
             Form {
-                LogOptionsView()
-                FirebaseView()
-                FCMPushTokenView()
-                SettingsView()
+                LogOptionsView
+                FirebaseView
+                FCMPushTokenView
+                SettingsView
             }
             .navigationBarTitleDisplayMode(.inline)
             .navigationTitle(Constants.Strings.appName)
@@ -72,10 +76,11 @@ public struct DebugView: View {
         }
     }
     
-    @ViewBuilder private func LogOptionsView() -> some View {
+    @ViewBuilder 
+    private var LogOptionsView: some View {
         Section {
             NavigationLink {
-                LogsView()
+                LogsView(onClose: { dismiss() })
             } label: {
                 Text(Constants.Actions.showNetworkLogs)
             }
@@ -86,8 +91,11 @@ public struct DebugView: View {
                     Text(Constants.Actions.clearNetworkLogs)
                     Spacer()
                     Image(systemName: Constants.Image.clear)
+                        .foregroundColor(.red)
+                        .opacity(isDeleteLogsButtonDisabled ? Constants.Values.disabledBtnOpacity : Constants.Values.enabledBtnOpacity)
                 }
             }
+            .disabled(isDeleteLogsButtonDisabled)
             
             VStack {
                 Button {
@@ -117,7 +125,8 @@ public struct DebugView: View {
         .textCase(nil)
     }
     
-    @ViewBuilder private func FCMPushTokenView() -> some View {
+    @ViewBuilder 
+    private var FCMPushTokenView: some View {
         Section {
             Text("\(fcmToken ?? Constants.Strings.unknownValue)")
         } header: {
@@ -125,7 +134,8 @@ public struct DebugView: View {
         }
     }
     
-    @ViewBuilder private func FirebaseView() -> some View {
+    @ViewBuilder 
+    private var FirebaseView: some View {
         Section {
             Button {
                 debugTool.simulateCrashExplicitly()
@@ -154,7 +164,8 @@ public struct DebugView: View {
         }
     }
     
-    @ViewBuilder private func SettingsView() -> some View {
+    @ViewBuilder 
+    private var SettingsView: some View {
         Section {
             VStack {
                 Toggle(Constants.Strings.tracking, isOn: $networkLogger.didStart)
@@ -167,10 +178,25 @@ public struct DebugView: View {
                 }
             }
             
+            Toggle(Constants.Settings.dynamicData, isOn: $networkLogger.isDynamicDataModeOn)
+            
+            Toggle(Constants.Settings.educationalMode, isOn: $networkLogger.isEducationalaModeOn)
+
             Picker(Constants.Settings.logLimit, selection: $networkLogger.networkLogsLimit) {
                 ForEach(Constants.Defaults.defaultNumberOfLogs, id: \.self) {
                     Text("\($0)")
                 }
+            }
+
+            HStack {
+                Text(Constants.Settings.sortingOrder)
+                Picker(Constants.Settings.sortingOrder, selection: $networkLogger.sortingOrder) {
+                    ForEach(Constants.SortingOrder.allCases) { sortingOrder in
+                        Text(sortingOrder.rawValue)
+                            .tag(sortingOrder)
+                    }
+                }
+                .pickerStyle(.segmented)
             }
         } header: {
             Text(Constants.Headers.settings)
