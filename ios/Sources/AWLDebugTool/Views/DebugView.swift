@@ -49,6 +49,7 @@ public struct DebugView: View {
     public var body: some View {
         NavigationView {
             Form {
+                AboutView
                 LogOptionsView
                 FirebaseView
                 FCMPushTokenView
@@ -76,7 +77,22 @@ public struct DebugView: View {
         }
     }
     
-    @ViewBuilder 
+    @ViewBuilder
+    private var AboutView: some View {
+        Section {
+            Text("\(UIDevice.current.name)") +
+            Text(" (\(UIDevice.current.systemVersion)") +
+            Text(" - \(Bundle.main.infoDictionary?["DTSDKBuild"] as? String ?? "Unknown"))")
+            Text("\(Bundle.main.infoDictionary?["CFBundleName"] as? String ?? "")") +
+            Text(" \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "")") +
+            Text(" (\(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? ""))")
+        } header: {
+            Text(Constants.Headers.aboutSection + " ") +
+            Text(ISO8601DateFormatter().string(from: Date()))
+        }
+    }
+    
+    @ViewBuilder
     private var LogOptionsView: some View {
         Section {
             NavigationLink {
