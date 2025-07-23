@@ -15,6 +15,7 @@ public struct DebugView: View {
     @Environment(\.dismiss) var dismiss
     
     private var fcmToken: String?
+    private let customView: (() -> View)?
     
     @State private var isShowingDeleteNetworkLogs = false
     @State private var isShowingFileExporter = false
@@ -42,13 +43,18 @@ public struct DebugView: View {
         return result
     }
     
-    public init(fcmToken: String?) {
+    public init(fcmToken: String?, customView: (() -> View)? = nil) {
         self.fcmToken = fcmToken
+        self.customView = customView
     }
     
     public var body: some View {
         NavigationView {
             Form {
+                AboutView
+                if customView != nil {
+                    AnyView(customView!())
+                }
                 LogOptionsView
                 FirebaseView
                 FCMPushTokenView
@@ -76,7 +82,22 @@ public struct DebugView: View {
         }
     }
     
-    @ViewBuilder 
+    @ViewBuilder
+    private var AboutView: some View {
+        Section {
+            Text("\(UIDevice.current.name)") +
+            Text(" (\(UIDevice.current.systemVersion)") +
+            Text(" - \(Bundle.main.infoDictionary?["DTSDKBuild"] as? String ?? "Unknown"))")
+            Text("\(Bundle.main.infoDictionary?["CFBundleName"] as? String ?? "")") +
+            Text(" \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "")") +
+            Text(" (\(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? ""))")
+        } header: {
+            Text(Constants.Headers.aboutSection + " ") +
+            Text(ISO8601DateFormatter().string(from: Date()))
+        }
+    }
+    
+    @ViewBuilder
     private var LogOptionsView: some View {
         Section {
             NavigationLink {
@@ -206,6 +227,17 @@ public struct DebugView: View {
 
 struct DebugView_Previews: PreviewProvider {
     static var previews: some View {
-        DebugView(fcmToken: "qwert1234")
+        DebugView(fcmToken: "qwert1234", customView: {
+            Group {
+                Section {
+                    Button("Custom button") {
+                        print("Custom button Action")
+                    }
+                    Toggle("Custom toggle", isOn: .constant(true))
+                } header: {
+                    Text("Custom section header 1")
+                }
+            }
+        })
     }
 }

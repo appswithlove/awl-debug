@@ -46,6 +46,7 @@ struct Constants {
         static let btnDone = "Done"
         static let logs = "Logs"
         static let fcm = "FCM push token"
+        static let aboutSection = "About"
         static let firebaseActions = "Firebase actions"
         static let settings = "Settings"
         static let requestMethods = "Request Methods"
