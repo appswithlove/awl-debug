@@ -190,11 +190,18 @@ public struct LogsView: View {
         .padding(.trailing, 16)
     }
     
-    @ViewBuilder 
+    @ViewBuilder
     private func LogDate(date: Date) -> some View {
-        Text(dateFormatter.string(from: date))
-            .font(.caption2)
-            .foregroundColor(.gray)
+        let datePart = DatesWorker.extractDate(date)
+        let timePart = DatesWorker.extractTime(date)
+        
+        HStack(spacing: 6) {
+            Text(datePart)
+                .foregroundColor(.secondary)
+            Text(timePart)
+                .foregroundColor(.logTimeColor)
+        }
+        .font(.caption2)
     }
     
     @ViewBuilder 

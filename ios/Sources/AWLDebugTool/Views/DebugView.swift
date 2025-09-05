@@ -15,7 +15,7 @@ public struct DebugView: View {
     @Environment(\.dismiss) var dismiss
     
     private var fcmToken: String?
-    private let customView: (() -> View)?
+    private let customView: (() -> any View)?
     
     @State private var isShowingDeleteNetworkLogs = false
     @State private var isShowingFileExporter = false
@@ -43,7 +43,7 @@ public struct DebugView: View {
         return result
     }
     
-    public init(fcmToken: String?, customView: (() -> View)? = nil) {
+    public init(fcmToken: String?, customView: (() -> any View)? = nil) {
         self.fcmToken = fcmToken
         self.customView = customView
     }

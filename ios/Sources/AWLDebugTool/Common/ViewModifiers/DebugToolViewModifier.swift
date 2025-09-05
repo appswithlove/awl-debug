@@ -10,7 +10,7 @@ import SwiftUI
 public struct DebugToolViewModifier: ViewModifier {
     @State private var isShowingDebugTool = false
     let fcmToken: String?
-    let customView: (() -> View)?
+    let customView: (() -> any View)?
 
     public func body(content: Content) -> some View {
         content
@@ -25,7 +25,7 @@ public struct DebugToolViewModifier: ViewModifier {
 }
 
 extension View {
-    public func includeDebugTool(fcmToken: String? = nil, customView: (() -> View)? = nil) -> some View {
+    public func includeDebugTool(fcmToken: String? = nil, customView: (() -> any View)? = nil) -> some View {
         modifier(DebugToolViewModifier(fcmToken: fcmToken, customView: customView))
     }
 }
