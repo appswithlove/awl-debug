@@ -14,6 +14,8 @@ public struct DebugView: View {
     
     @Environment(\.dismiss) var dismiss
     
+    @AppStorage("isDarkModeOn") private var isDarkModeOn: Bool = false
+    
     private var fcmToken: String?
     private let customView: (() -> any View)?
     
@@ -60,6 +62,7 @@ public struct DebugView: View {
                 FCMPushTokenView
                 SettingsView
             }
+            .preferredColorScheme(isDarkModeOn ? .dark : .light)
             .navigationBarTitleDisplayMode(.inline)
             .navigationTitle(Constants.Strings.appName)
             .toolbar {
@@ -219,6 +222,8 @@ public struct DebugView: View {
                 }
                 .pickerStyle(.segmented)
             }
+            
+            Toggle(Constants.Settings.darkMode, isOn: $isDarkModeOn)
         } header: {
             Text(Constants.Headers.settings)
         }

@@ -82,6 +82,7 @@ struct Constants {
         static let sortingOrder = "Sort network logs"
         static let dynamicData = "Dynamic data"
         static let educationalMode = "Educational mode"
+        static let darkMode = "Dark mode"
     }
     
     enum SortingOrder: String, CaseIterable, Identifiable {
