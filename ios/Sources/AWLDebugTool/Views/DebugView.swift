@@ -12,6 +12,7 @@ public struct DebugView: View {
     @ObservedObject private var debugTool = AWLDebugTool.shared
     @ObservedObject private var networkLogger = AWLDebugTool.shared.networkLogger
     @ObservedObject private var screenRecorder = AWLDebugTool.shared.screenRecorder
+    @StateObject private var vm: DebugViewModel = .init()
     
     @Environment(\.dismiss) var dismiss
     
@@ -19,17 +20,6 @@ public struct DebugView: View {
     
     private var fcmToken: String?
     private let customView: (() -> any View)?
-    
-    @State private var isShowingDeleteNetworkLogs = false
-    @State private var isShowingFileExporter = false
-    
-    @State private var document = TextDocument(text: "")
-    @State private var filename: String = {
-        let date = Date.now
-        let df = DateFormatter()
-        df.dateFormat = "yyyy-MM-dd_HH.mm.ss"
-        return "NL\(df.string(from: date)).txt"
-    }()
     
     var isDeleteLogsButtonDisabled: Bool {
         return networkLogger.networkTraffic.isEmpty ? true : false
@@ -55,13 +45,21 @@ public struct DebugView: View {
         NavigationView {
             Form {
                 AboutView
+                
                 if customView != nil {
                     AnyView(customView!())
                 }
+                
                 LogOptionsView
+                
+                UserDefaultsView
+                
                 FirebaseView
+                
                 FCMPushTokenView
+                
                 ScreenRecordingView
+
                 SettingsView
             }
             .preferredColorScheme(isDarkModeOn ? .dark : .light)
@@ -77,7 +75,7 @@ public struct DebugView: View {
                 }
             }
         }
-        .fileExporter(isPresented: $isShowingFileExporter, document: document, contentType: .plainText, defaultFilename: filename) { result in
+        .fileExporter(isPresented: $vm.isShowingFileExporter, document: vm.document, contentType: .plainText, defaultFilename: vm.filename) { result in
             switch result {
             case .success(let file):
                 print(file)
@@ -117,7 +115,7 @@ public struct DebugView: View {
                 Text(Constants.Actions.showNetworkLogs)
             }
             Button {
-                isShowingDeleteNetworkLogs = true
+                vm.showDeleteNetworkLogsAlert()
             } label: {
                 HStack {
                     Text(Constants.Actions.clearNetworkLogs)
@@ -131,8 +129,8 @@ public struct DebugView: View {
             
             VStack {
                 Button {
-                    document.text = fetchNetworkLogsAsString()
-                    self.isShowingFileExporter = true
+                    vm.document.text = fetchNetworkLogsAsString()
+                    vm.showFileExporter()
                 } label: {
                     HStack {
                         Text(Constants.Actions.exportNetworkLogs)
@@ -141,23 +139,41 @@ public struct DebugView: View {
                     }
                 }
                 
-                TextField(Constants.Settings.exportFileName, text: $filename)
+                TextField(Constants.Settings.exportFileName, text: $vm.filename)
             }
         } header: {
             Text(Constants.Headers.logs)
         }
-        .alert(Constants.Alert.deleteNLTitle, isPresented: $isShowingDeleteNetworkLogs) {
-            Button(Constants.Alert.btnCancel, role: .cancel) {}
-            Button(Constants.Alert.btnDelete, role: .destructive) {
-                networkLogger.deleteNetworkLogs()
-            }
-        } message: {
-            Text(Constants.Alert.deleteNLMessage)
-        }
+        .destructiveAlertViewModifier(isShowingAlert: $vm.isShowingDeleteNetworkLogs,
+                                      title: Constants.Alert.deleteNLTitle,
+                                      message: Constants.Alert.deleteNLMessage,
+                                      action: { networkLogger.deleteNetworkLogs() })
+        .destructiveAlertViewModifier(isShowingAlert: $vm.isShowingDeleteUserDefaults,
+                                      title: Constants.Alert.deleteUDTitle,
+                                      message: Constants.Alert.deleteUDMessage,
+                                      action: { UserDefaults.standard.clearAppUserDefaults() })
         .textCase(nil)
     }
     
-    @ViewBuilder 
+    @ViewBuilder
+    private var UserDefaultsView: some View {
+        Section {
+            Button {
+                vm.showDeleteUserDefaultsAlert()
+            } label: {
+                HStack {
+                    Text(Constants.Actions.clearAppUserDefaults)
+                    Spacer()
+                    Image(systemName: Constants.Image.clear)
+                        .foregroundColor(.red)
+                }
+            }
+        } header: {
+            Text(Constants.Headers.userDefaults)
+        }
+    }
+    
+    @ViewBuilder
     private var FCMPushTokenView: some View {
         Section {
             Text("\(fcmToken ?? Constants.Strings.unknownValue)")

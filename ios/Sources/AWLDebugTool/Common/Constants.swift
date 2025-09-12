@@ -47,6 +47,7 @@ struct Constants {
         static let btnClose = "Close"
         static let btnDone = "Done"
         static let logs = "Logs"
+        static let userDefaults = "User Defaults"
         static let fcm = "FCM push token"
         static let aboutSection = "About"
         static let firebaseActions = "Firebase actions"
@@ -58,8 +59,13 @@ struct Constants {
     }
     
     struct Alert {
+        // MARK: - Logs
         static let deleteNLTitle = "Deleting network logs"
         static let deleteNLMessage = "Are you sure you want to delete all network logs?"
+        
+        // MARK: - UserDefaults
+        static let deleteUDTitle = "Deleting UserDefaults data"
+        static let deleteUDMessage = "Are you sure you want to delete all UserDefaults data?"
         
         static let btnOK = "OK"
         static let btnCancel = "Cancel"
@@ -117,15 +123,21 @@ struct Constants {
     }
     
     struct Actions {
+        // MARK: - Logs
         static let showNetworkLogs = "Show network logs"
         static let clearNetworkLogs = "Clear network logs"
         static let exportNetworkLogs = "Export network logs"
         
+        // MARK: - UserDefaults
+        static let clearAppUserDefaults = "Clear app UserDefaults"
+        
+        // MARK: - Screen Recording
         static let screenRecorderToole = "Screen recording"
         static let screenRecorderExportCurrent = "Export current video"
         static let screenRecorderExportLast = "Export last video"
         static let screenRecorderMaxVideoDuration = "Max duration"
         
+        // MARK: - Firebase Action
         static let simulateCrash = "Simulate crash"
         static let explicitCrash = "- explicit fatal error"
         static let implicitCrash = "- implicit fatal error"
