@@ -9,8 +9,74 @@ import SwiftUI
 import AWLDebugTool
 
 struct ContentView: View {
+    var body: some View {
+        NavigationStack {
+            VStack {
+                FactView()
+                
+                NavigationLink("Show new screen") {
+                    AnotherView()
+                        .navigationTitle("Test Screen")
+                }
+            }
+        }
+#if DEBUG || STAGING
+        .includeDebugTool(customView: {
+            DebugPanelView()
+        })
+#endif
+    }
+}
+
+struct AnotherView: View {
+    @State var showAlert = false
+    @State var text: String = ""
+    
+    var body: some View {
+        ScrollView {
+            TextField("TextField", text: $text)
+            SecureField("SecureField", text: $text)
+            
+            Button(action: {
+                var a: [Int] = []
+                a[0] = 1
+            }, label: {
+                Text("Crash")
+                    .padding()
+                    .background(Color.red)
+                    .cornerRadius(5)
+            })
+            
+            HStack {
+                Color.white
+                Color.black
+            }.frame(height: 100)
+            
+            ForEach(0..<20, id: \.self) { i in
+                Button(action: {
+                    showAlert.toggle()
+                }, label: {
+                    Text("Show alert \(i)")
+                        .padding()
+                        .background(Color.yellow)
+                        .cornerRadius(5)
+                })
+            }
+            
+            TextField("TextField", text: $text)
+            SecureField("SecureField", text: $text)
+        }
+        .alert("Alert Example", isPresented: $showAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("Message of the alert")
+        }
+    }
+}
+
+struct FactView: View {
     @State private var fact: String = ""
-        
+    
     var body: some View {
         VStack {
             HStack {
@@ -32,11 +98,6 @@ struct ContentView: View {
                 }
             }
         }
-#if DEBUG || STAGING
-        .includeDebugTool(customView: {
-            DebugPanelView()
-        })
-#endif
         .padding()
         .task {
             try? await loadFact()

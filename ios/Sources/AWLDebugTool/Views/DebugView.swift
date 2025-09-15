@@ -11,6 +11,7 @@ import SwiftUI
 public struct DebugView: View {
     @ObservedObject private var debugTool = AWLDebugTool.shared
     @ObservedObject private var networkLogger = AWLDebugTool.shared.networkLogger
+    @ObservedObject private var screenRecorder = AWLDebugTool.shared.screenRecorder
     
     @Environment(\.dismiss) var dismiss
     
@@ -60,6 +61,7 @@ public struct DebugView: View {
                 LogOptionsView
                 FirebaseView
                 FCMPushTokenView
+                ScreenRecordingView
                 SettingsView
             }
             .preferredColorScheme(isDarkModeOn ? .dark : .light)
@@ -82,6 +84,12 @@ public struct DebugView: View {
             case .failure(let error):
                 print(error)
             }
+        }
+        .onAppear {
+            screenRecorder.isDebugPanelVisible = true
+        }
+        .onDisappear {
+            screenRecorder.isDebugPanelVisible = false
         }
     }
     
@@ -188,7 +196,45 @@ public struct DebugView: View {
         }
     }
     
-    @ViewBuilder 
+    @ViewBuilder
+    private var ScreenRecordingView: some View {
+        Section {
+            Toggle(Constants.Actions.screenRecorderToole, isOn: .init(get: {
+                if let userValue = screenRecorder.isScreenRecordingOn {
+                    return userValue
+                } else {
+                    return screenRecorder.isScreenRecordingOnByDefault
+                }
+            }, set: { newValue in
+                screenRecorder.isScreenRecordingOn = newValue
+            }))
+            
+            Button(action: {
+                screenRecorder.exportLastVideo()
+            }, label: {
+                HStack {
+                    Text(Constants.Actions.screenRecorderExportLast)
+                    Spacer()
+                    Image(systemName: Constants.Image.export)
+                }
+            })
+            
+            Button(action: {
+                screenRecorder.exportCurrentVideo()
+            }, label: {
+                HStack {
+                    Text(Constants.Actions.screenRecorderExportCurrent)
+                    Spacer()
+                    Image(systemName: Constants.Image.export)
+                }
+            })
+        } header: {
+            Text(Constants.Headers.screenRecording)
+        }
+        .disabled(screenRecorder.isExportingVideo)
+    }
+    
+    @ViewBuilder
     private var SettingsView: some View {
         Section {
             VStack {

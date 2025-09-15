@@ -39,6 +39,7 @@ struct Constants {
         static let networkLogsSortingOrder = prefix + "networkLogsSortingOrder"
         static let networkLogsDynamicData = prefix + "networkLogsDynamicData"
         static let networkLogsEducationalMode = prefix + "networkLogsEducationalMode"
+        static let screenRecordingIsOn = prefix + "screenRecordingIsOn"
     }
     
     struct Headers {
@@ -48,6 +49,7 @@ struct Constants {
         static let fcm = "FCM push token"
         static let aboutSection = "About"
         static let firebaseActions = "Firebase actions"
+        static let screenRecording = "Screen Recording"
         static let settings = "Settings"
         static let requestMethods = "Request Methods"
         static let responseCodes = "Response Codes"
@@ -100,6 +102,10 @@ struct Constants {
         static let showNetworkLogs = "Show network logs"
         static let clearNetworkLogs = "Clear network logs"
         static let exportNetworkLogs = "Export network logs"
+        
+        static let screenRecorderToole = "Screen recording"
+        static let screenRecorderExportCurrent = "Export current video"
+        static let screenRecorderExportLast = "Export last video"
         
         static let simulateCrash = "Simulate crash"
         static let explicitCrash = "- explicit fatal error"

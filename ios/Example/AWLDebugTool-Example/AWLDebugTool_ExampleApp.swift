@@ -17,6 +17,6 @@ struct AWLDebugTool_ExampleApp: App {
     }
     
     init() {
-        AWLDebugTool.start()
+        AWLDebugTool.start(isScreenRecordingOn: true)
     }
 }

@@ -4,6 +4,7 @@ import SwiftUI
 public class AWLDebugTool: ObservableObject {
     public static let shared = AWLDebugTool()
     let networkLogger = NetworkLogger()
+    let screenRecorder = ScreenRecorderModel()
     
     func simulateCrashExplicitly() {
         fatalError(Constants.Strings.fatalErrorMsg)
@@ -15,7 +16,13 @@ public class AWLDebugTool: ObservableObject {
         _ = 1 / testArray.count
     }
     
-    public static func start() {
+    /// Main init method.
+    ///
+    /// - Parameters:
+    ///     - isScreenRecordingOn: default value. Can be changed on debug panel.
+    ///
+    public static func start(isScreenRecordingOn: Bool = false) {
         shared.networkLogger.start()
+        shared.screenRecorder.initialise(isScreenRecordingOn: isScreenRecordingOn)
     }
 }
