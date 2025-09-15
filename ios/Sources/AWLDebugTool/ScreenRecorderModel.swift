@@ -31,6 +31,14 @@ public class ScreenRecorderModel: ObservableObject {
         }
     }
     
+    @Published var maxVideoDuration: Constants.MaxScreenVideoDuration = {
+        return Constants.MaxScreenVideoDuration(rawValue: UserDefaults.standard.integer(forKey: Constants.UserDefaults.screenRecordingMaxVideoDuration)) ?? .fiveMinutes
+    }() {
+        didSet {
+            UserDefaults.standard.set(maxVideoDuration.rawValue, forKey: Constants.UserDefaults.screenRecordingMaxVideoDuration)
+        }
+    }
+    
     var isScreenRecordingOnByDefault: Bool = false
     
     func initialise(isScreenRecordingOn: Bool) {
@@ -40,7 +48,7 @@ public class ScreenRecorderModel: ObservableObject {
     
     func startIfNeed() {
         if (isScreenRecordingOn ?? isScreenRecordingOnByDefault) && !isDebugPanelVisible {
-            ScreenRecorder.shared.start()
+            ScreenRecorder.shared.start(duration: maxVideoDuration.rawValue)
         }
     }
     

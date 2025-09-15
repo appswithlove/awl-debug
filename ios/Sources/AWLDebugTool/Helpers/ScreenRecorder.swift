@@ -11,11 +11,11 @@ import UIKit
 extension ScreenRecorder {
     static let shared = ScreenRecorder()
     
-    func start() {
+    func start(duration: Int) {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: {
             if let window = UIApplication.shared.getKeyWindow {
                 UIWindow.swizzleSendEvent()
-                self.startCapturing(from: window, fps: 3)
+                self.startCapturing(from: window, fps: 3, duration: duration)
             }
         })
     }
@@ -119,7 +119,7 @@ class ScreenRecorder {
     
     private func startCapturing(from window: UIWindow?, fps: Int = 2, duration: Int = 30) {
         bufferFPS = min(30, fps)
-        bufferTime = duration
+        bufferTime = max(5, duration)
         lastTouchDate = Date()
         self.afterActivePeriodScreenshotsCount = 0
         stopCapturing()

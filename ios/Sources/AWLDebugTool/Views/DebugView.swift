@@ -218,6 +218,7 @@ public struct DebugView: View {
                     Image(systemName: Constants.Image.export)
                 }
             })
+            .disabled(screenRecorder.isExportingVideo)
             
             Button(action: {
                 screenRecorder.exportCurrentVideo()
@@ -228,10 +229,22 @@ public struct DebugView: View {
                     Image(systemName: Constants.Image.export)
                 }
             })
+            .disabled(screenRecorder.isExportingVideo)
+            
+            HStack {
+                Text(Constants.Actions.screenRecorderMaxVideoDuration)
+                
+                Picker(Constants.Actions.screenRecorderMaxVideoDuration, selection: $screenRecorder.maxVideoDuration) {
+                    ForEach(Constants.MaxScreenVideoDuration.allCases) { videoDuration in
+                        Text(videoDuration.ls)
+                            .tag(videoDuration)
+                    }
+                }
+                .pickerStyle(.segmented)
+            }
         } header: {
             Text(Constants.Headers.screenRecording)
         }
-        .disabled(screenRecorder.isExportingVideo)
     }
     
     @ViewBuilder

@@ -40,6 +40,7 @@ struct Constants {
         static let networkLogsDynamicData = prefix + "networkLogsDynamicData"
         static let networkLogsEducationalMode = prefix + "networkLogsEducationalMode"
         static let screenRecordingIsOn = prefix + "screenRecordingIsOn"
+        static let screenRecordingMaxVideoDuration = prefix + "screenRecordingMaxVideoDuration"
     }
     
     struct Headers {
@@ -94,6 +95,23 @@ struct Constants {
         var id: String { self.rawValue }
     }
     
+    enum MaxScreenVideoDuration: Int, CaseIterable, Identifiable {
+        case halfMinute = 30
+        case oneMinute = 60
+        case fiveMinutes = 300
+        case tenMinutes = 600
+        
+        var id: Int { self.rawValue }
+        var ls: String {
+            switch self {
+            case .halfMinute: return "30 sec"
+            case .oneMinute: return "1 min"
+            case .fiveMinutes: return "5 min"
+            case .tenMinutes: return "10 min"
+            }
+        }
+    }
+    
     struct Errors {
         static let savingDataToFile = "Unable to save network logs to file"
     }
@@ -106,6 +124,7 @@ struct Constants {
         static let screenRecorderToole = "Screen recording"
         static let screenRecorderExportCurrent = "Export current video"
         static let screenRecorderExportLast = "Export last video"
+        static let screenRecorderMaxVideoDuration = "Max duration"
         
         static let simulateCrash = "Simulate crash"
         static let explicitCrash = "- explicit fatal error"
