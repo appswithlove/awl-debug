@@ -29,7 +29,7 @@ struct MyApp: App {
     
     init() {
 #if DEBUG || STAGING
-        AWLDebugTool.start() // 1. Enable logging
+        AWLDebugTool.start(isScreenRecordingOn: false) // 1. Enable logging
 #endif
     }
 
@@ -49,13 +49,25 @@ struct MyApp: App {
 
 ## Usage
 <b>Functionalities</b>
-1. Network logging
+### 1. Network logging
 - app record network logs.
 - user can see network logs in real time and filter them.
 - user can export network logs.
 
-2. Simulate crash
+### 2. Simulate crash
 - user can simulate crash to check if firebase integration works.
 
-3. Display FCM push token
+### 3. Display FCM push token
 - user can see currently used FCM pushed token. It's useful during testing to send pushes directly to the device.
+
+### 4. Screen recording
+- you can switch ON/OFF recording via debug panel. (default state you can set by AWLDebugTool.start(isScreenRecordingOn: true))
+- it is possible to share last video: if app crashes, the video contains steps to reproduce crash.
+- it is possible to share current video: if you found a bug you can attach the video. Last frame of the video contains the app version.
+- you can limit duration of videos. By default it is 5 minutes.
+
+NOTES:
+- IMPORTANT: be careful, videos can contain your password!
+- process of recording can be a reason of short FREEZES or PERFORMANCE issues!
+- the video consists of a set of user actions and is not tied to real time.
+- Usually videos have small size, so it is easy to attach to a task.
