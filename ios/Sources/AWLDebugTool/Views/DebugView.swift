@@ -13,6 +13,7 @@ public struct DebugView: View {
     @ObservedObject private var networkLogger = AWLDebugTool.shared.networkLogger
     @ObservedObject private var screenRecorder = AWLDebugTool.shared.screenRecorder
     @ObservedObject private var permissionsManager = PermissionsManager()
+    @ObservedObject private var networkReachabilityManager = NetworkReachabilityManager()
     
     @StateObject private var vm: DebugViewModel = .init()
     
@@ -98,15 +99,48 @@ public struct DebugView: View {
     @ViewBuilder
     private var AboutView: some View {
         Section {
-            Text("\(UIDevice.current.name)") +
-            Text(" (\(UIDevice.current.systemVersion)") +
-            Text(" - \(Bundle.main.infoDictionary?["DTSDKBuild"] as? String ?? "Unknown"))")
-            Text("\(Bundle.main.infoDictionary?["CFBundleName"] as? String ?? "")") +
-            Text(" \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "")") +
-            Text(" (\(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? ""))")
+            DeviceInfoView
+            ApplicationInfoView
+            ClockInfoView
+            InternetAccessInfoView
         } header: {
-            Text(Constants.Headers.aboutSection + " ") +
+            Text(Constants.Headers.aboutSection)
+        }
+    }
+    
+    @ViewBuilder
+    private var DeviceInfoView: some View {
+        let text = "\(UIDevice.current.name)" +
+        " (\(UIDevice.current.systemVersion)" +
+        " - \(Bundle.main.infoDictionary?["DTSDKBuild"] as? String ?? "Unknown"))"
+        
+        AboutItem(iconName: "ipad.and.iphone", text: text)
+    }
+    
+    @ViewBuilder
+    private var ApplicationInfoView: some View {
+        let text = "\(Bundle.main.infoDictionary?["CFBundleName"] as? String ?? "")" +
+        " \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "")" +
+        " (\(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? ""))"
+        
+        AboutItem(iconName: "apple.logo", text: text)
+    }
+    
+    @ViewBuilder
+    private var InternetAccessInfoView: some View {
+        AboutItem(iconName: networkReachabilityManager.connectionStatusIcon.name,
+                  iconColor: networkReachabilityManager.connectionStatusIcon.color,
+                  text: "Internet access")
+    }
+    
+    @ViewBuilder
+    private var ClockInfoView: some View {
+        HStack {
+            Image(systemName: "clock")
+                .frame(width: 16, height: 16)
+                .padding(.trailing, 4)
             Text(ISO8601DateFormatter().string(from: Date()))
+            Spacer()
         }
     }
     
