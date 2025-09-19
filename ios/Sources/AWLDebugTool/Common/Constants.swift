@@ -48,6 +48,7 @@ struct Constants {
         static let btnDone = "Done"
         static let logs = "Logs"
         static let userDefaults = "User Defaults"
+        static let permissions = "Permissions"
         static let fcm = "FCM push token"
         static let aboutSection = "About"
         static let firebaseActions = "Firebase actions"
@@ -83,6 +84,7 @@ struct Constants {
         static let filtersSet = "line.3.horizontal.decrease.circle.fill"
         static let chevronUp = "chevron.up"
         static let chevronDown = "chevron.down"
+        static let gear = "gear"
     }
     
     struct Settings {
@@ -131,6 +133,9 @@ struct Constants {
         // MARK: - UserDefaults
         static let clearAppUserDefaults = "Clear app UserDefaults"
         
+        // MARK: - Setting
+        static let openAppSettings = "Open app settings"
+        
         // MARK: - Screen Recording
         static let screenRecorderToole = "Screen recording"
         static let screenRecorderExportCurrent = "Export current video"
@@ -163,6 +168,9 @@ struct Constants {
     struct Buttons {
         static let deselectAllBtn: String = "DeselectAll"
         static let selectAllBtn: String = "SelectAll"
+        static let enable: String = "Enable"
+        static let unavailable: String = "Unavailable"
+        static let settings: String = "Settings"
     }
     
     struct Regex {

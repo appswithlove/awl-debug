@@ -12,6 +12,8 @@ public struct DebugView: View {
     @ObservedObject private var debugTool = AWLDebugTool.shared
     @ObservedObject private var networkLogger = AWLDebugTool.shared.networkLogger
     @ObservedObject private var screenRecorder = AWLDebugTool.shared.screenRecorder
+    @ObservedObject private var permissionsManager = PermissionsManager()
+    
     @StateObject private var vm: DebugViewModel = .init()
     
     @Environment(\.dismiss) var dismiss
@@ -53,6 +55,8 @@ public struct DebugView: View {
                 LogOptionsView
                 
                 UserDefaultsView
+                
+                PermissionsView
                 
                 FirebaseView
                 
@@ -109,38 +113,15 @@ public struct DebugView: View {
     @ViewBuilder
     private var LogOptionsView: some View {
         Section {
-            NavigationLink {
-                LogsView(onClose: { dismiss() })
-            } label: {
-                Text(Constants.Actions.showNetworkLogs)
-            }
-            Button {
-                vm.showDeleteNetworkLogsAlert()
-            } label: {
-                HStack {
-                    Text(Constants.Actions.clearNetworkLogs)
-                    Spacer()
-                    Image(systemName: Constants.Image.clear)
-                        .foregroundColor(.red)
-                        .opacity(isDeleteLogsButtonDisabled ? Constants.Values.disabledBtnOpacity : Constants.Values.enabledBtnOpacity)
-                }
-            }
-            .disabled(isDeleteLogsButtonDisabled)
+            ShowNetworkLogsOption
             
-            VStack {
-                Button {
-                    vm.document.text = fetchNetworkLogsAsString()
-                    vm.showFileExporter()
-                } label: {
-                    HStack {
-                        Text(Constants.Actions.exportNetworkLogs)
-                        Spacer()
-                        Image(systemName: Constants.Image.export)
-                    }
-                }
-                
-                TextField(Constants.Settings.exportFileName, text: $vm.filename)
-            }
+            ProprietaryActionButton(text: Constants.Actions.clearNetworkLogs,
+                                    iconName: Constants.Image.clear,
+                                    iconColor: IconColor.deletion,
+                                    isDisabled: isDeleteLogsButtonDisabled,
+                                    action: { vm.showDeleteNetworkLogsAlert() })
+            
+            ExportNetworkLogsOption
         } header: {
             Text(Constants.Headers.logs)
         }
@@ -156,20 +137,63 @@ public struct DebugView: View {
     }
     
     @ViewBuilder
+    private var ShowNetworkLogsOption: some View {
+        NavigationLink {
+            LogsView(onClose: { dismiss() })
+        } label: {
+            Text(Constants.Actions.showNetworkLogs)
+        }
+    }
+    
+    @ViewBuilder
+    private var ExportNetworkLogsOption: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ProprietaryActionButton(text: Constants.Actions.exportNetworkLogs,
+                                    iconName: Constants.Image.export,
+                                    iconColor: IconColor.action,
+                                    isDisabled: isDeleteLogsButtonDisabled,
+                                    action: {
+                                        vm.document.text = fetchNetworkLogsAsString()
+                                        vm.showFileExporter()
+                                    })
+            
+            TextField(Constants.Settings.exportFileName, text: $vm.filename)
+        }
+    }
+    
+    @ViewBuilder
     private var UserDefaultsView: some View {
         Section {
-            Button {
-                vm.showDeleteUserDefaultsAlert()
-            } label: {
-                HStack {
-                    Text(Constants.Actions.clearAppUserDefaults)
-                    Spacer()
-                    Image(systemName: Constants.Image.clear)
-                        .foregroundColor(.red)
-                }
-            }
+            ProprietaryActionButton(text: Constants.Actions.clearAppUserDefaults,
+                                    iconName: Constants.Image.clear,
+                                    iconColor: IconColor.deletion,
+                                    action: { vm.showDeleteUserDefaultsAlert() })
         } header: {
             Text(Constants.Headers.userDefaults)
+        }
+    }
+    
+    @ViewBuilder
+    private var PermissionsView: some View {
+        Section {
+            VStack {
+                ForEach(PermissionRequestType.allCases) { type in
+                    PermissionItem(status: permissionsManager.statuses[type] ?? RequestPermissionStatus.notDetermined,
+                                   type: type,
+                                   available: permissionsManager.checkIfPermissionRequestTypeExistsInApp(type),
+                                   openSystemPermissionRequest: { Task { await permissionsManager.request(type) }},
+                                   openSettingsAction: { permissionsManager.openAppSettings() })
+                }
+            }
+            
+            ProprietaryActionButton(text: Constants.Actions.openAppSettings,
+                                    iconName: Constants.Image.gear,
+                                    iconColor: IconColor.action,
+                                    action: { permissionsManager.openAppSettings() })
+            .padding(.vertical, 12)
+
+        } header: {
+            Text(Constants.Headers.permissions)
         }
     }
     
