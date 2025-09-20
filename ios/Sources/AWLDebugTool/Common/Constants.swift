@@ -144,8 +144,8 @@ struct Constants {
         
         // MARK: - Firebase Action
         static let simulateCrash = "Simulate crash"
-        static let explicitCrash = "- explicit fatal error"
-        static let implicitCrash = "- implicit fatal error"
+        static let explicitCrash = " - explicit fatal error"
+        static let implicitCrash = " - implicit fatal error"
     }
     
     struct Logs {

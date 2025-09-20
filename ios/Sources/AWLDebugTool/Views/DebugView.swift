@@ -25,18 +25,16 @@ public struct DebugView: View {
     private let customView: (() -> any View)?
     
     var isDeleteLogsButtonDisabled: Bool {
-        return networkLogger.networkTraffic.isEmpty ? true : false
+        networkLogger.networkTraffic.isEmpty
     }
     
     func fetchNetworkLogsAsString() -> String {
         let df = DateFormatter()
         df.dateFormat = Constants.Date.dateFormatSecondary
-        var result = ""
-        for log in networkLogger.networkTraffic {
-            let logAsString = "\(df.string(from: log.date)) \(log.method) (\(log.statusCode)) \(log.duration)ms - \(log.url)\n"
-            result += logAsString
-        }
-        return result
+        
+        return networkLogger.networkTraffic
+            .map { "\(df.string(from: $0.date)) \($0.method) (\($0.statusCode)) \($0.duration)ms - \($0.url)" }
+            .joined(separator: "\n")
     }
     
     public init(fcmToken: String?, customView: (() -> any View)? = nil) {
@@ -47,25 +45,66 @@ public struct DebugView: View {
     public var body: some View {
         NavigationView {
             Form {
-                AboutView
+                AboutView(internetAccesStatusIcon: networkReachabilityManager.connectionStatusIcon.name,
+                          internetAccesStatusColor: networkReachabilityManager.connectionStatusIcon.color)
                 
                 if customView != nil {
                     AnyView(customView!())
                 }
                 
-                LogOptionsView
+                LogsView(
+                    isDeleteLogsButtonDisabled: isDeleteLogsButtonDisabled,
+                    showDeleteNetworkLogsAlert: vm.showDeleteNetworkLogsAlert,
+                    isShowingDeleteNetworkLogs: $vm.isShowingDeleteNetworkLogs,
+                    
+                    deleteNetworkLogs: { networkLogger.deleteNetworkLogs() },
+                    
+                    isShowingDeleteUserDefaults: $vm.isShowingDeleteUserDefaults,
+                    dismiss: { dismiss() },
+                    filename: $vm.filename,
+                    fetchNetworkLogsAsString: fetchNetworkLogsAsString,
+                    showFileExporter: { logs in
+                        vm.document.text = logs
+                        vm.showFileExporter()
+                    }
+                )
                 
-                UserDefaultsView
+                UserDefaultsView(isShowingDeleteUserDefaults: $vm.isShowingDeleteUserDefaults,
+                                 showDeleteUserDefaultsAlert: vm.showDeleteUserDefaultsAlert)
                 
-                PermissionsView
+                PermissionsView(
+                    statuses: permissionsManager.statuses,
+                    checkIfPermissionRequestTypeExistsInApp: { type in
+                        permissionsManager.checkIfPermissionRequestTypeExistsInApp(type)
+                    },
+                    request: { type in
+                        Task { await permissionsManager.request(type) }
+                    },
+                    openAppSettings: {
+                        permissionsManager.openAppSettings()
+                    }
+                )
                 
-                FirebaseView
+                FirebaseView(simulateCrashExplicitly: debugTool.simulateCrashExplicitly,
+                             simulateCrashImplicitly: debugTool.simulateCrashImplicitly)
                 
-                FCMPushTokenView
+                FCMPushTokenView(fcmToken: fcmToken)
                 
-                ScreenRecordingView
+                ScreenRecordingView(isScreenRecordingOn: $screenRecorder.isScreenRecordingOn,
+                                    isScreenRecordingOnByDefault: $screenRecorder.isScreenRecordingOnByDefault,
+                                    exportLastVideo: screenRecorder.exportLastVideo,
+                                    isExportingVideo: screenRecorder.isExportingVideo,
+                                    exportCurrentVideo: screenRecorder.exportCurrentVideo,
+                                    maxVideoDuration: $screenRecorder.maxVideoDuration)
 
-                SettingsView
+                SettingsView(
+                    didStart: $networkLogger.didStart,
+                    isDynamicDataModeOn: $networkLogger.isDynamicDataModeOn,
+                    isEducationalaModeOn: $networkLogger.isEducationalaModeOn,
+                    networkLogsLimit: $networkLogger.networkLogsLimit,
+                    sortingOrder: $networkLogger.sortingOrder,
+                    isDarkModeOn: $isDarkModeOn
+                )
             }
             .preferredColorScheme(isDarkModeOn ? .dark : .light)
             .navigationBarTitleDisplayMode(.inline)
@@ -80,7 +119,11 @@ public struct DebugView: View {
                 }
             }
         }
-        .fileExporter(isPresented: $vm.isShowingFileExporter, document: vm.document, contentType: .plainText, defaultFilename: vm.filename) { result in
+        .fileExporter(isPresented: $vm.isShowingFileExporter,
+                      document: vm.document,
+                      contentType: .plainText,
+                      defaultFilename: vm.filename
+        ) { result in
             switch result {
             case .success(let file):
                 print(file)
@@ -93,272 +136,6 @@ public struct DebugView: View {
         }
         .onDisappear {
             screenRecorder.isDebugPanelVisible = false
-        }
-    }
-    
-    @ViewBuilder
-    private var AboutView: some View {
-        Section {
-            DeviceInfoView
-            ApplicationInfoView
-            ClockInfoView
-            InternetAccessInfoView
-        } header: {
-            Text(Constants.Headers.aboutSection)
-        }
-    }
-    
-    @ViewBuilder
-    private var DeviceInfoView: some View {
-        let text = "\(UIDevice.current.name)" +
-        " (\(UIDevice.current.systemVersion)" +
-        " - \(Bundle.main.infoDictionary?["DTSDKBuild"] as? String ?? "Unknown"))"
-        
-        AboutItem(iconName: "ipad.and.iphone", text: text)
-    }
-    
-    @ViewBuilder
-    private var ApplicationInfoView: some View {
-        let text = "\(Bundle.main.infoDictionary?["CFBundleName"] as? String ?? "")" +
-        " \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "")" +
-        " (\(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? ""))"
-        
-        AboutItem(iconName: "apple.logo", text: text)
-    }
-    
-    @ViewBuilder
-    private var InternetAccessInfoView: some View {
-        AboutItem(iconName: networkReachabilityManager.connectionStatusIcon.name,
-                  iconColor: networkReachabilityManager.connectionStatusIcon.color,
-                  text: "Internet access")
-    }
-    
-    @ViewBuilder
-    private var ClockInfoView: some View {
-        HStack {
-            Image(systemName: "clock")
-                .frame(width: 16, height: 16)
-                .padding(.trailing, 4)
-            Text(ISO8601DateFormatter().string(from: Date()))
-            Spacer()
-        }
-    }
-    
-    @ViewBuilder
-    private var LogOptionsView: some View {
-        Section {
-            ShowNetworkLogsOption
-            
-            ProprietaryActionButton(text: Constants.Actions.clearNetworkLogs,
-                                    iconName: Constants.Image.clear,
-                                    iconColor: IconColor.deletion,
-                                    isDisabled: isDeleteLogsButtonDisabled,
-                                    action: { vm.showDeleteNetworkLogsAlert() })
-            
-            ExportNetworkLogsOption
-        } header: {
-            Text(Constants.Headers.logs)
-        }
-        .destructiveAlertViewModifier(isShowingAlert: $vm.isShowingDeleteNetworkLogs,
-                                      title: Constants.Alert.deleteNLTitle,
-                                      message: Constants.Alert.deleteNLMessage,
-                                      action: { networkLogger.deleteNetworkLogs() })
-        .destructiveAlertViewModifier(isShowingAlert: $vm.isShowingDeleteUserDefaults,
-                                      title: Constants.Alert.deleteUDTitle,
-                                      message: Constants.Alert.deleteUDMessage,
-                                      action: { UserDefaults.standard.clearAppUserDefaults() })
-        .textCase(nil)
-    }
-    
-    @ViewBuilder
-    private var ShowNetworkLogsOption: some View {
-        NavigationLink {
-            LogsView(onClose: { dismiss() })
-        } label: {
-            Text(Constants.Actions.showNetworkLogs)
-        }
-    }
-    
-    @ViewBuilder
-    private var ExportNetworkLogsOption: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            ProprietaryActionButton(text: Constants.Actions.exportNetworkLogs,
-                                    iconName: Constants.Image.export,
-                                    iconColor: IconColor.action,
-                                    isDisabled: isDeleteLogsButtonDisabled,
-                                    action: {
-                                        vm.document.text = fetchNetworkLogsAsString()
-                                        vm.showFileExporter()
-                                    })
-            
-            TextField(Constants.Settings.exportFileName, text: $vm.filename)
-        }
-    }
-    
-    @ViewBuilder
-    private var UserDefaultsView: some View {
-        Section {
-            ProprietaryActionButton(text: Constants.Actions.clearAppUserDefaults,
-                                    iconName: Constants.Image.clear,
-                                    iconColor: IconColor.deletion,
-                                    action: { vm.showDeleteUserDefaultsAlert() })
-        } header: {
-            Text(Constants.Headers.userDefaults)
-        }
-    }
-    
-    @ViewBuilder
-    private var PermissionsView: some View {
-        Section {
-            VStack {
-                ForEach(PermissionRequestType.allCases) { type in
-                    PermissionItem(status: permissionsManager.statuses[type] ?? RequestPermissionStatus.notDetermined,
-                                   type: type,
-                                   available: permissionsManager.checkIfPermissionRequestTypeExistsInApp(type),
-                                   openSystemPermissionRequest: { Task { await permissionsManager.request(type) }},
-                                   openSettingsAction: { permissionsManager.openAppSettings() })
-                }
-            }
-            
-            ProprietaryActionButton(text: Constants.Actions.openAppSettings,
-                                    iconName: Constants.Image.gear,
-                                    iconColor: IconColor.action,
-                                    action: { permissionsManager.openAppSettings() })
-            .padding(.vertical, 12)
-
-        } header: {
-            Text(Constants.Headers.permissions)
-        }
-    }
-    
-    @ViewBuilder
-    private var FCMPushTokenView: some View {
-        Section {
-            Text("\(fcmToken ?? Constants.Strings.unknownValue)")
-        } header: {
-            Text(Constants.Headers.fcm)
-        }
-    }
-    
-    @ViewBuilder 
-    private var FirebaseView: some View {
-        Section {
-            Button {
-                debugTool.simulateCrashExplicitly()
-            } label: {
-                HStack {
-                    Text(Constants.Actions.simulateCrash)
-                    Text(Constants.Actions.explicitCrash)
-                        .font(.caption)
-                    Spacer()
-                    Image(systemName: Constants.Image.crash)
-                }
-            }
-            Button {
-                debugTool.simulateCrashImplicitly()
-            } label: {
-                HStack {
-                    Text(Constants.Actions.simulateCrash)
-                    Text(Constants.Actions.implicitCrash)
-                        .font(.caption)
-                    Spacer()
-                    Image(systemName: Constants.Image.crash)
-                }
-            }
-        } header: {
-            Text(Constants.Headers.firebaseActions)
-        }
-    }
-    
-    @ViewBuilder
-    private var ScreenRecordingView: some View {
-        Section {
-            Toggle(Constants.Actions.screenRecorderToole, isOn: .init(get: {
-                if let userValue = screenRecorder.isScreenRecordingOn {
-                    return userValue
-                } else {
-                    return screenRecorder.isScreenRecordingOnByDefault
-                }
-            }, set: { newValue in
-                screenRecorder.isScreenRecordingOn = newValue
-            }))
-            
-            Button(action: {
-                screenRecorder.exportLastVideo()
-            }, label: {
-                HStack {
-                    Text(Constants.Actions.screenRecorderExportLast)
-                    Spacer()
-                    Image(systemName: Constants.Image.export)
-                }
-            })
-            .disabled(screenRecorder.isExportingVideo)
-            
-            Button(action: {
-                screenRecorder.exportCurrentVideo()
-            }, label: {
-                HStack {
-                    Text(Constants.Actions.screenRecorderExportCurrent)
-                    Spacer()
-                    Image(systemName: Constants.Image.export)
-                }
-            })
-            .disabled(screenRecorder.isExportingVideo)
-            
-            HStack {
-                Text(Constants.Actions.screenRecorderMaxVideoDuration)
-                
-                Picker(Constants.Actions.screenRecorderMaxVideoDuration, selection: $screenRecorder.maxVideoDuration) {
-                    ForEach(Constants.MaxScreenVideoDuration.allCases) { videoDuration in
-                        Text(videoDuration.ls)
-                            .tag(videoDuration)
-                    }
-                }
-                .pickerStyle(.segmented)
-            }
-        } header: {
-            Text(Constants.Headers.screenRecording)
-        }
-    }
-    
-    @ViewBuilder
-    private var SettingsView: some View {
-        Section {
-            VStack {
-                Toggle(Constants.Strings.tracking, isOn: $networkLogger.didStart)
-                    .disabled(true)
-                
-                if networkLogger.didStart == false {
-                    Text(Constants.Strings.trackingInfo)
-                        .font(.footnote)
-                        .foregroundColor(.accentColor)
-                }
-            }
-            
-            Toggle(Constants.Settings.dynamicData, isOn: $networkLogger.isDynamicDataModeOn)
-            
-            Toggle(Constants.Settings.educationalMode, isOn: $networkLogger.isEducationalaModeOn)
-
-            Picker(Constants.Settings.logLimit, selection: $networkLogger.networkLogsLimit) {
-                ForEach(Constants.Defaults.defaultNumberOfLogs, id: \.self) {
-                    Text("\($0)")
-                }
-            }
-
-            HStack {
-                Text(Constants.Settings.sortingOrder)
-                Picker(Constants.Settings.sortingOrder, selection: $networkLogger.sortingOrder) {
-                    ForEach(Constants.SortingOrder.allCases) { sortingOrder in
-                        Text(sortingOrder.rawValue)
-                            .tag(sortingOrder)
-                    }
-                }
-                .pickerStyle(.segmented)
-            }
-            
-            Toggle(Constants.Settings.darkMode, isOn: $isDarkModeOn)
-        } header: {
-            Text(Constants.Headers.settings)
         }
     }
 }

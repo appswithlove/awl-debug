@@ -23,13 +23,21 @@ enum IconColor {
 
 struct ProprietaryActionButton: View {
     let text: String
+    let subtext: String
     let iconName: String
     let iconColor: IconColor
     let isDisabled: Bool
     let action: () -> Void
     
-    init(text: String, iconName: String, iconColor: IconColor, isDisabled: Bool = false, action: @escaping () -> Void) {
+    init(text: String,
+         subtext: String? = nil,
+         iconName: String,
+         iconColor: IconColor,
+         isDisabled: Bool = false,
+         action: @escaping () -> Void
+    ) {
         self.text = text
+        self.subtext = subtext ?? ""
         self.iconName = iconName
         self.iconColor = iconColor
         self.isDisabled = isDisabled
@@ -41,7 +49,11 @@ struct ProprietaryActionButton: View {
             action()
         } label: {
             HStack {
-                Text(text)
+                Group {
+                    Text(text)
+                    Text(subtext)
+                        .font(.caption)
+                }
                 Spacer()
                 Image(systemName: iconName)
                     .foregroundColor(iconColor.color)

@@ -1,5 +1,5 @@
 //
-//  LogsView.swift
+//  LogsListView.swift
 //  AWLDebugTool
 //
 //  Created by Hrvoje Hajduković on 07.06.2023..
@@ -8,7 +8,7 @@
 
 import SwiftUI
 
-public struct LogsView: View {
+public struct LogsListView: View {
     @Environment(\.dismiss)
     var dismiss
     
@@ -229,7 +229,7 @@ public struct LogsView: View {
 struct LogsView_Previews: PreviewProvider {
     static var previews: some View {
         NavigationView {
-            LogsView(onClose: {})
+            LogsListView(onClose: {})
         }
     }
 }
