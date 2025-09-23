@@ -298,7 +298,8 @@ private extension UIWindow {
         format.scale = 1
         let renderer = UIGraphicsImageRenderer(size: CGSize(width: bounds.size.width, height: bounds.size.height), format: format)
         return renderer.image { ctx in
-            layer.render(in: ctx.cgContext)
+//            layer.render(in: ctx.cgContext)
+            drawHierarchy(in: bounds, afterScreenUpdates: false)
         }
     }
 }
