@@ -80,19 +80,6 @@ extension PermissionRequestType {
     }
 }
 
-extension Bundle {
-    func hasPlistKeys(_ keys: [String]) -> Bool {
-        guard let dict = infoDictionary else { return false }
-        for key in keys {
-            if dict[key] == nil {
-                return false
-            }
-        }
-        return true
-    }
-}
-
-
 enum RequestPermissionStatus {
     case notDetermined
     case denied
