@@ -6,8 +6,9 @@
 //
 
 import AVFoundation
-import Contacts
-import EventKit
+// TODO: fixme - ITMS-90683: Missing purpose string in Info.plist
+//import Contacts
+//import EventKit
 import MapKit
 import Photos
 import SwiftUI
@@ -18,8 +19,9 @@ class PermissionsManager: NSObject, ObservableObject, CLLocationManagerDelegate 
     @Published var availablePermissionRequestTypes: [PermissionRequestType] = []
 
     private var locationManager: CLLocationManager?
-    private let eventStore = EKEventStore()
-    private let contactStore = CNContactStore()
+    // TODO: fixme - ITMS-90683: Missing purpose string in Info.plist
+//    private let eventStore = EKEventStore()
+//    private let contactStore = CNContactStore()
 
     override init() {
         super.init()
@@ -38,64 +40,65 @@ class PermissionsManager: NSObject, ObservableObject, CLLocationManagerDelegate 
     }
 
     private func checkStatus(for type: PermissionRequestType) async -> RequestPermissionStatus {
+        // TODO: fixme - ITMS-90683: Missing purpose string in Info.plist
         switch type {
-        case .locationAccess:
-            let status = CLLocationManager().authorizationStatus
-            switch status {
-            case .authorizedAlways, .authorizedWhenInUse: return .gotPermission
-            case .denied, .restricted: return .denied
-            case .notDetermined: return .notDetermined
-            @unknown default: return .denied
-            }
+//        case .locationAccess:
+//            let status = CLLocationManager().authorizationStatus
+//            switch status {
+//            case .authorizedAlways, .authorizedWhenInUse: return .gotPermission
+//            case .denied, .restricted: return .denied
+//            case .notDetermined: return .notDetermined
+//            @unknown default: return .denied
+//            }
 
-        case .cameraAccess:
-            switch AVCaptureDevice.authorizationStatus(for: .video) {
-            case .authorized: return .gotPermission
-            case .denied, .restricted: return .denied
-            case .notDetermined: return .notDetermined
-            @unknown default: return .denied
-            }
+//        case .cameraAccess:
+//            switch AVCaptureDevice.authorizationStatus(for: .video) {
+//            case .authorized: return .gotPermission
+//            case .denied, .restricted: return .denied
+//            case .notDetermined: return .notDetermined
+//            @unknown default: return .denied
+//            }
 
-        case .microphoneAccess:
-            switch AVCaptureDevice.authorizationStatus(for: .audio) {
-            case .authorized: return .gotPermission
-            case .denied, .restricted: return .denied
-            case .notDetermined: return .notDetermined
-            @unknown default: return .denied
-            }
+//        case .microphoneAccess:
+//            switch AVCaptureDevice.authorizationStatus(for: .audio) {
+//            case .authorized: return .gotPermission
+//            case .denied, .restricted: return .denied
+//            case .notDetermined: return .notDetermined
+//            @unknown default: return .denied
+//            }
 
-        case .photosAccess:
-            let status = PHPhotoLibrary.authorizationStatus(for: .readWrite)
-            switch status {
-            case .authorized, .limited: return .gotPermission
-            case .denied, .restricted: return .denied
-            case .notDetermined: return .notDetermined
-            @unknown default: return .denied
-            }
+//        case .photosAccess:
+//            let status = PHPhotoLibrary.authorizationStatus(for: .readWrite)
+//            switch status {
+//            case .authorized, .limited: return .gotPermission
+//            case .denied, .restricted: return .denied
+//            case .notDetermined: return .notDetermined
+//            @unknown default: return .denied
+//            }
 
-        case .contactsAccess:
-            switch CNContactStore.authorizationStatus(for: .contacts) {
-            case .authorized: return .gotPermission
-            case .denied, .restricted: return .denied
-            case .notDetermined: return .notDetermined
-            @unknown default: return .denied
-            }
+//        case .contactsAccess:
+//            switch CNContactStore.authorizationStatus(for: .contacts) {
+//            case .authorized: return .gotPermission
+//            case .denied, .restricted: return .denied
+//            case .notDetermined: return .notDetermined
+//            @unknown default: return .denied
+//            }
 
-        case .calendarAccess:
-            switch EKEventStore.authorizationStatus(for: .event) {
-            case .fullAccess: return .gotPermission
-            case .denied, .restricted: return .denied
-            case .notDetermined: return .notDetermined
-            default: return .denied
-            }
+//        case .calendarAccess:
+//            switch EKEventStore.authorizationStatus(for: .event) {
+//            case .fullAccess: return .gotPermission
+//            case .denied, .restricted: return .denied
+//            case .notDetermined: return .notDetermined
+//            default: return .denied
+//            }
 
-        case .remindersAccess:
-            switch EKEventStore.authorizationStatus(for: .reminder) {
-            case .fullAccess: return .gotPermission
-            case .denied, .restricted: return .denied
-            case .notDetermined: return .notDetermined
-            default: return .denied
-            }
+//        case .remindersAccess:
+//            switch EKEventStore.authorizationStatus(for: .reminder) {
+//            case .fullAccess: return .gotPermission
+//            case .denied, .restricted: return .denied
+//            case .notDetermined: return .notDetermined
+//            default: return .denied
+//            }
 
         case .notificationsAccess:
             let settings = await UNUserNotificationCenter.current().notificationSettings()
@@ -138,50 +141,53 @@ class PermissionsManager: NSObject, ObservableObject, CLLocationManagerDelegate 
     func checkIfPermissionRequestTypeExistsInApp(_ type: PermissionRequestType) -> Bool {
         availablePermissionRequestTypes.contains(type)
     }
-
     
     func request(_ type: PermissionRequestType) async {
-        if !Bundle.main.hasPlistKeys(type.requiredPlistKeys) {
+//        if !Bundle.main.hasPlistKeys(type.requiredPlistKeys) && type != .notificationsAccess {
+        if !Bundle.main.hasPlistKeys(type.requiredPlistKeys) && type.isInfoPlistKeyNecessary {
             print("Missing Info.plist keys for \(type). Redirecting to Settings.")
             requestPermissionThroughSettings()
             return
         }
 
+        // TODO: fixme - ITMS-90683: Missing purpose string in Info.plist
         switch type {
-        case .locationAccess:
-            locationManager = CLLocationManager()
-            locationManager?.delegate = self
-            locationManager?.requestWhenInUseAuthorization()
+//        case .locationAccess:
+//            locationManager = CLLocationManager()
+//            locationManager?.delegate = self
+//            locationManager?.requestWhenInUseAuthorization()
 
-        case .cameraAccess:
-            _ = await AVCaptureDevice.requestAccess(for: .video)
+//        case .cameraAccess:
+//            _ = await AVCaptureDevice.requestAccess(for: .video)
 
-        case .microphoneAccess:
-            _ = await AVCaptureDevice.requestAccess(for: .audio)
+//        case .microphoneAccess:
+//            _ = await AVCaptureDevice.requestAccess(for: .audio)
 
-        case .photosAccess:
-            _ = await PHPhotoLibrary.requestAuthorization(for: .readWrite)
+//        case .photosAccess:
+//            _ = await PHPhotoLibrary.requestAuthorization(for: .readWrite)
 
-        case .contactsAccess:
-            _ = try? await contactStore.requestAccess(for: .contacts)
+//        case .contactsAccess:
+//            _ = try? await contactStore.requestAccess(for: .contacts)
 
-        case .calendarAccess:
-            if #available(iOS 17, *) {
-                _ = try? await eventStore.requestFullAccessToEvents()
-            } else {
-                _ = try? await eventStore.requestAccess(to: .event)
-            }
+//        case .calendarAccess:
+//            if #available(iOS 17, *) {
+//                _ = try? await eventStore.requestFullAccessToEvents()
+//            } else {
+//                _ = try? await eventStore.requestAccess(to: .event)
+//            }
 
-        case .remindersAccess:
-            if #available(iOS 17, *) {
-                _ = try? await eventStore.requestFullAccessToReminders()
-            } else {
-                _ = try? await eventStore.requestAccess(to: .reminder)
-            }
+//        case .remindersAccess:
+//            if #available(iOS 17, *) {
+//                _ = try? await eventStore.requestFullAccessToReminders()
+//            } else {
+//                _ = try? await eventStore.requestAccess(to: .reminder)
+//            }
 
         case .notificationsAccess:
+            let authorizationOptions: UNAuthorizationOptions = [.alert, .sound, .badge]
+            
             _ = try? await UNUserNotificationCenter.current()
-                .requestAuthorization(options: [.alert, .badge, .sound])
+                .requestAuthorization(options: authorizationOptions)
         }
 
         await refreshStatuses()
