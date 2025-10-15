@@ -7,8 +7,23 @@
 
 import SwiftUI
 
+extension DebugToolViewModifier {
+    class ViewModel: ObservableObject {
+        @Published var isShowingDebugTool = false
+        
+        init() {
+            NotificationCenter.default.addObserver(self, selector: #selector(userDidTakeScreenshotNotification),
+                                                   name: UIApplication.userDidTakeScreenshotNotification, object: nil)
+        }
+        
+        @objc private func userDidTakeScreenshotNotification() {
+            isShowingDebugTool = true;
+        }
+    }
+}
+
 public struct DebugToolViewModifier: ViewModifier {
-    @State private var isShowingDebugTool = false
+    @StateObject private var viewModel = ViewModel()
     let fcmToken: String?
     let customView: (() -> any View)?
 
@@ -16,9 +31,9 @@ public struct DebugToolViewModifier: ViewModifier {
         content
             .contentShape(Rectangle())
             .onTapGesture(count: 3) {
-                isShowingDebugTool = true
+                viewModel.isShowingDebugTool = true
             }
-            .sheet(isPresented: $isShowingDebugTool, content: {
+            .sheet(isPresented: $viewModel.isShowingDebugTool, content: {
                 DebugView(fcmToken: fcmToken, customView: customView)
             })
     }
