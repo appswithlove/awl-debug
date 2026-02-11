@@ -8,8 +8,14 @@
 import SwiftUI
 
 extension DebugToolViewModifier {
+    public enum ShowDebugToolEvents {
+        case userDidTakeScreenshot
+        case threeTaps
+    }
+    
     class ViewModel: ObservableObject {
         @Published var isShowingDebugTool = false
+        var showDebugToolEvents: [DebugToolViewModifier.ShowDebugToolEvents] = []
         
         init() {
             NotificationCenter.default.addObserver(self, selector: #selector(userDidTakeScreenshotNotification),
@@ -17,7 +23,15 @@ extension DebugToolViewModifier {
         }
         
         @objc private func userDidTakeScreenshotNotification() {
-            isShowingDebugTool = true;
+            if showDebugToolEvents.contains(.userDidTakeScreenshot) {
+                isShowingDebugTool = true;
+            }
+        }
+        
+        func threeTapsAction() {
+            if showDebugToolEvents.contains(.threeTaps) {
+                isShowingDebugTool = true
+            }
         }
     }
 }
@@ -25,22 +39,28 @@ extension DebugToolViewModifier {
 public struct DebugToolViewModifier: ViewModifier {
     @StateObject private var viewModel = ViewModel()
     let fcmToken: String?
+    let showDebugToolEvents: [DebugToolViewModifier.ShowDebugToolEvents]
     let customView: (() -> any View)?
 
     public func body(content: Content) -> some View {
         content
             .contentShape(Rectangle())
             .onTapGesture(count: 3) {
-                viewModel.isShowingDebugTool = true
+                viewModel.threeTapsAction()
             }
             .sheet(isPresented: $viewModel.isShowingDebugTool, content: {
                 DebugView(fcmToken: fcmToken, customView: customView)
             })
+            .onAppear {
+                viewModel.showDebugToolEvents = showDebugToolEvents
+            }
     }
 }
 
 extension View {
-    public func includeDebugTool(fcmToken: String? = nil, customView: (() -> any View)? = nil) -> some View {
-        modifier(DebugToolViewModifier(fcmToken: fcmToken, customView: customView))
+    public func includeDebugTool(fcmToken: String? = nil,
+                                 showDebugToolEvents: [DebugToolViewModifier.ShowDebugToolEvents] = [.threeTaps],
+                                 customView: (() -> any View)? = nil) -> some View {
+        modifier(DebugToolViewModifier(fcmToken: fcmToken, showDebugToolEvents: showDebugToolEvents, customView: customView))
     }
 }
