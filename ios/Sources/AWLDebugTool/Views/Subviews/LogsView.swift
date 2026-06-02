@@ -22,7 +22,7 @@ struct LogsView: View {
         Section {
             ShowNetworkLogsOption
             
-            ProprietaryActionButton(text: Constants.Actions.clearNetworkLogs,
+            ProprietaryActionButton(text: LS.Actions.clearNetworkLogs,
                                     iconName: Constants.Image.clear,
                                     iconColor: IconColor.deletion,
                                     isDisabled: isDeleteLogsButtonDisabled,
@@ -30,11 +30,11 @@ struct LogsView: View {
             
             ExportNetworkLogsOption
         } header: {
-            Text(Constants.Headers.logs)
+            Text(LS.Headers.logs)
         }
         .destructiveAlertViewModifier(isShowingAlert: isShowingDeleteNetworkLogs,
-                                      title: Constants.Alert.deleteNLTitle,
-                                      message: Constants.Alert.deleteNLMessage,
+                                      title: LS.Alert.deleteNLTitle,
+                                      message: LS.Alert.deleteNLMessage,
                                       action: { deleteNetworkLogs() })
         .textCase(nil)
     }
@@ -44,7 +44,7 @@ struct LogsView: View {
         NavigationLink {
             LogsListView(onClose: { dismiss() })
         } label: {
-            Text(Constants.Actions.showNetworkLogs)
+            Text(LS.Actions.showNetworkLogs)
         }
     }
     
@@ -52,7 +52,7 @@ struct LogsView: View {
     private var ExportNetworkLogsOption: some View {
         VStack(alignment: .leading, spacing: 0) {
             ProprietaryActionButton(
-                text: Constants.Actions.exportNetworkLogs,
+                text: LS.Actions.exportNetworkLogs,
                 iconName: Constants.Image.export,
                 iconColor: IconColor.action,
                 isDisabled: isDeleteLogsButtonDisabled,
@@ -62,7 +62,7 @@ struct LogsView: View {
                 }
             )
 
-            TextField(Constants.Settings.exportFileName, text: filename)
+            TextField(LS.Settings.exportFileName, text: filename)
         }
     }
 }

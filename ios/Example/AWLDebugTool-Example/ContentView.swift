@@ -145,7 +145,7 @@ struct DebugPanelView: View {
             }
             
             Section {
-                Text("Text \(model.testBool)")
+                Text("Text \(model.testBool.description)")
                 Toggle("Toggle", isOn: $model.testBool)
             } header: {
                 Text("Custom section header 2")

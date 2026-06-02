@@ -10,7 +10,6 @@ import SwiftUI
 struct SettingsView: View {
     let didStart: Binding<Bool>
     let isDynamicDataModeOn: Binding<Bool>
-    let isEducationalaModeOn: Binding<Bool>
     let networkLogsLimit: Binding<Int>
     let sortingOrder: Binding<Constants.SortingOrder>
     let isDarkModeOn: Binding<Bool>
@@ -18,29 +17,27 @@ struct SettingsView: View {
     var body: some View {
         Section {
             VStack {
-                Toggle(Constants.Strings.tracking, isOn: didStart)
+                Toggle(LS.Strings.tracking, isOn: didStart)
                     .disabled(true)
                 
                 if didStart.wrappedValue == false {
-                    Text(Constants.Strings.trackingInfo)
+                    Text(LS.Strings.trackingInfo)
                         .font(.footnote)
                         .foregroundColor(.accentColor)
                 }
             }
             
-            Toggle(Constants.Settings.dynamicData, isOn: isDynamicDataModeOn)
+            Toggle(LS.Settings.dynamicData, isOn: isDynamicDataModeOn)
             
-            Toggle(Constants.Settings.educationalMode, isOn: isEducationalaModeOn)
-
-            Picker(Constants.Settings.logLimit, selection: networkLogsLimit) {
+            Picker(LS.Settings.logLimit, selection: networkLogsLimit) {
                 ForEach(Constants.Defaults.defaultNumberOfLogs, id: \.self) {
                     Text("\($0)")
                 }
             }
 
             HStack {
-                Text(Constants.Settings.sortingOrder)
-                Picker(Constants.Settings.sortingOrder, selection: sortingOrder) {
+                Text(LS.Settings.sortingOrder)
+                Picker(LS.Settings.sortingOrder, selection: sortingOrder) {
                     ForEach(Constants.SortingOrder.allCases) { sortingOrder in
                         Text(sortingOrder.rawValue)
                             .tag(sortingOrder)
@@ -49,9 +46,9 @@ struct SettingsView: View {
                 .pickerStyle(.segmented)
             }
             
-            Toggle(Constants.Settings.darkMode, isOn: isDarkModeOn)
+            Toggle(LS.Settings.darkMode, isOn: isDarkModeOn)
         } header: {
-            Text(Constants.Headers.settings)
+            Text(LS.Headers.settings)
         }
     }
 }
@@ -59,7 +56,6 @@ struct SettingsView: View {
 #Preview {
     SettingsView(didStart: .constant(true),
                  isDynamicDataModeOn: .constant(true),
-                 isEducationalaModeOn: .constant(true),
                  networkLogsLimit: .constant(777),
                  sortingOrder: .constant(Constants.SortingOrder.descending),
                  isDarkModeOn: .constant(true))

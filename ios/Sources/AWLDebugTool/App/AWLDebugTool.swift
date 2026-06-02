@@ -7,7 +7,7 @@ public class AWLDebugTool: ObservableObject {
     let screenRecorder = ScreenRecorderModel()
     
     func simulateCrashExplicitly() {
-        fatalError(Constants.Strings.fatalErrorMsg)
+        fatalError(LS.Strings.fatalErrorMsg)
     }
 
     func simulateCrashImplicitly() {

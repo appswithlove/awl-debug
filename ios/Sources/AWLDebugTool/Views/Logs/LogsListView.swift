@@ -15,7 +15,7 @@ public struct LogsListView: View {
     @ObservedObject private var debugTool = AWLDebugTool.shared
     @ObservedObject private var networkLogger = AWLDebugTool.shared.networkLogger
     
-    @State private var searchText = Constants.Strings.emptyString
+    @State private var searchText = LS.Strings.emptyString
     @State private var isFilterActive = false
     
     let onClose: () -> ()
@@ -100,14 +100,14 @@ public struct LogsListView: View {
             EmptyLogsList
         }
         .navigationBarTitleDisplayMode(.inline)
-        .navigationTitle(Constants.Strings.logs)
+        .navigationTitle(LS.Strings.logs)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button {
                     onClose()
                     dismiss()
                 } label: {
-                    Text(Constants.Headers.btnClose)
+                    Text(LS.Headers.btnClose)
                 }
             }
         }
@@ -115,7 +115,7 @@ public struct LogsListView: View {
     
     @ViewBuilder var EmptyLogsList: some View {
         if filteredLogs.isEmpty {
-            Text(Constants.Strings.emptyListOfLogs)
+            Text(LS.Strings.emptyListOfLogs)
         }
     }
     
@@ -136,7 +136,7 @@ public struct LogsListView: View {
     
     @ViewBuilder var NumberOfRequestsText: some View {
         Group {
-            Text(Constants.Strings.numberOfLogs) +
+            Text(LS.Strings.numberOfLogs) +
             Text("\(filteredLogs.count) / \(networkLogger.networkLogsLimit)")
                 .bold()
         }
@@ -183,7 +183,7 @@ public struct LogsListView: View {
             }
         }
         .listStyle(.plain)
-        .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: Constants.Strings.searchLogs)
+        .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: LS.Strings.searchLogs)
         .autocorrectionDisabled(true)
         .textInputAutocapitalization(.never)
         .padding(.leading, -4)

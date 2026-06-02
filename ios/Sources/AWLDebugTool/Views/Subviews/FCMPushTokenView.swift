@@ -12,9 +12,9 @@ struct FCMPushTokenView: View {
     
     var body: some View {
         Section {
-            Text("\(fcmToken ?? Constants.Strings.unknownValue)")
+            Text("\(fcmToken ?? LS.Strings.unknownValue)")
         } header: {
-            Text(Constants.Headers.fcm)
+            Text(LS.Headers.fcm)
         }
     }
 }

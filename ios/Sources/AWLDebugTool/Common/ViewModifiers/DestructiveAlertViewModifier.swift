@@ -16,8 +16,8 @@ public struct DestructiveAlertViewModifier: ViewModifier {
     public func body(content: Content) -> some View {
         content
             .alert(title, isPresented: $isShowingAlert) {
-                Button(Constants.Alert.btnCancel, role: .cancel) {}
-                Button(Constants.Alert.btnDelete, role: .destructive) {
+                Button(LS.Alert.btnCancel, role: .cancel) {}
+                Button(LS.Alert.btnDelete, role: .destructive) {
                     action()
                 }
             } message: {

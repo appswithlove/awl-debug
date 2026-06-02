@@ -25,14 +25,14 @@ struct PermissionsView: View {
                 }
             }
             
-            ProprietaryActionButton(text: Constants.Actions.openAppSettings,
+            ProprietaryActionButton(text: LS.Actions.openAppSettings,
                                     iconName: Constants.Image.gear,
                                     iconColor: IconColor.action,
                                     action: { openAppSettings() })
             .padding(.vertical, 12)
             
         } header: {
-            Text(Constants.Headers.permissions)
+            Text(LS.Headers.permissions)
         }
     }
 }

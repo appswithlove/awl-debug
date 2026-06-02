@@ -18,7 +18,7 @@ struct ScreenRecordingView: View {
     var body: some View {
         Section {
             Toggle(
-                Constants.Actions.screenRecorderToole,
+                LS.Actions.screenRecorderToole,
                 isOn: Binding(
                     get: {
                         if let userValue = isScreenRecordingOn.wrappedValue {
@@ -34,7 +34,7 @@ struct ScreenRecordingView: View {
             )
             
             ProprietaryActionButton(
-                text: Constants.Actions.screenRecorderExportLast,
+                text: LS.Actions.screenRecorderExportLast,
                 iconName: Constants.Image.export,
                 iconColor: IconColor.action,
                 isDisabled: isExportingVideo,
@@ -42,7 +42,7 @@ struct ScreenRecordingView: View {
             )
             
             ProprietaryActionButton(
-                text: Constants.Actions.screenRecorderExportCurrent,
+                text: LS.Actions.screenRecorderExportCurrent,
                 iconName: Constants.Image.export,
                 iconColor: IconColor.action,
                 isDisabled: isExportingVideo,
@@ -50,9 +50,9 @@ struct ScreenRecordingView: View {
             )
             
             HStack {
-                Text(Constants.Actions.screenRecorderMaxVideoDuration)
+                Text(LS.Actions.screenRecorderMaxVideoDuration)
                 
-                Picker(Constants.Actions.screenRecorderMaxVideoDuration, selection: maxVideoDuration) {
+                Picker(LS.Actions.screenRecorderMaxVideoDuration, selection: maxVideoDuration) {
                     ForEach(Constants.MaxScreenVideoDuration.allCases) { videoDuration in
                         Text(videoDuration.ls)
                             .tag(videoDuration)
@@ -61,7 +61,7 @@ struct ScreenRecordingView: View {
                 .pickerStyle(.segmented)
             }
         } header: {
-            Text(Constants.Headers.screenRecording)
+            Text(LS.Headers.screenRecording)
         }
     }
 }

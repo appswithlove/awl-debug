@@ -18,7 +18,7 @@ struct AboutView: View {
             ClockInfoView
             InternetAccessInfoView
         } header: {
-            Text(Constants.Headers.aboutSection)
+            Text(LS.Headers.aboutSection)
         }
         
     }

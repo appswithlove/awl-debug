@@ -31,14 +31,14 @@ struct PermissionItem: View {
                 }
             } label: {
                 if !available {
-                    Text(Constants.Buttons.unavailable)
+                    Text(LS.Buttons.unavailable)
                         .foregroundStyle(.gray)
                 } else {
                     switch status {
                     case .gotPermission, .denied:
-                        Text(Constants.Buttons.settings)
+                        Text(LS.Buttons.settings)
                     case .notDetermined:
-                        Text(Constants.Buttons.enable)
+                        Text(LS.Buttons.enable)
                     }
                 }
             }

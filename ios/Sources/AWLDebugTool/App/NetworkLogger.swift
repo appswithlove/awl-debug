@@ -110,11 +110,11 @@ public class NetworkLogger: ObservableObject {
     }
 
     init() {
-        for method in Constants.RequestMethod.allCases {
+        for method in LS.RequestMethod.allCases {
             methodsAsStaticDict[method.rawValue] = filtersStorage.isMethodFilterActive(for: method.rawValue)
         }
         
-        for code in Constants.ResponseCodes.allCases {
+        for code in LS.ResponseCodes.allCases {
             codesAsStaticDict[code.rawValue] = filtersStorage.isCodeFilterActive(for: code.rawValue)
         }
     }

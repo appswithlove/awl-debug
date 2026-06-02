@@ -13,19 +13,19 @@ struct FirebaseView: View {
     
     var body: some View {
         Section {
-            ProprietaryActionButton(text: Constants.Actions.simulateCrash,
-                                    subtext:  Constants.Actions.explicitCrash,
+            ProprietaryActionButton(text: LS.Actions.simulateCrash,
+                                    subtext:  LS.Actions.explicitCrash,
                                     iconName: Constants.Image.crash,
                                     iconColor: IconColor.action,
                                     action: simulateCrashExplicitly)
 
-            ProprietaryActionButton(text: Constants.Actions.simulateCrash,
-                                    subtext:  Constants.Actions.implicitCrash,
+            ProprietaryActionButton(text: LS.Actions.simulateCrash,
+                                    subtext:  LS.Actions.implicitCrash,
                                     iconName: Constants.Image.crash,
                                     iconColor: IconColor.action,
                                     action: simulateCrashImplicitly)
         } header: {
-            Text(Constants.Headers.firebaseActions)
+            Text(LS.Headers.firebaseActions)
         }
     }
 }

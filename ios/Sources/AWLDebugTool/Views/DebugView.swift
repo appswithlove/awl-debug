@@ -100,7 +100,6 @@ public struct DebugView: View {
                 SettingsView(
                     didStart: $networkLogger.didStart,
                     isDynamicDataModeOn: $networkLogger.isDynamicDataModeOn,
-                    isEducationalaModeOn: $networkLogger.isEducationalaModeOn,
                     networkLogsLimit: $networkLogger.networkLogsLimit,
                     sortingOrder: $networkLogger.sortingOrder,
                     isDarkModeOn: $isDarkModeOn
@@ -108,13 +107,13 @@ public struct DebugView: View {
             }
             .preferredColorScheme(isDarkModeOn ? .dark : .light)
             .navigationBarTitleDisplayMode(.inline)
-            .navigationTitle(Constants.Strings.appName)
+            .navigationTitle(LS.Strings.appName)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
                         dismiss()
                     } label: {
-                        Text(Constants.Headers.btnClose)
+                        Text(LS.Headers.btnClose)
                     }
                 }
             }

@@ -13,16 +13,16 @@ struct UserDefaultsView: View {
     
     var body: some View {
         Section {
-            ProprietaryActionButton(text: Constants.Actions.clearAppUserDefaults,
+            ProprietaryActionButton(text: LS.Actions.clearAppUserDefaults,
                                     iconName: Constants.Image.clear,
                                     iconColor: IconColor.deletion,
                                     action: { showDeleteUserDefaultsAlert() })
         } header: {
-            Text(Constants.Headers.userDefaults)
+            Text(LS.Headers.userDefaults)
         }
         .destructiveAlertViewModifier(isShowingAlert: isShowingDeleteUserDefaults,
-                                      title: Constants.Alert.deleteUDTitle,
-                                      message: Constants.Alert.deleteUDMessage,
+                                      title: LS.Alert.deleteUDTitle,
+                                      message: LS.Alert.deleteUDMessage,
                                       action: { UserDefaults.standard.clearAppUserDefaults() })
     }
 }

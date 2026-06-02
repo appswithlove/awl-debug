@@ -28,18 +28,20 @@ struct FilterView: View {
     var body: some View {
         NavigationView {
             Form {
+                Toggle(LS.Settings.educationalMode, isOn: $networkLogger.isEducationalaModeOn)
+                
                 RequestMethodsSection
                 ResponseCodesSection
                 EndpointsSection
             }
             .navigationBarTitleDisplayMode(.inline)
-            .navigationTitle(Constants.Strings.filters)
+            .navigationTitle(LS.Strings.filters)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
                         isFilterActive = false
                     } label: {
-                        Text(Constants.Headers.btnDone)
+                        Text(LS.Headers.btnDone)
                     }
                 }
             }
@@ -56,14 +58,14 @@ struct FilterView: View {
                 RequestMethodsList
             }
         } header: {
-            FilterHeader(title: Constants.Headers.requestMethods,
+            FilterHeader(title: LS.Headers.requestMethods,
                          icon: requestMethodsSectionIcon,
                          action: { filtersStorage.isRequestMethodsContentShown.toggle() })
         }
     }
     
     @ViewBuilder private var RequestMethodsList: some View {
-        ForEach(Array(networkLogger.methods.keys).sorted(), id: \.self) { method in
+        ForEach(networkLogger.methods.keys.sorted(), id: \.self) { method in
             Toggle(isOn: Binding<Bool>(
                 get: { self.filtersStorage.isMethodFilterActive(for: method) },
                 set: { newValue in
@@ -74,7 +76,7 @@ struct FilterView: View {
                 VStack(alignment: .leading) {
                     Text(String(method))
                     if networkLogger.isEducationalaModeOn {
-                        Text(Constants.RequestMethod[method] ?? Constants.Strings.unknownValue)
+                        Text(LS.RequestMethod[method] ?? LS.Strings.unknownValue)
                             .font(.caption2)
                     }
                 }
@@ -92,14 +94,14 @@ struct FilterView: View {
                 ResponseCodesList
             }
         } header: {
-            FilterHeader(title: Constants.Headers.responseCodes,
+            FilterHeader(title: LS.Headers.responseCodes,
                          icon: responseCodesSectionIcon,
                          action: { filtersStorage.isResponseCodesContentShown.toggle() })
         }
     }
     
     @ViewBuilder private var ResponseCodesList: some View {
-        ForEach(Array(networkLogger.codes.keys).sorted(), id: \.self) { code in
+        ForEach(networkLogger.codes.keys.sorted(), id: \.self) { code in
             Toggle(isOn: Binding<Bool>(
                 get: { self.filtersStorage.isCodeFilterActive(for: code) },
                 set: { newValue in
@@ -110,7 +112,7 @@ struct FilterView: View {
                 VStack(alignment: .leading) {
                     Text(String(code))
                     if networkLogger.isEducationalaModeOn {
-                        Text(Constants.ResponseCodes[code] ?? Constants.Strings.unknownValue)
+                        Text(LS.ResponseCodes[code] ?? LS.Strings.unknownValue)
                             .font(.caption2)
                     }
                 }
@@ -128,7 +130,7 @@ struct FilterView: View {
                 EndpointsList
             }
         } header: {
-            FilterHeader(title: Constants.Headers.endpoints,
+            FilterHeader(title: LS.Headers.endpoints,
                          icon: endpointsCodesSectionIcon,
                          action: { filtersStorage.isEndpointsContentShown.toggle() })
         }
@@ -172,10 +174,10 @@ struct FilterView: View {
                                       selectAction: @escaping() -> Void) -> some View {
         HStack {
             Spacer()
-            ActionButton(title: Constants.Buttons.deselectAllBtn) {
+            ActionButton(title: LS.Buttons.deselectAllBtn) {
                 deselectAction()
             }
-            ActionButton(title: Constants.Buttons.selectAllBtn) {
+            ActionButton(title: LS.Buttons.selectAllBtn) {
                 selectAction()
             }
         }
@@ -191,4 +193,8 @@ struct FilterView: View {
         }
         .buttonStyle(.borderedProminent)
     }
+}
+
+#Preview {
+    FilterView(isFilterActive: .constant(true))
 }
