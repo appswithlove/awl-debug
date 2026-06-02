@@ -154,18 +154,18 @@ class ScreenRecorder {
 
 private extension ScreenRecorder {
     var rootFolder: URL {
-        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("AWLDebugTool")
+        let folder = FileManager.default.temporaryDirectory.appending(path: "AWLDebugTool")
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         return folder
     }
     
     var lastScreenRecordingFolder: URL {
-        let folder = rootFolder.appendingPathComponent("lastScreenRecording")
+        let folder = rootFolder.appending(path: "lastScreenRecording")
         return folder
     }
     
     var currentScreenRecordingFolder: URL {
-        let folder = rootFolder.appendingPathComponent("currentScreenRecording")
+        let folder = rootFolder.appending(path: "currentScreenRecording")
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         return folder
     }
@@ -175,7 +175,7 @@ private extension ScreenRecorder {
     }
     
     func fileUrl(index: Int) -> URL {
-        currentScreenRecordingFolder.appendingPathComponent(fileName(index: index))
+        currentScreenRecordingFolder.appending(path: fileName(index: index))
     }
     
     func index(date: Date?) -> Int {
@@ -264,11 +264,11 @@ private extension ScreenRecorder {
         formatter.dateFormat = "yyyy-MM-dd_HH.mm.ss"
         let dateString = formatter.string(from: .now)
         
-        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("awl_debug_tool_\(dateString).mp4")
+        let tempURL = FileManager.default.temporaryDirectory.appending(path: "awl_debug_tool_\(dateString).mp4")
         try? FileManager.default.removeItem(at: tempURL)
         
         let indexes = allImageIndexes(folder: folder)
-        let imagesUrls = indexes.map { folder.appendingPathComponent(fileName(index: $0)) }
+        let imagesUrls = indexes.map { folder.appending(path: fileName(index: $0)) }
         guard !imagesUrls.isEmpty, let firstFrameImage = UIImage(contentsOfFile: imagesUrls.last?.pathSafe ?? "") else {
             completion()
             return
