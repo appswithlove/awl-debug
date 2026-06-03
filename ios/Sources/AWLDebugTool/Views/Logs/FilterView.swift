@@ -13,18 +13,6 @@ struct FilterView: View {
     
     @Binding var isFilterActive: Bool
     
-    private var requestMethodsSectionIcon: String {
-        return filtersStorage.isRequestMethodsContentShown ? Constants.Image.chevronUp : Constants.Image.chevronDown
-    }
-    
-    private var responseCodesSectionIcon: String {
-        return filtersStorage.isResponseCodesContentShown ? Constants.Image.chevronUp : Constants.Image.chevronDown
-    }
-    
-    private var endpointsCodesSectionIcon: String {
-        return filtersStorage.isEndpointsContentShown ? Constants.Image.chevronUp : Constants.Image.chevronDown
-    }
-    
     var body: some View {
         NavigationView {
             Form {
@@ -59,8 +47,12 @@ struct FilterView: View {
             }
         } header: {
             FilterHeader(title: LS.Headers.requestMethods,
-                         icon: requestMethodsSectionIcon,
-                         action: { filtersStorage.isRequestMethodsContentShown.toggle() })
+                         isExpanded: filtersStorage.isRequestMethodsContentShown,
+                         action: {
+                withAnimation {
+                    filtersStorage.isRequestMethodsContentShown.toggle()
+                }
+            })
         }
     }
     
@@ -76,7 +68,7 @@ struct FilterView: View {
                 VStack(alignment: .leading) {
                     Text(String(method))
                     if networkLogger.isEducationalaModeOn {
-                        Text(LS.RequestMethod[method] ?? LS.Strings.unknownValue)
+                        Text(Constants.RequestMethod[method] ?? LS.Strings.unknownValue)
                             .font(.caption2)
                     }
                 }
@@ -95,8 +87,12 @@ struct FilterView: View {
             }
         } header: {
             FilterHeader(title: LS.Headers.responseCodes,
-                         icon: responseCodesSectionIcon,
-                         action: { filtersStorage.isResponseCodesContentShown.toggle() })
+                         isExpanded: filtersStorage.isResponseCodesContentShown,
+                         action: {
+                withAnimation {
+                    filtersStorage.isResponseCodesContentShown.toggle()
+                }
+            })
         }
     }
     
@@ -112,7 +108,7 @@ struct FilterView: View {
                 VStack(alignment: .leading) {
                     Text(String(code))
                     if networkLogger.isEducationalaModeOn {
-                        Text(LS.ResponseCodes[code] ?? LS.Strings.unknownValue)
+                        Text(Constants.ResponseCodes[code] ?? LS.Strings.unknownValue)
                             .font(.caption2)
                     }
                 }
@@ -131,8 +127,12 @@ struct FilterView: View {
             }
         } header: {
             FilterHeader(title: LS.Headers.endpoints,
-                         icon: endpointsCodesSectionIcon,
-                         action: { filtersStorage.isEndpointsContentShown.toggle() })
+                         isExpanded: filtersStorage.isEndpointsContentShown,
+                         action: {
+                withAnimation {
+                    filtersStorage.isEndpointsContentShown.toggle()
+                }
+            })
         }
     }
     
@@ -156,14 +156,14 @@ struct FilterView: View {
     // MARK: - Filter Subviews
     
     @ViewBuilder
-    private func FilterHeader(title: String, icon: String, action: @escaping () -> Void) -> some View {
+    private func FilterHeader(title: String, isExpanded: Bool, action: @escaping () -> Void) -> some View {
         HStack {
             Text(title)
             Spacer()
             Button {
                 action()
             } label: {
-                Image(systemName: icon)
+                Image.with(icon: isExpanded ? .chevronUp : .chevronDown)
                     .padding(6)
             }
         }

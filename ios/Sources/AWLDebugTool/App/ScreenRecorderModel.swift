@@ -21,21 +21,21 @@ public class ScreenRecorderModel: ObservableObject {
     @Published var isExportingVideo = false
     
     @Published var isScreenRecordingOn: Bool? = {
-        if UserDefaults.standard.object(forKey: Constants.UserDefaults.screenRecordingIsOn) == nil {
+        if UserDefaults.standard.object(forKey: Constants.UserDefaultsKey.screenRecordingIsOn) == nil {
             return nil
         }
-        return UserDefaults.standard.bool(forKey: Constants.UserDefaults.screenRecordingIsOn)
+        return UserDefaults.standard.bool(forKey: Constants.UserDefaultsKey.screenRecordingIsOn)
     }() {
         didSet {
-            UserDefaults.standard.set(isScreenRecordingOn, forKey: Constants.UserDefaults.screenRecordingIsOn)
+            UserDefaults.standard.set(isScreenRecordingOn, forKey: Constants.UserDefaultsKey.screenRecordingIsOn)
         }
     }
     
     @Published var maxVideoDuration: Constants.MaxScreenVideoDuration = {
-        return Constants.MaxScreenVideoDuration(rawValue: UserDefaults.standard.integer(forKey: Constants.UserDefaults.screenRecordingMaxVideoDuration)) ?? .fiveMinutes
+        return Constants.MaxScreenVideoDuration(rawValue: UserDefaults.standard.integer(forKey: Constants.UserDefaultsKey.screenRecordingMaxVideoDuration)) ?? .fiveMinutes
     }() {
         didSet {
-            UserDefaults.standard.set(maxVideoDuration.rawValue, forKey: Constants.UserDefaults.screenRecordingMaxVideoDuration)
+            UserDefaults.standard.set(maxVideoDuration.rawValue, forKey: Constants.UserDefaultsKey.screenRecordingMaxVideoDuration)
         }
     }
     

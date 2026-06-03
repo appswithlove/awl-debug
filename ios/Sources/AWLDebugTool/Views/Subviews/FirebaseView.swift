@@ -15,13 +15,13 @@ struct FirebaseView: View {
         Section {
             ProprietaryActionButton(text: LS.Actions.simulateCrash,
                                     subtext:  LS.Actions.explicitCrash,
-                                    iconName: Constants.Image.crash,
+                                    icon: .crash,
                                     iconColor: IconColor.action,
                                     action: simulateCrashExplicitly)
 
             ProprietaryActionButton(text: LS.Actions.simulateCrash,
                                     subtext:  LS.Actions.implicitCrash,
-                                    iconName: Constants.Image.crash,
+                                    icon: .crash,
                                     iconColor: IconColor.action,
                                     action: simulateCrashImplicitly)
         } header: {

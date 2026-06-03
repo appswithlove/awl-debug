@@ -26,7 +26,7 @@ struct PermissionsView: View {
             }
             
             ProprietaryActionButton(text: LS.Actions.openAppSettings,
-                                    iconName: Constants.Image.gear,
+                                    icon: .gear,
                                     iconColor: IconColor.action,
                                     action: { openAppSettings() })
             .padding(.vertical, 12)

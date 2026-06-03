@@ -35,7 +35,7 @@ struct ScreenRecordingView: View {
             
             ProprietaryActionButton(
                 text: LS.Actions.screenRecorderExportLast,
-                iconName: Constants.Image.export,
+                icon: .export,
                 iconColor: IconColor.action,
                 isDisabled: isExportingVideo,
                 action: exportLastVideo
@@ -43,7 +43,7 @@ struct ScreenRecordingView: View {
             
             ProprietaryActionButton(
                 text: LS.Actions.screenRecorderExportCurrent,
-                iconName: Constants.Image.export,
+                icon: .export,
                 iconColor: IconColor.action,
                 isDisabled: isExportingVideo,
                 action: exportCurrentVideo

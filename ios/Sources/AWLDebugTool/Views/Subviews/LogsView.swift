@@ -23,7 +23,7 @@ struct LogsView: View {
             ShowNetworkLogsOption
             
             ProprietaryActionButton(text: LS.Actions.clearNetworkLogs,
-                                    iconName: Constants.Image.clear,
+                                    icon: .clear,
                                     iconColor: IconColor.deletion,
                                     isDisabled: isDeleteLogsButtonDisabled,
                                     action: { showDeleteNetworkLogsAlert() })
@@ -53,7 +53,7 @@ struct LogsView: View {
         VStack(alignment: .leading, spacing: 0) {
             ProprietaryActionButton(
                 text: LS.Actions.exportNetworkLogs,
-                iconName: Constants.Image.export,
+                icon: .export,
                 iconColor: IconColor.action,
                 isDisabled: isDeleteLogsButtonDisabled,
                 action: {

@@ -14,7 +14,7 @@ struct UserDefaultsView: View {
     var body: some View {
         Section {
             ProprietaryActionButton(text: LS.Actions.clearAppUserDefaults,
-                                    iconName: Constants.Image.clear,
+                                    icon: .clear,
                                     iconColor: IconColor.deletion,
                                     action: { showDeleteUserDefaultsAlert() })
         } header: {

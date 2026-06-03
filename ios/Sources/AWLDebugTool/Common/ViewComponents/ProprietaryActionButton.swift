@@ -24,21 +24,21 @@ enum IconColor {
 struct ProprietaryActionButton: View {
     let text: String
     let subtext: String
-    let iconName: String
+    let icon: Image.AppIcon
     let iconColor: IconColor
     let isDisabled: Bool
     let action: () -> Void
     
     init(text: String,
          subtext: String? = nil,
-         iconName: String,
+         icon: Image.AppIcon,
          iconColor: IconColor,
          isDisabled: Bool = false,
          action: @escaping () -> Void
     ) {
         self.text = text
         self.subtext = subtext ?? ""
-        self.iconName = iconName
+        self.icon = icon
         self.iconColor = iconColor
         self.isDisabled = isDisabled
         self.action = action
@@ -55,7 +55,7 @@ struct ProprietaryActionButton: View {
                         .font(.caption)
                 }
                 Spacer()
-                Image(systemName: iconName)
+                Image.with(icon: icon)
                     .foregroundColor(iconColor.color)
                     .opacity(isDisabled ? Constants.Values.disabledBtnOpacity : Constants.Values.enabledBtnOpacity)
             }
@@ -65,7 +65,7 @@ struct ProprietaryActionButton: View {
 }
 #Preview {
     ProprietaryActionButton(text: LS.Actions.clearAppUserDefaults,
-                            iconName: Constants.Image.clear,
+                            icon: .clear,
                             iconColor: IconColor.deletion,
                             isDisabled: false,
                             action: {})

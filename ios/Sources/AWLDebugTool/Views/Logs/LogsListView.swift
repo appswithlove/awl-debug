@@ -78,17 +78,16 @@ public struct LogsListView: View {
     }
     
     var isSortingOrderButtonDisabled: Bool {
-        return networkLogger.networkTraffic.count < 2 ? true : false
+        return networkLogger.networkTraffic.count < 2
     }
     
     var isDeleteLogsButtonDisabled: Bool {
-        return networkLogger.networkTraffic.isEmpty ? true : false
+        return networkLogger.networkTraffic.isEmpty
     }
     
-    var isFilterChangedByUser: String {
+    var isFilterChangedByUser: Bool {
         return networkLogger.methods.values.contains(false) || networkLogger.codes.values.contains(false)
-        || networkLogger.endpoints.values.contains(false)  ?
-        Constants.Image.filtersSet : Constants.Image.filtersUnset
+        || networkLogger.endpoints.values.contains(false)
     }
     
     public var body: some View {
@@ -147,7 +146,7 @@ public struct LogsListView: View {
         Button {
             isFilterActive = true
         } label: {
-            Image(systemName: isFilterChangedByUser)
+            Image.with(icon: isFilterChangedByUser ? .filtersSet : .filtersUnset)
         }
         .padding(4)
     }
@@ -156,7 +155,7 @@ public struct LogsListView: View {
         Button {
             networkLogger.sortingOrder = networkLogger.sortingOrder == .ascending ? .descending : .ascending
         } label: {
-            Image(systemName: Constants.Image.sortingOrder)
+            Image.with(icon: .sortingOrder)
         }
         .padding(4)
         .disabled(isSortingOrderButtonDisabled)
@@ -166,7 +165,7 @@ public struct LogsListView: View {
         Button {
             networkLogger.deleteNetworkLogs()
         } label: {
-            Image(systemName: Constants.Image.clear)
+            Image.with(icon: .clear)
                 .foregroundColor(.red)
                 .opacity(isDeleteLogsButtonDisabled ? Constants.Values.disabledBtnOpacity : Constants.Values.enabledBtnOpacity)
         }

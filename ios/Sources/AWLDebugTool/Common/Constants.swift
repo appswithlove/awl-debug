@@ -31,6 +31,7 @@ enum Constants {
         case tenMinutes = 600
         
         var id: Int { self.rawValue }
+        
         var ls: String {
             switch self {
             case .halfMinute: return "30 sec"
@@ -50,21 +51,7 @@ enum Constants {
         static let endpointsPattern = #"https?:\/\/[a-zA-Z0-9.-]+(?=\/)"#
     }
     
-    struct Image {
-        static let clear = "trash"
-        static let export = "square.and.arrow.up"
-        static let crash = "pip.remove"
-        static let play = "play.fill"
-        static let pause = "pause.fill"
-        static let sortingOrder = "arrow.up.arrow.down"
-        static let filtersUnset = "line.3.horizontal.decrease.circle"
-        static let filtersSet = "line.3.horizontal.decrease.circle.fill"
-        static let chevronUp = "chevron.up"
-        static let chevronDown = "chevron.down"
-        static let gear = "gear"
-    }
-    
-    struct UserDefaults {
+    struct UserDefaultsKey {
         private static let prefix = "AWLDebugTool_"
         static let networkLogsLimit = prefix + "networkLogsLimit"
         static let networkLogsSortingOrder = prefix + "networkLogsSortingOrder"

@@ -8,16 +8,16 @@ public class NetworkLogger: ObservableObject {
     @Published var networkTraffic: [NetworkLog] = []
     
     @Published var networkLogsLimit: Int = {
-        let result = UserDefaults.standard.integer(forKey: Constants.UserDefaults.networkLogsLimit)
+        let result = UserDefaults.standard.integer(forKey: Constants.UserDefaultsKey.networkLogsLimit)
         return result <= 0 ? Constants.Defaults.defaultLogLimit : result
     }() {
         didSet {
-            UserDefaults.standard.set(networkLogsLimit, forKey: Constants.UserDefaults.networkLogsLimit)
+            UserDefaults.standard.set(networkLogsLimit, forKey: Constants.UserDefaultsKey.networkLogsLimit)
         }
     }
     
     @Published var sortingOrder: Constants.SortingOrder = {
-        if let result = UserDefaults.standard.string(forKey: Constants.UserDefaults.networkLogsSortingOrder),
+        if let result = UserDefaults.standard.string(forKey: Constants.UserDefaultsKey.networkLogsSortingOrder),
            let sortingOrder = Constants.SortingOrder(rawValue: result) {
             return sortingOrder
         } else {
@@ -25,27 +25,27 @@ public class NetworkLogger: ObservableObject {
         }
     }() {
         didSet {
-            UserDefaults.standard.set(sortingOrder.rawValue, forKey: Constants.UserDefaults.networkLogsSortingOrder)
+            UserDefaults.standard.set(sortingOrder.rawValue, forKey: Constants.UserDefaultsKey.networkLogsSortingOrder)
         }
     }
     
     @Published var isDynamicDataModeOn: Bool = {
-        let result = UserDefaults.standard.bool(forKey: Constants.UserDefaults.networkLogsDynamicData)
+        let result = UserDefaults.standard.bool(forKey: Constants.UserDefaultsKey.networkLogsDynamicData)
         return result
     }() {
         didSet {
-            UserDefaults.standard.set(isDynamicDataModeOn, forKey: Constants.UserDefaults.networkLogsDynamicData)
+            UserDefaults.standard.set(isDynamicDataModeOn, forKey: Constants.UserDefaultsKey.networkLogsDynamicData)
         }
     }
     
     @Published var isEducationalaModeOn: Bool = {
-        if UserDefaults.standard.object(forKey: Constants.UserDefaults.networkLogsEducationalMode) == nil {
-            UserDefaults.standard.set(true, forKey: Constants.UserDefaults.networkLogsEducationalMode)
+        if UserDefaults.standard.object(forKey: Constants.UserDefaultsKey.networkLogsEducationalMode) == nil {
+            UserDefaults.standard.set(true, forKey: Constants.UserDefaultsKey.networkLogsEducationalMode)
         }
-        return UserDefaults.standard.bool(forKey: Constants.UserDefaults.networkLogsEducationalMode)
+        return UserDefaults.standard.bool(forKey: Constants.UserDefaultsKey.networkLogsEducationalMode)
     }() {
         didSet {
-            UserDefaults.standard.set(isEducationalaModeOn, forKey: Constants.UserDefaults.networkLogsEducationalMode)
+            UserDefaults.standard.set(isEducationalaModeOn, forKey: Constants.UserDefaultsKey.networkLogsEducationalMode)
         }
     }
     
@@ -110,11 +110,11 @@ public class NetworkLogger: ObservableObject {
     }
 
     init() {
-        for method in LS.RequestMethod.allCases {
+        for method in Constants.RequestMethod.allCases {
             methodsAsStaticDict[method.rawValue] = filtersStorage.isMethodFilterActive(for: method.rawValue)
         }
         
-        for code in LS.ResponseCodes.allCases {
+        for code in Constants.ResponseCodes.allCases {
             codesAsStaticDict[code.rawValue] = filtersStorage.isCodeFilterActive(for: code.rawValue)
         }
     }
