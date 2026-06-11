@@ -59,7 +59,7 @@ enum LS {
         static let sortingOrder = "Sort network logs"
         static let dynamicData = "Dynamic data"
         static let educationalMode = "Educational mode"
-        static let darkMode = "Dark mode"
+        static let colorScheme = "Color scheme"
     }
     
     struct Errors {

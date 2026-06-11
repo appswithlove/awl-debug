@@ -7,7 +7,34 @@
 
 import SwiftUI
 
+extension DebugView {
+    enum Keys {
+        static let preferredColorScheme = "DebugView.userPreferredColorScheme"
+    }
+    
+    enum AppColorScheme: String, CaseIterable {
+        case auto
+        case light
+        case dark
+        
+        var colorScheme: ColorScheme? {
+            switch self {
+            case .light: return .light
+            case .dark: return .dark
+            case .auto: return nil
+            }
+        }
+        
+        var ls: String {
+            return rawValue
+        }
+    }
+}
+
 class DebugViewModel: ObservableObject {
+    @AppStorage(DebugView.Keys.preferredColorScheme)
+    var preferredColorScheme: DebugView.AppColorScheme = .auto
+    
     @Published var isShowingDeleteNetworkLogs = false
     @Published var isShowingDeleteUserDefaults = false
     @Published var isShowingFileExporter = false

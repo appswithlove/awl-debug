@@ -15,11 +15,9 @@ public struct DebugView: View {
     @ObservedObject private var permissionsManager = PermissionsManager()
     @ObservedObject private var networkReachabilityManager = NetworkReachabilityManager()
     
-    @StateObject private var vm: DebugViewModel = .init()
+    @StateObject private var vm = DebugViewModel()
     
     @Environment(\.dismiss) var dismiss
-    
-    @AppStorage("isDarkModeOn") private var isDarkModeOn: Bool = false
     
     private var fcmToken: String?
     private let customView: (() -> any View)?
@@ -53,6 +51,7 @@ public struct DebugView: View {
                 }
                 
                 LogsView(
+                    networkLogger: networkLogger,
                     isDeleteLogsButtonDisabled: isDeleteLogsButtonDisabled,
                     showDeleteNetworkLogsAlert: vm.showDeleteNetworkLogsAlert,
                     isShowingDeleteNetworkLogs: $vm.isShowingDeleteNetworkLogs,
@@ -97,15 +96,8 @@ public struct DebugView: View {
                                     exportCurrentVideo: screenRecorder.exportCurrentVideo,
                                     maxVideoDuration: $screenRecorder.maxVideoDuration)
 
-                SettingsView(
-                    didStart: $networkLogger.didStart,
-                    isDynamicDataModeOn: $networkLogger.isDynamicDataModeOn,
-                    networkLogsLimit: $networkLogger.networkLogsLimit,
-                    sortingOrder: $networkLogger.sortingOrder,
-                    isDarkModeOn: $isDarkModeOn
-                )
+                colorSchemeSection
             }
-            .preferredColorScheme(isDarkModeOn ? .dark : .light)
             .navigationBarTitleDisplayMode(.inline)
             .navigationTitle(LS.Strings.appName)
             .toolbar {
@@ -135,6 +127,42 @@ public struct DebugView: View {
         }
         .onDisappear {
             screenRecorder.isDebugPanelVisible = false
+        }
+    }
+    
+    var colorSchemeSection: some View {
+        Section {
+            Menu(content: {
+                Picker("",
+                       selection: .init(
+                        get: { vm.preferredColorScheme },
+                        set: { newValue in
+                            vm.preferredColorScheme = newValue
+                        })
+                ) {
+                    ForEach(0..<DebugView.AppColorScheme.allCases.count, id: \.self) { i in
+                        Text(DebugView.AppColorScheme.allCases[i].ls)
+                            .tag(DebugView.AppColorScheme.allCases[i])
+                    }
+                }
+            }, label: {
+                HStack {
+                    Text(LS.Settings.colorScheme)
+                    
+                    Spacer()
+                    
+                    Text(vm.preferredColorScheme.ls)
+                        .foregroundStyle(.secondary)
+                    
+                    Image(systemName: "chevron.right")
+                        .foregroundColor(.gray)
+                }
+                .contentShape(Rectangle())
+            })
+        }
+        header: {
+            Spacer()
+                .frame(height: 0)
         }
     }
 }

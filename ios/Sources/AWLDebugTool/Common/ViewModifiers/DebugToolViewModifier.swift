@@ -14,6 +14,9 @@ extension DebugToolViewModifier {
     }
     
     class ViewModel: ObservableObject {
+        @AppStorage(DebugView.Keys.preferredColorScheme)
+        var preferredColorScheme: DebugView.AppColorScheme = .auto
+        
         @Published var isShowingDebugTool = false
         var showDebugToolEvents: [DebugToolViewModifier.ShowDebugToolEvents] = []
         
@@ -44,9 +47,26 @@ public struct DebugToolViewModifier: ViewModifier {
 
     public func body(content: Content) -> some View {
         content
+            .preferredColorScheme(viewModel.preferredColorScheme.colorScheme)
             .contentShape(Rectangle())
-            .onTapGesture(count: 3) {
-                viewModel.threeTapsAction()
+            .simultaneousGesture(
+                TapGesture(count: 3)
+                    .onEnded {
+                        viewModel.threeTapsAction()
+                    }
+            )
+            .overlay {
+                VStack {
+                    ZStack {
+                        let text = "AWL: \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "")" +
+                        " (\(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? ""))"
+                        Text(text).foregroundStyle(Color(UIColor.label))
+                    }
+                    .background(Color(UIColor.systemBackground))
+                    .font(.system(size: 8))
+                    Spacer()
+                }
+                .ignoresSafeArea()
             }
             .sheet(isPresented: $viewModel.isShowingDebugTool, content: {
                 DebugView(fcmToken: fcmToken, customView: customView)
