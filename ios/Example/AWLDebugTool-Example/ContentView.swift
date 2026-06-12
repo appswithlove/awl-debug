@@ -18,6 +18,8 @@ struct ContentView: View {
                     AnotherView()
                         .navigationTitle("Test Screen")
                 }
+                
+                cpuTestView()
             }
         }
 #if DEBUG || STAGING
@@ -25,6 +27,35 @@ struct ContentView: View {
             DebugPanelView()
         })
 #endif
+    }
+    
+    private func cpuTestView() -> some View {
+        VStack {
+            Divider()
+            
+            Text("CPU test:")
+            
+            HStack {
+                Button("Main") {
+                    let finishDate = Date.now.addingTimeInterval(1)
+                    while finishDate > Date.now {}
+                }
+                
+                Button("Background") {
+                    DispatchQueue.global(qos: .background).async {
+                        let finishDate = Date.now.addingTimeInterval(10)
+                        while finishDate > Date.now {}
+                    }
+                }
+                
+                Button("Utility") {
+                    DispatchQueue.global(qos: .utility).async {
+                        let finishDate = Date.now.addingTimeInterval(10)
+                        while finishDate > Date.now {}
+                    }
+                }
+            }
+        }
     }
 }
 

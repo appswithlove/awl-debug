@@ -97,6 +97,8 @@ public struct DebugView: View {
                                     maxVideoDuration: $screenRecorder.maxVideoDuration)
 
                 colorSchemeSection
+                
+                CPUDebugView(cpuMonitor: debugTool.cpuMonitor)
             }
             .navigationBarTitleDisplayMode(.inline)
             .navigationTitle(LS.Strings.appName)

@@ -5,6 +5,11 @@ public class AWLDebugTool: ObservableObject {
     public static let shared = AWLDebugTool()
     let networkLogger = NetworkLogger()
     let screenRecorder = ScreenRecorderModel()
+    let cpuMonitor = CPUMonitor()
+    
+    init () {
+        cpuMonitor.start()
+    }
     
     func simulateCrashExplicitly() {
         fatalError(LS.Strings.fatalErrorMsg)
