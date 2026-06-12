@@ -78,46 +78,18 @@ struct CPUDebugView: View {
                 }
             }
             
-            // CPU usage history graph
+            // history graph
             GeometryReader { geo in
-                drawLine(geo: geo,
-                         values: vm.history.map { CGFloat($0.cpuTotalUsage) },
-                         maxValue: 100,
-                         capacity: vm.historyCapacity,
-                         color: .green)
+                OneLineView(geo: geo,
+                            values: vm.history.map { CGFloat($0.cpuTotalUsage) },
+                            maxValue: 10,
+                            capacity: vm.historyCapacity,
+                            color: .green,
+                            text: "%")
             }
             .frame(height: 60)
             .background(Color.secondary.opacity(0.1))
             .cornerRadius(4)
-        }
-    }
-    
-    func drawLine(geo: GeometryProxy, values: [CGFloat], maxValue: CGFloat, capacity: Int, color: Color) -> some View {
-        ZStack(alignment: .leading) {
-            let maxValue = max(values.max() ?? 0, maxValue)
-            Path { path in
-                let stepX = geo.size.width / CGFloat(max(capacity - 1, 1))
-                for (i, value) in values.enumerated() {
-                    let point = CGPoint(
-                        x: CGFloat(i) * stepX,
-                        y: geo.size.height * (1 - CGFloat(value / maxValue))
-                    )
-                    if i == 0 {
-                        path.move(to: point)
-                    } else {
-                        path.addLine(to: point)
-                    }
-                }
-            }
-            .stroke(color, lineWidth: 1)
-            
-            VStack(alignment: .leading) {
-                Text(String(format: "%.0f%%", maxValue))
-                Spacer()
-                Text("0%")
-            }
-            .font(.caption.monospacedDigit())
-            .foregroundStyle(.secondary)
         }
     }
 }

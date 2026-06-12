@@ -6,9 +6,11 @@ public class AWLDebugTool: ObservableObject {
     let networkLogger = NetworkLogger()
     let screenRecorder = ScreenRecorderModel()
     let cpuMonitor = CPUMonitor()
-    
+    let ramMonitor = RAMMonitor()
+
     init () {
         cpuMonitor.start()
+        ramMonitor.start()
     }
     
     func simulateCrashExplicitly() {

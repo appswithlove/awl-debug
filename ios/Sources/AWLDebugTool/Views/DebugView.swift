@@ -98,7 +98,17 @@ public struct DebugView: View {
 
                 colorSchemeSection
                 
-                CPUDebugView(cpuMonitor: debugTool.cpuMonitor)
+                Section {
+                    CPUDebugView(cpuMonitor: debugTool.cpuMonitor)
+                } header: {
+                    Spacer().frame(height: 0)
+                }
+                
+                Section {
+                    RAMDebugView(ramMonitor: debugTool.ramMonitor)
+                } header: {
+                    Spacer().frame(height: 0)
+                }
             }
             .navigationBarTitleDisplayMode(.inline)
             .navigationTitle(LS.Strings.appName)
