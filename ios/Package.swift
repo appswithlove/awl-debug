@@ -24,12 +24,7 @@ let package = Package(
         .target(
             name: "AWLDebugTool",
             dependencies: [],
-            path: "AWLDebugTool/Sources",
-            swiftSettings: [
-                // Enables private-API IOKit battery reader.
-                // Only defined for debug — release builds have zero trace of it.
-                .define("INTERNAL_BUILD", .when(configuration: .debug))
-            ]),
+            path: "AWLDebugTool/Sources"),
         .testTarget(
             name: "AWLDebugToolTests",
             dependencies: ["AWLDebugTool"],
