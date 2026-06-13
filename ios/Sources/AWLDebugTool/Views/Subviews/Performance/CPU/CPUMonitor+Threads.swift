@@ -8,16 +8,6 @@
 import Foundation
 import Darwin.Mach
 
-// proc_pid_rusage is declared in <libproc.h>, which is missing from the
-// iOS SDK (the header exists only on macOS). The symbol itself is exported
-// from libsystem_kernel, so we declare the function manually.
-@_silgen_name("proc_pid_rusage")
-private func proc_pid_rusage(
-    _ pid: Int32,
-    _ flavor: Int32,
-    _ buffer: UnsafeMutableRawPointer?
-) -> Int32
-
 // The *_COUNT C macros use sizeof(struct) and are not imported into Swift
 private let THREAD_BASIC_INFO_COUNT = mach_msg_type_number_t(
     MemoryLayout<thread_basic_info>.size / MemoryLayout<integer_t>.size
@@ -52,20 +42,12 @@ extension CPUMonitor {
     struct ThreadLoad {
         public let id: UInt32
         public let name: String      // empty string if the thread has no name
-        public let cpuUsage: Double  // %
+        public let cpuUsage: CGFloat  // %
         public let userTime: TimeInterval
         public let systemTime: TimeInterval
         public let qos: QualityOfService
     }
     
-    /// QoS breakdown of the process CPU time (ns)
-    struct QoSCPUTime {
-        public let background: UInt64
-        public let utility: UInt64
-        public let userInitiated: UInt64
-        public let userInteractive: UInt64
-        public var total: UInt64 { background + utility + userInitiated + userInteractive }
-    }
 }
 
 extension CPUMonitor {
@@ -133,22 +115,4 @@ extension CPUMonitor {
     }
 
 
-    // MARK: - QoS CPU Time
-
-    /// CPU time per QoS class via proc_pid_rusage
-    static func readQoS() -> QoSCPUTime {
-        var usage = rusage_info_v4()
-        let ret = withUnsafeMutablePointer(to: &usage) {
-            proc_pid_rusage(getpid(), RUSAGE_INFO_V4, UnsafeMutableRawPointer($0))
-        }
-        guard ret == 0 else {
-            return QoSCPUTime(background: 0, utility: 0, userInitiated: 0, userInteractive: 0)
-        }
-        return QoSCPUTime(
-            background:      usage.ri_cpu_time_qos_background,
-            utility:         usage.ri_cpu_time_qos_utility,
-            userInitiated:   usage.ri_cpu_time_qos_user_initiated,
-            userInteractive: usage.ri_cpu_time_qos_user_interactive
-        )
-    }
 }

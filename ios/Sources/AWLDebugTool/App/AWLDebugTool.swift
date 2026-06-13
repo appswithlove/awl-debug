@@ -7,12 +7,8 @@ public class AWLDebugTool: ObservableObject {
     let screenRecorder = ScreenRecorderModel()
     let cpuMonitor = CPUMonitor()
     let ramMonitor = RAMMonitor()
+    let mainThreadMonitor = MainThreadMonitor()
 
-    init () {
-        cpuMonitor.start()
-        ramMonitor.start()
-    }
-    
     func simulateCrashExplicitly() {
         fatalError(LS.Strings.fatalErrorMsg)
     }
@@ -29,6 +25,10 @@ public class AWLDebugTool: ObservableObject {
     ///     - isScreenRecordingOn: default value. Can be changed on debug panel.
     ///
     public static func start(isScreenRecordingOn: Bool = false) {
+        shared.cpuMonitor.start()
+        shared.ramMonitor.start()
+        shared.mainThreadMonitor.start()
+        
         shared.networkLogger.start()
         shared.screenRecorder.initialise(isScreenRecordingOn: isScreenRecordingOn)
     }

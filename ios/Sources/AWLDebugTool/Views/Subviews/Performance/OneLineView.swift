@@ -10,20 +10,21 @@ import SwiftUI
 struct OneLineView: View {
     let geo: GeometryProxy
     let values: [CGFloat]
-    let maxValue: CGFloat
+    let minValue: CGFloat?
     let capacity: Int
     let color: Color
-    let text: String?
+    let labelSign: String
     
     var body: some View {
         ZStack(alignment: .leading) {
-            let maxValue = max(values.max() ?? 0, maxValue)
+            let minValue = floor(minValue ?? (values.min() ?? 0))
+            let maxValue = ceil(max(values.max() ?? 0, minValue + 1))
             Path { path in
                 let stepX = geo.size.width / CGFloat(max(capacity - 1, 1))
                 for (i, value) in values.enumerated() {
                     let point = CGPoint(
                         x: CGFloat(i) * stepX,
-                        y: geo.size.height * (1 - CGFloat(value / maxValue))
+                        y: geo.size.height * (1 - CGFloat((value - minValue) / (maxValue - minValue)))
                     )
                     if i == 0 {
                         path.move(to: point)
@@ -34,15 +35,14 @@ struct OneLineView: View {
             }
             .stroke(color, lineWidth: 1)
             
-            if let text {
-                VStack(alignment: .leading) {
-                    Text(String(format: "%.0f", maxValue) + text)
-                    Spacer()
-                    Text("0" + text)
-                }
-                .font(.caption.monospacedDigit())
-                .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 0) {
+                Text("\(Int(maxValue))" + labelSign)
+                Spacer(minLength: 0)
+                Text("\(Int(minValue))" + labelSign)
             }
+            .font(.caption2.monospacedDigit())
+            .foregroundStyle(.primary)
+            .opacity(0.5)
         }
     }
 }

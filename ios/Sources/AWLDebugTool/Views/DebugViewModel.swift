@@ -10,6 +10,7 @@ import SwiftUI
 extension DebugView {
     enum Keys {
         static let preferredColorScheme = "DebugView.userPreferredColorScheme"
+        static let isPerformanceWidgetVisible = "DebugView.isPerformanceWidgetVisible"
     }
     
     enum AppColorScheme: String, CaseIterable {
@@ -34,6 +35,9 @@ extension DebugView {
 class DebugViewModel: ObservableObject {
     @AppStorage(DebugView.Keys.preferredColorScheme)
     var preferredColorScheme: DebugView.AppColorScheme = .auto
+    
+    @AppStorage(DebugView.Keys.isPerformanceWidgetVisible)
+    var isPerformanceWidgetVisible: Bool = false
     
     @Published var isShowingDeleteNetworkLogs = false
     @Published var isShowingDeleteUserDefaults = false

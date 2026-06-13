@@ -9,16 +9,6 @@ import Foundation
 import Darwin.Mach
 import os
 
-// proc_pid_rusage is declared in <libproc.h>, which is missing from the
-// iOS SDK (the header exists only on macOS). The symbol itself is exported
-// from libsystem_kernel, so we declare the function manually.
-@_silgen_name("proc_pid_rusage")
-private func proc_pid_rusage(
-    _ pid: Int32,
-    _ flavor: Int32,
-    _ buffer: UnsafeMutableRawPointer?
-) -> Int32
-
 // The *_COUNT C macros use sizeof(struct) and are not imported into Swift
 private let TASK_VM_INFO_COUNT = mach_msg_type_number_t(
     MemoryLayout<task_vm_info_data_t>.size / MemoryLayout<integer_t>.size
@@ -40,16 +30,6 @@ extension RAMMonitor {
         }
         guard kr == KERN_SUCCESS else { return (0, 0) }
         return (info.phys_footprint, info.resident_size)
-    }
-
-    /// Lifetime peak of phys_footprint via proc_pid_rusage
-    static func readPeakFootprint() -> UInt64 {
-        var usage = rusage_info_v4()
-        let ret = withUnsafeMutablePointer(to: &usage) {
-            proc_pid_rusage(getpid(), RUSAGE_INFO_V4, UnsafeMutableRawPointer($0))
-        }
-        guard ret == 0 else { return 0 }
-        return usage.ri_lifetime_max_phys_footprint
     }
 
     /// System-wide memory via host_statistics64 (page counts -> bytes)

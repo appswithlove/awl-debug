@@ -17,6 +17,9 @@ extension DebugToolViewModifier {
         @AppStorage(DebugView.Keys.preferredColorScheme)
         var preferredColorScheme: DebugView.AppColorScheme = .auto
         
+        @AppStorage(DebugView.Keys.isPerformanceWidgetVisible)
+        var isPerformanceWidgetVisible: Bool = false
+        
         @Published var isShowingDebugTool = false
         var showDebugToolEvents: [DebugToolViewModifier.ShowDebugToolEvents] = []
         
@@ -41,6 +44,8 @@ extension DebugToolViewModifier {
 
 public struct DebugToolViewModifier: ViewModifier {
     @StateObject private var viewModel = ViewModel()
+    @State private var performanceWidgetPositionIndex = 0
+    private let performanceWidgetPositions: [Alignment] = [.top, .topLeading, .leading, .bottomLeading, .bottom, .bottomTrailing, .trailing, .topTrailing]
     let fcmToken: String?
     let showDebugToolEvents: [DebugToolViewModifier.ShowDebugToolEvents]
     let customView: (() -> any View)?
@@ -67,6 +72,16 @@ public struct DebugToolViewModifier: ViewModifier {
                     Spacer()
                 }
                 .ignoresSafeArea()
+            }
+            .overlay(alignment: performanceWidgetPositions[performanceWidgetPositionIndex % performanceWidgetPositions.count]) {
+                if viewModel.isPerformanceWidgetVisible {
+                    Button(action: {
+                        performanceWidgetPositionIndex += 1
+                    }, label: {
+                        PerformanceWidgetView(cpuMonitor: AWLDebugTool.shared.cpuMonitor, ramMonitor: AWLDebugTool.shared.ramMonitor, mainThreadMonitor: AWLDebugTool.shared.mainThreadMonitor)
+                    })
+                    .buttonStyle(.plain)
+                }
             }
             .sheet(isPresented: $viewModel.isShowingDebugTool, content: {
                 DebugView(fcmToken: fcmToken, customView: customView)

@@ -99,15 +99,27 @@ public struct DebugView: View {
                 colorSchemeSection
                 
                 Section {
-                    CPUDebugView(cpuMonitor: debugTool.cpuMonitor)
+                    Toggle("Is performance visible", isOn: $vm.isPerformanceWidgetVisible)
                 } header: {
-                    Spacer().frame(height: 0)
+                    Text("Performance")
                 }
                 
                 Section {
-                    RAMDebugView(ramMonitor: debugTool.ramMonitor)
+                    CPUView(cpuMonitor: debugTool.cpuMonitor)
                 } header: {
-                    Spacer().frame(height: 0)
+                    EmptyView()
+                }
+                
+                Section {
+                    RAMView(ramMonitor: debugTool.ramMonitor)
+                } header: {
+                    EmptyView()
+                }
+
+                Section {
+                    MainThreadView(monitor: debugTool.mainThreadMonitor)
+                } header: {
+                    EmptyView()
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
