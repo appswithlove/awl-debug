@@ -19,6 +19,9 @@ extension DebugToolViewModifier {
         
         @AppStorage(DebugView.Keys.isPerformanceWidgetVisible)
         var isPerformanceWidgetVisible: Bool = false
+
+        @AppStorage(DebugView.Keys.preferredFontSize)
+        var preferredFontSize: DebugView.AppFontSize = .system
         
         @Published var isShowingDebugTool = false
         var showDebugToolEvents: [DebugToolViewModifier.ShowDebugToolEvents] = []
@@ -52,6 +55,7 @@ public struct DebugToolViewModifier: ViewModifier {
 
     public func body(content: Content) -> some View {
         content
+            .applyFontSize(viewModel.preferredFontSize.sizeCategory)
             .preferredColorScheme(viewModel.preferredColorScheme.colorScheme)
             .contentShape(Rectangle())
             .simultaneousGesture(
@@ -103,6 +107,17 @@ public struct DebugToolViewModifier: ViewModifier {
             .onAppear {
                 viewModel.showDebugToolEvents = showDebugToolEvents
             }
+    }
+}
+
+extension View {
+    @ViewBuilder
+    fileprivate func applyFontSize(_ size: ContentSizeCategory?) -> some View {
+        if let size {
+            self.environment(\.sizeCategory, size)
+        } else {
+            self
+        }
     }
 }
 

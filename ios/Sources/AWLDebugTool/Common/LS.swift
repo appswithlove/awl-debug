@@ -60,6 +60,16 @@ enum LS {
         static let dynamicData = "Dynamic data"
         static let educationalMode = "Educational mode"
         static let colorScheme = "Color scheme"
+        static let fontSize = "Font size"
+        static let fontSizeInfoButton = "How to scale on device"
+        static let fontSizeInfoMessage = """
+            Scale font only
+            Settings → Accessibility → Display & Text Size → Larger Text
+
+            Scale font and images
+            Settings → Display & Brightness → Display Zoom → Larger Text → Set
+            (Settings → Developer → Display Zoom → Larger Text → Set)
+            """
     }
     
     struct Errors {

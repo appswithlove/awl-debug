@@ -16,7 +16,7 @@ public struct DebugView: View {
     @ObservedObject private var networkReachabilityManager = NetworkReachabilityManager()
     
     @StateObject private var vm = DebugViewModel()
-    
+
     @Environment(\.dismiss) var dismiss
     
     private var fcmToken: String?
@@ -96,8 +96,9 @@ public struct DebugView: View {
                                     exportCurrentVideo: screenRecorder.exportCurrentVideo,
                                     maxVideoDuration: $screenRecorder.maxVideoDuration)
 
-                colorSchemeSection
-                
+                ColorSchemeSectionView(preferredColorScheme: $vm.preferredColorScheme)
+                FontSizeSectionView(preferredFontSize: $vm.preferredFontSize)
+
                 Section {
                     Toggle(LS.Performance.showPerformanceOverlay, isOn: $vm.isPerformanceWidgetVisible)
                 } header: {
@@ -154,41 +155,6 @@ public struct DebugView: View {
         }
     }
     
-    var colorSchemeSection: some View {
-        Section {
-            Menu(content: {
-                Picker("",
-                       selection: .init(
-                        get: { vm.preferredColorScheme },
-                        set: { newValue in
-                            vm.preferredColorScheme = newValue
-                        })
-                ) {
-                    ForEach(0..<DebugView.AppColorScheme.allCases.count, id: \.self) { i in
-                        Text(DebugView.AppColorScheme.allCases[i].ls)
-                            .tag(DebugView.AppColorScheme.allCases[i])
-                    }
-                }
-            }, label: {
-                HStack {
-                    Text(LS.Settings.colorScheme)
-                    
-                    Spacer()
-                    
-                    Text(vm.preferredColorScheme.ls)
-                        .foregroundStyle(.secondary)
-                    
-                    Image(systemName: "chevron.right")
-                        .foregroundColor(.gray)
-                }
-                .contentShape(Rectangle())
-            })
-        }
-        header: {
-            Spacer()
-                .frame(height: 0)
-        }
-    }
 }
 
 struct DebugView_Previews: PreviewProvider {
