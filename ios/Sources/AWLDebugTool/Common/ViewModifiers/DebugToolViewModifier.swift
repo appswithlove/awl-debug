@@ -44,8 +44,8 @@ extension DebugToolViewModifier {
 
 public struct DebugToolViewModifier: ViewModifier {
     @StateObject private var viewModel = ViewModel()
-    @State private var performanceWidgetPositionIndex = 0
-    private let performanceWidgetPositions: [Alignment] = [.top, .topLeading, .leading, .bottomLeading, .bottom, .bottomTrailing, .trailing, .topTrailing]
+    @State private var widgetOffset: CGSize = .zero
+    @State private var widgetPosition: CGPoint = CGPoint(x: 200, y: 100)
     let fcmToken: String?
     let showDebugToolEvents: [DebugToolViewModifier.ShowDebugToolEvents]
     let customView: (() -> any View)?
@@ -63,7 +63,7 @@ public struct DebugToolViewModifier: ViewModifier {
             .overlay {
                 VStack {
                     ZStack {
-                        let text = "AWL: \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "")" +
+                        let text = "AWL \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "")" +
                         " (\(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? ""))"
                         Text(text).foregroundStyle(Color(UIColor.label))
                     }
@@ -73,14 +73,28 @@ public struct DebugToolViewModifier: ViewModifier {
                 }
                 .ignoresSafeArea()
             }
-            .overlay(alignment: performanceWidgetPositions[performanceWidgetPositionIndex % performanceWidgetPositions.count]) {
+            .overlay {
                 if viewModel.isPerformanceWidgetVisible {
-                    Button(action: {
-                        performanceWidgetPositionIndex += 1
-                    }, label: {
+                    GeometryReader { geometry in
                         PerformanceWidgetView(cpuMonitor: AWLDebugTool.shared.cpuMonitor, ramMonitor: AWLDebugTool.shared.ramMonitor, mainThreadMonitor: AWLDebugTool.shared.mainThreadMonitor)
-                    })
-                    .buttonStyle(.plain)
+                            .position(
+                                x: min(max(widgetPosition.x + widgetOffset.width, 0), geometry.size.width),
+                                y: min(max(widgetPosition.y + widgetOffset.height, 0), geometry.size.height)
+                            )
+                            .gesture(
+                                DragGesture()
+                                    .onChanged { value in
+                                        widgetOffset = value.translation
+                                    }
+                                    .onEnded { value in
+                                        widgetPosition = CGPoint(
+                                            x: min(max(widgetPosition.x + value.translation.width, 0), geometry.size.width),
+                                            y: min(max(widgetPosition.y + value.translation.height, 0), geometry.size.height)
+                                        )
+                                        widgetOffset = .zero
+                                    }
+                            )
+                    }
                 }
             }
             .sheet(isPresented: $viewModel.isShowingDebugTool, content: {

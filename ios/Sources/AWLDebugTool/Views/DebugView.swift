@@ -99,9 +99,9 @@ public struct DebugView: View {
                 colorSchemeSection
                 
                 Section {
-                    Toggle("Is performance visible", isOn: $vm.isPerformanceWidgetVisible)
+                    Toggle(LS.Performance.showPerformanceOverlay, isOn: $vm.isPerformanceWidgetVisible)
                 } header: {
-                    Text("Performance")
+                    Text(LS.Performance.performanceSectionTitle)
                 }
                 
                 Section {

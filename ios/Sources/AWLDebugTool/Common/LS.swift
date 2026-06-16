@@ -110,4 +110,8 @@ enum LS {
         static let settings: String = "Settings"
     }
     
+    struct Performance {
+        static let performanceSectionTitle = "Performance"
+        static let showPerformanceOverlay = "Show performance overlay"
+    }
 }

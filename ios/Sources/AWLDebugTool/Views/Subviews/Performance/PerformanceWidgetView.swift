@@ -39,7 +39,7 @@ struct PerformanceWidgetView: View {
                             labelSign: "mb")
             }
             .frame(height: 30)
-            .background(Color.secondary.opacity(0.1))
+            .background(Color(.secondarySystemBackground).opacity(0.5))
             .cornerRadius(4)
             
             GeometryReader { geo in
@@ -51,7 +51,7 @@ struct PerformanceWidgetView: View {
                             labelSign: "%")
             }
             .frame(height: 30)
-            .background(Color.secondary.opacity(0.1))
+            .background(Color(.secondarySystemBackground).opacity(0.5))
             .cornerRadius(4)
             
             GeometryReader { geo in
@@ -63,12 +63,12 @@ struct PerformanceWidgetView: View {
                             labelSign: "ms")
             }
             .frame(height: 30)
-            .background(Color.secondary.opacity(0.1))
+            .background(Color(.secondarySystemBackground).opacity(0.5))
             .cornerRadius(4)
         }
         .frame(width: 200)
         .padding(4)
-        .background(Color.primary.opacity(0.1))
+        .background(Color(.systemBackground).opacity(0.9))
         .cornerRadius(4)
     }
     
