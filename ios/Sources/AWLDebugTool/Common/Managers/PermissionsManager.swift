@@ -115,27 +115,26 @@ class PermissionsManager: NSObject, ObservableObject, CLLocationManagerDelegate 
         availablePermissionRequestTypes.removeAll()
         
         if let dict = Bundle.main.infoDictionary {
-            print("📋 Full Info.plist keys at runtime:")
+            print("\(LS.logWatermark) 📋 Full Info.plist keys at runtime:")
             for (key, value) in dict {
-                print(" - \(key): \(value)")
+                print("\(LS.logWatermark) - \(key): \(value)")
             }
         }
 
-        
         for permissionRequestType in PermissionRequestType.allCases {
             let requiredKeys = permissionRequestType.requiredPlistKeys
             
             // Notifications do not require keys, always add them
             if requiredKeys.isEmpty || Bundle.main.hasPlistKeys(requiredKeys) {
                 availablePermissionRequestTypes.append(permissionRequestType)
-                print("✅ Found permission: \(permissionRequestType)")
+                print("\(LS.logWatermark) ✅ Found permission: \(permissionRequestType)")
             } else {
-                print("❌ Missing Info.plist keys for \(permissionRequestType)")
+                print("\(LS.logWatermark) ❌ Missing Info.plist keys for \(permissionRequestType)")
             }
         }
         
-        print("📋 Available permissions in app:")
-        print(availablePermissionRequestTypes)
+        print("\(LS.logWatermark) 📋 Available permissions in app:")
+        print("\(LS.logWatermark) \(availablePermissionRequestTypes)")
     }
     
     func checkIfPermissionRequestTypeExistsInApp(_ type: PermissionRequestType) -> Bool {
@@ -145,7 +144,7 @@ class PermissionsManager: NSObject, ObservableObject, CLLocationManagerDelegate 
     func request(_ type: PermissionRequestType) async {
 //        if !Bundle.main.hasPlistKeys(type.requiredPlistKeys) && type != .notificationsAccess {
         if !Bundle.main.hasPlistKeys(type.requiredPlistKeys) && type.isInfoPlistKeyNecessary {
-            print("Missing Info.plist keys for \(type). Redirecting to Settings.")
+            print("\(LS.logWatermark) Missing Info.plist keys for \(type). Redirecting to Settings.")
             requestPermissionThroughSettings()
             return
         }

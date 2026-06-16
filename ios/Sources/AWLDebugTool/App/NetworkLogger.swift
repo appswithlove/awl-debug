@@ -210,7 +210,7 @@ public class NetworkLogger: ObservableObject {
                 return nsString.substring(with: match.range)
             }
         } catch let error {
-            print("Invalid regex: \(error.localizedDescription)")
+            print("\(LS.logWatermark) Invalid regex: \(error.localizedDescription)")
         }
         return nil
     }

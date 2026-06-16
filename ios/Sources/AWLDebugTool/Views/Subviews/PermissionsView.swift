@@ -29,8 +29,6 @@ struct PermissionsView: View {
                                     icon: .gear,
                                     iconColor: IconColor.action,
                                     action: { openAppSettings() })
-            .padding(.vertical, 12)
-            
         } header: {
             Text(LS.Headers.permissions)
         }

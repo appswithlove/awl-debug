@@ -66,7 +66,7 @@ func createVideo(from imageUrls: [URL], size: CGSize, fps: Int = 30, outputURL: 
             completion(writer.status == .completed)
         }
     } catch {
-        print("Error AVAssetWriter: \(error)")
+        print("\(LS.logWatermark) Error AVAssetWriter: \(error)")
         completion(false)
     }
 }

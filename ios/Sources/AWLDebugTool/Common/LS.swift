@@ -6,6 +6,7 @@
 //
 
 enum LS {
+    static let logWatermark = "[AWL Debug Tool]"
     
     struct Strings {
         static let appName = "Debug Tool"
@@ -100,18 +101,6 @@ enum LS {
         static let implicitCrash = " - implicit fatal error"
     }
     
-    struct Logs {
-        static let initilize = "DT: init..."
-        static let configureDT = "DT: configuring debug tool..."
-        static let creatingDemoNL = "DT: creating demo network log..."
-        static let creatingNL = "DT: creating network log..."
-        static let loadingNL = "DT: loading network logs..."
-        static let deletingNL = "DT: deleting network logs..."
-        static let savingNL = "DT: saving network logs..."
-        static let exportingNL = "DT: exporting logs..."
-        static let savingSettings = "DT: saving settings..."
-    }
-    
     struct Buttons {
         static let deselectAllBtn: String = "DeselectAll"
         static let selectAllBtn: String = "SelectAll"
@@ -120,6 +109,28 @@ enum LS {
         static let settings: String = "Settings"
     }
     
+    struct Deeplinks {
+        static let sectionTitle = "Deeplinks"
+        static let addDeeplink = "Add deeplink"
+        static let empty = "No deeplinks configured"
+        static let fireNow = "Fire now"
+        static let schedule = "Schedule & close app"
+        static let delay = "Delay"
+        static let seconds = "s"
+        static let whileActive = "While app is active"
+        static let coldStart = "Cold start (via notification)"
+        static let coldStartFooter = "A local notification will fire after the delay. Close the app after scheduling to test cold start. Note: may be suppressed in Focus mode."
+        static let titlePlaceholder = "Title"
+        static let urlPlaceholder = "myapp://path"
+        static let notificationTitle = "Deeplink"
+        static let errorPermissionDenied = "Notification permission is required to fire deeplinks with delay."
+        static let errorSchedulingFailed = "Failed to schedule notification."
+
+        static func scheduledSuccess(_ seconds: Int) -> String {
+            "Scheduled in \(seconds)s. You can close the app now."
+        }
+    }
+
     struct Performance {
         static let performanceSectionTitle = "Performance"
         static let showPerformanceOverlay = "Show performance overlay"

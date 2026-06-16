@@ -8,8 +8,6 @@
 import SwiftUI
 
 struct FirebaseView: View {
-    let simulateCrashExplicitly: () -> Void
-    let simulateCrashImplicitly: () -> Void
     
     var body: some View {
         Section {
@@ -28,8 +26,18 @@ struct FirebaseView: View {
             Text(LS.Headers.firebaseActions)
         }
     }
+    
+    func simulateCrashExplicitly() {
+        fatalError(LS.Strings.fatalErrorMsg)
+    }
+
+    func simulateCrashImplicitly() {
+        var testArray: [Int] = []
+        _ = testArray.removeFirst()
+        _ = 1 / testArray.count
+    }
 }
 
 #Preview {
-    FirebaseView(simulateCrashExplicitly: {}, simulateCrashImplicitly: {})
+    FirebaseView()
 }

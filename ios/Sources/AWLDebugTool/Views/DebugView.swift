@@ -12,6 +12,7 @@ public struct DebugView: View {
     @ObservedObject private var debugTool = AWLDebugTool.shared
     @ObservedObject private var networkLogger = AWLDebugTool.shared.networkLogger
     @ObservedObject private var screenRecorder = AWLDebugTool.shared.screenRecorder
+    @ObservedObject private var deeplinksManager = AWLDebugTool.shared.deeplinksManager
     @ObservedObject private var permissionsManager = PermissionsManager()
     @ObservedObject private var networkReachabilityManager = NetworkReachabilityManager()
     
@@ -50,6 +51,49 @@ public struct DebugView: View {
                     AnyView(customView!())
                 }
                 
+                UserDefaultsView(isShowingDeleteUserDefaults: $vm.isShowingDeleteUserDefaults,
+                                 showDeleteUserDefaultsAlert: vm.showDeleteUserDefaultsAlert)
+                
+                PermissionsView(
+                    statuses: permissionsManager.statuses,
+                    checkIfPermissionRequestTypeExistsInApp: { type in
+                        permissionsManager.checkIfPermissionRequestTypeExistsInApp(type)
+                    },
+                    request: { type in
+                        Task { await permissionsManager.request(type) }
+                    },
+                    openAppSettings: {
+                        permissionsManager.openAppSettings()
+                    }
+                )
+                
+                FirebaseView()
+                
+                FCMPushTokenView(fcmToken: fcmToken)
+
+                DeeplinksView(manager: deeplinksManager)
+
+                ColorSchemeSectionView(preferredColorScheme: $vm.preferredColorScheme)
+                FontSizeSectionView(preferredFontSize: $vm.preferredFontSize)
+
+                Section {
+                    Toggle(LS.Performance.showPerformanceOverlay, isOn: $vm.isPerformanceWidgetVisible)
+                        
+                    CPUView(cpuMonitor: debugTool.cpuMonitor)
+                        .padding(.top, 24)
+                        // .listRowSeparator(.hidden)
+                    
+                    RAMView(ramMonitor: debugTool.ramMonitor)
+                        .padding(.top, 24)
+                        .listRowSeparator(.hidden)
+                    
+                    MainThreadView(monitor: debugTool.mainThreadMonitor)
+                        .padding(.top, 24)
+                        .listRowSeparator(.hidden)
+                } header: {
+                    Text(LS.Performance.performanceSectionTitle)
+                }
+                
                 LogsView(
                     networkLogger: networkLogger,
                     isDeleteLogsButtonDisabled: isDeleteLogsButtonDisabled,
@@ -68,60 +112,12 @@ public struct DebugView: View {
                     }
                 )
                 
-                UserDefaultsView(isShowingDeleteUserDefaults: $vm.isShowingDeleteUserDefaults,
-                                 showDeleteUserDefaultsAlert: vm.showDeleteUserDefaultsAlert)
-                
-                PermissionsView(
-                    statuses: permissionsManager.statuses,
-                    checkIfPermissionRequestTypeExistsInApp: { type in
-                        permissionsManager.checkIfPermissionRequestTypeExistsInApp(type)
-                    },
-                    request: { type in
-                        Task { await permissionsManager.request(type) }
-                    },
-                    openAppSettings: {
-                        permissionsManager.openAppSettings()
-                    }
-                )
-                
-                FirebaseView(simulateCrashExplicitly: debugTool.simulateCrashExplicitly,
-                             simulateCrashImplicitly: debugTool.simulateCrashImplicitly)
-                
-                FCMPushTokenView(fcmToken: fcmToken)
-                
                 ScreenRecordingView(isScreenRecordingOn: $screenRecorder.isScreenRecordingOn,
                                     isScreenRecordingOnByDefault: $screenRecorder.isScreenRecordingOnByDefault,
                                     exportLastVideo: screenRecorder.exportLastVideo,
                                     isExportingVideo: screenRecorder.isExportingVideo,
                                     exportCurrentVideo: screenRecorder.exportCurrentVideo,
                                     maxVideoDuration: $screenRecorder.maxVideoDuration)
-
-                ColorSchemeSectionView(preferredColorScheme: $vm.preferredColorScheme)
-                FontSizeSectionView(preferredFontSize: $vm.preferredFontSize)
-
-                Section {
-                    Toggle(LS.Performance.showPerformanceOverlay, isOn: $vm.isPerformanceWidgetVisible)
-                } header: {
-                    Text(LS.Performance.performanceSectionTitle)
-                }
-                
-                Section {
-                    CPUView(cpuMonitor: debugTool.cpuMonitor)
-                } header: {
-                    EmptyView()
-                }
-                
-                Section {
-                    RAMView(ramMonitor: debugTool.ramMonitor)
-                } header: {
-                    EmptyView()
-                }
-
-                Section {
-                    MainThreadView(monitor: debugTool.mainThreadMonitor)
-                } header: {
-                    EmptyView()
-                }
             }
             .navigationBarTitleDisplayMode(.inline)
             .navigationTitle(LS.Strings.appName)
@@ -142,9 +138,9 @@ public struct DebugView: View {
         ) { result in
             switch result {
             case .success(let file):
-                print(file)
+                print("\(LS.logWatermark) \(file)")
             case .failure(let error):
-                print(error)
+                print("\(LS.logWatermark) \(error)")
             }
         }
         .onAppear {

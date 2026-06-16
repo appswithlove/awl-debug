@@ -103,6 +103,7 @@ public struct DebugToolViewModifier: ViewModifier {
             }
             .sheet(isPresented: $viewModel.isShowingDebugTool, content: {
                 DebugView(fcmToken: fcmToken, customView: customView)
+                    .presentationDetents([.medium, .large])
             })
             .onAppear {
                 viewModel.showDebugToolEvents = showDebugToolEvents
