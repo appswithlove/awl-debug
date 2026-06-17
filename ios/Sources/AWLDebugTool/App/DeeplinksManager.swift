@@ -110,7 +110,12 @@ extension AWLDebugTool {
     /// Returns true if the notification was handled.
     @discardableResult
     public static func processDeeplinkNotificationIfNeeded(_ response: UNNotificationResponse) -> Bool {
-        guard let urlString = response.notification.request.content.userInfo[DeeplinksManager.notificationURLKey] as? String,
+        return processDeeplinkNotificationInfoIfNeeded(response.notification.request.content.userInfo)
+    }
+    
+    @discardableResult
+    public static func processDeeplinkNotificationInfoIfNeeded(_ userInfo: [AnyHashable: Any]) -> Bool {
+        guard let urlString = userInfo[DeeplinksManager.notificationURLKey] as? String,
               let url = URL(string: urlString) else { return false }
         shared.deeplinksManager.handleDeeplink(url)
         return true
