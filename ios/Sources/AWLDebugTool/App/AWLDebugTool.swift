@@ -21,7 +21,7 @@ public class AWLDebugTool: ObservableObject {
     ///   - deeplinkHandler: Custom deep-link handler. If `nil`,
     ///     URLs are opened using `UIApplication.shared.open(_:)`.
     ///     This is sufficient when using custom URL schemes.
-    public static func start(isScreenRecordingOn: Bool = false, deeplinks: [AWLDeeplink], deeplinkHandler: ((URL) -> Void)? = nil) {
+    public static func start(isScreenRecordingOn: Bool = false, deeplinks: [AWLDeeplink] = [], deeplinkHandler: ((URL) -> Void)? = nil) {
         shared.cpuMonitor.start()
         shared.ramMonitor.start()
         shared.mainThreadMonitor.start()
