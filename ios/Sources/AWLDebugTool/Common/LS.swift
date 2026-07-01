@@ -38,6 +38,7 @@ enum LS {
         static let requestMethods = "Request Methods"
         static let responseCodes = "Response Codes"
         static let endpoints = "Endpoints"
+        static let session = "Session"
     }
     
     struct Alert {
@@ -99,6 +100,11 @@ enum LS {
         static let simulateCrash = "Simulate crash"
         static let explicitCrash = " - explicit fatal error"
         static let implicitCrash = " - implicit fatal error"
+
+        // MARK: - Session
+        static let copy = "Copy"
+        static let invalidate = "Invalidate"
+        static let invalidating = "Invalidating…"
     }
     
     struct Buttons {
@@ -129,6 +135,10 @@ enum LS {
         static func scheduledSuccess(_ seconds: Int) -> String {
             "Scheduled in \(seconds)s. You can close the app now."
         }
+    }
+
+    struct Session {
+        static let notSetup = "No tokens configured. Pass tokens in AWLDebugTool.start()."
     }
 
     struct Performance {

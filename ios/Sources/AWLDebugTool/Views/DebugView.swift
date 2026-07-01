@@ -13,6 +13,7 @@ public struct DebugView: View {
     @ObservedObject private var networkLogger = AWLDebugTool.shared.networkLogger
     @ObservedObject private var screenRecorder = AWLDebugTool.shared.screenRecorder
     @ObservedObject private var deeplinksManager = AWLDebugTool.shared.deeplinksManager
+    @ObservedObject private var sessionManager = AWLDebugTool.shared.sessionManager
     @ObservedObject private var permissionsManager = PermissionsManager()
     @ObservedObject private var networkReachabilityManager = NetworkReachabilityManager()
     
@@ -68,7 +69,9 @@ public struct DebugView: View {
                 )
                 
                 FirebaseView()
-                
+
+                SessionView(sessionManager: sessionManager)
+
                 FCMPushTokenView(fcmToken: fcmToken)
 
                 DeeplinksView(manager: deeplinksManager)

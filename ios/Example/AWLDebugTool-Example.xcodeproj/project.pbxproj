@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0931C8C32FF3FDF5006DA18A /* ScreenRecordingTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0931C8C22FF3FDF3006DA18A /* ScreenRecordingTestView.swift */; };
+		0931C8C52FF3FF02006DA18A /* CpuTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0931C8C42FF3FF00006DA18A /* CpuTestView.swift */; };
+		0931C8C72FF3FFD8006DA18A /* FactView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0931C8C62FF3FFD6006DA18A /* FactView.swift */; };
+		0931C8CA2FF4007A006DA18A /* AuthTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0931C8C92FF40073006DA18A /* AuthTestView.swift */; };
 		0ED440062BAC9DD400B5D013 /* AWLDebugTool_ExampleApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0ED440052BAC9DD400B5D013 /* AWLDebugTool_ExampleApp.swift */; };
 		0ED440082BAC9DD400B5D013 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0ED440072BAC9DD400B5D013 /* ContentView.swift */; };
 		0ED4400A2BAC9DD500B5D013 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0ED440092BAC9DD500B5D013 /* Assets.xcassets */; };
@@ -16,6 +20,10 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		0931C8C22FF3FDF3006DA18A /* ScreenRecordingTestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenRecordingTestView.swift; sourceTree = "<group>"; };
+		0931C8C42FF3FF00006DA18A /* CpuTestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CpuTestView.swift; sourceTree = "<group>"; };
+		0931C8C62FF3FFD6006DA18A /* FactView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FactView.swift; sourceTree = "<group>"; };
+		0931C8C92FF40073006DA18A /* AuthTestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthTestView.swift; sourceTree = "<group>"; };
 		0ED440022BAC9DD400B5D013 /* AWLDebugTool-Example.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "AWLDebugTool-Example.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		0ED440052BAC9DD400B5D013 /* AWLDebugTool_ExampleApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AWLDebugTool_ExampleApp.swift; sourceTree = "<group>"; };
 		0ED440072BAC9DD400B5D013 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -38,6 +46,17 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		0931C8C82FF40009006DA18A /* TestViews */ = {
+			isa = PBXGroup;
+			children = (
+				0931C8C62FF3FFD6006DA18A /* FactView.swift */,
+				0931C8C22FF3FDF3006DA18A /* ScreenRecordingTestView.swift */,
+				0931C8C42FF3FF00006DA18A /* CpuTestView.swift */,
+				0931C8C92FF40073006DA18A /* AuthTestView.swift */,
+			);
+			path = TestViews;
+			sourceTree = "<group>";
+		};
 		0ED43FF92BAC9DD400B5D013 = {
 			isa = PBXGroup;
 			children = (
@@ -59,6 +78,7 @@
 			children = (
 				0ED440052BAC9DD400B5D013 /* AWLDebugTool_ExampleApp.swift */,
 				0ED440072BAC9DD400B5D013 /* ContentView.swift */,
+				0931C8C82FF40009006DA18A /* TestViews */,
 				0ED440092BAC9DD500B5D013 /* Assets.xcassets */,
 				0ED4400B2BAC9DD500B5D013 /* AWLDebugTool_Example.entitlements */,
 				0ED4400C2BAC9DD500B5D013 /* Preview Content */,
@@ -152,8 +172,12 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0931C8CA2FF4007A006DA18A /* AuthTestView.swift in Sources */,
 				0ED440082BAC9DD400B5D013 /* ContentView.swift in Sources */,
+				0931C8C72FF3FFD8006DA18A /* FactView.swift in Sources */,
+				0931C8C32FF3FDF5006DA18A /* ScreenRecordingTestView.swift in Sources */,
 				0ED440062BAC9DD400B5D013 /* AWLDebugTool_ExampleApp.swift in Sources */,
+				0931C8C52FF3FF02006DA18A /* CpuTestView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

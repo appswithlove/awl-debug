@@ -44,13 +44,19 @@ struct AWLDebugTool_ExampleApp: App {
 #if DEBUG || STAGING
         AWLDebugTool.start(
             isScreenRecordingOn: true,
-            deeplinks: [
-                .init(title: "test1", url: "myapp://test1"),
-                .init(title: "test2", url: "myapp://test2"),
-            ],
-            deeplinkHandler: { url in
-                print("The App will open: \(url)")
-            }
+            deeplinks: .init(
+                deeplinks: [
+                    .init(title: "test1", url: "myapp://test1"),
+                    .init(title: "test2", url: "myapp://test2"),
+                ],
+                handler: .custom({ url in
+                    print("The App will open: \(url)")
+                })
+            ),
+            tokens: [
+                accessTokenDebugModel,
+                refreshTokenDebugModel
+            ]
         )
 #endif
     }

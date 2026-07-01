@@ -9,6 +9,7 @@ public class AWLDebugTool: ObservableObject {
     let ramMonitor = RAMMonitor()
     let mainThreadMonitor = MainThreadMonitor()
     let deeplinksManager = DeeplinksManager()
+    let sessionManager = SessionManager()
 
     /// Main initializer.
     ///
@@ -18,10 +19,8 @@ public class AWLDebugTool: ObservableObject {
     /// - Parameters:
     ///   - isScreenRecordingOn: Initial value for screen recording.
     ///     Can be changed later from the debug panel.
-    ///   - deeplinkHandler: Custom deep-link handler. If `nil`,
-    ///     URLs are opened using `UIApplication.shared.open(_:)`.
-    ///     This is sufficient when using custom URL schemes.
-    public static func start(isScreenRecordingOn: Bool = false, deeplinks: [AWLDeeplink] = [], deeplinkHandler: ((URL) -> Void)? = nil) {
+    ///   - deeplinks: help to test deeplinks
+    public static func start(isScreenRecordingOn: Bool = false, deeplinks: DeepLinkStartModel? = nil, tokens: [AWLDebugTool.TokenDebugModel] = []) {
         shared.cpuMonitor.start()
         shared.ramMonitor.start()
         shared.mainThreadMonitor.start()
@@ -29,7 +28,11 @@ public class AWLDebugTool: ObservableObject {
         shared.networkLogger.start()
         shared.screenRecorder.initialise(isScreenRecordingOn: isScreenRecordingOn)
         
-        shared.deeplinksManager.developerDeeplinks = deeplinks
-        shared.deeplinksManager.deeplinkHandler = deeplinkHandler
+        if let deeplinks {
+            shared.deeplinksManager.start(with: deeplinks)
+        }
+
+        shared.sessionManager.tokens = tokens
     }
 }
+

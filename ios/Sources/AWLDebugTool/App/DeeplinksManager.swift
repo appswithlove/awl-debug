@@ -12,11 +12,21 @@ public class DeeplinksManager: ObservableObject {
     private static let notificationIdentifierPrefix = "AWLDebugTool.Deeplink."
     private static let userDefaultsKey = "AWLDebugTool.testerDeeplinks"
 
-    var developerDeeplinks: [AWLDeeplink] = []
-    var deeplinkHandler: ((URL) -> Void)?
+    private(set) var developerDeeplinks: [AWLDeeplink] = []
+    private(set) var deeplinkHandler: ((URL) -> Void)?
     
     @Published var testerDeeplinks: [AWLDeeplink] = []
 
+    func start(with model: AWLDebugTool.DeepLinkStartModel) {
+        developerDeeplinks = model.deeplinks
+        deeplinkHandler = {
+            switch model.handler {
+            case .uiApplicationSharedOpen: return nil
+            case .custom(let handler): return handler
+            }
+        }()
+    }
+    
     init() {
         loadTesterDeeplinks()
     }
@@ -100,6 +110,29 @@ public class DeeplinksManager: ObservableObject {
     private func save() {
         guard let data = try? JSONEncoder().encode(testerDeeplinks) else { return }
         UserDefaults.standard.set(data, forKey: Self.userDefaultsKey)
+    }
+}
+
+// MARK: - Start
+
+extension AWLDebugTool {
+    public struct DeepLinkStartModel {
+        let deeplinks: [AWLDeeplink]
+        let handler: DeeplinkHandler
+
+        /// See also
+        /// `AWLDebugTool.processDeeplinkNotificationIfNeeded()`. To handle local notifications.
+        public init(deeplinks: [AWLDeeplink], handler: DeeplinkHandler) {
+            self.deeplinks = deeplinks
+            self.handler = handler
+        }
+
+        public enum DeeplinkHandler {
+            /// URLs are opened using `UIApplication.shared.open(_:)`. This is sufficient when using custom URL schemes.
+            case uiApplicationSharedOpen
+            /// if your app does not use URL schemes, you have to call this your deep links  handler
+            case custom(((URL) -> Void))
+        }
     }
 }
 
