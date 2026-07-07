@@ -57,8 +57,6 @@ enum LS {
     
     struct Settings {
         static let logLimit = "Number of logs per session"
-        static let exportFileName = "Export file name"
-        static let sortingOrder = "Sort network logs"
         static let dynamicData = "Dynamic data"
         static let educationalMode = "Educational mode"
         static let colorScheme = "Color scheme"

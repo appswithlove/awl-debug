@@ -94,27 +94,9 @@ class DebugViewModel: ObservableObject {
     @AppStorage(DebugView.Keys.preferredFontSize)
     var preferredFontSize: DebugView.AppFontSize = .system
 
-    @Published var isShowingDeleteNetworkLogs = false
     @Published var isShowingDeleteUserDefaults = false
-    @Published var isShowingFileExporter = false
 
-    @Published var document = TextDocument(text: "")
-    @Published var filename: String = {
-        let date = Date.now
-        let df = DateFormatter()
-        df.dateFormat = "yyyy-MM-dd_HH.mm.ss"
-        return "NL\(df.string(from: date)).txt"
-    }()
-    
-    func showDeleteNetworkLogsAlert() {
-        isShowingDeleteNetworkLogs = true
-    }
-    
     func showDeleteUserDefaultsAlert() {
         isShowingDeleteUserDefaults = true
-    }
-    
-    func showFileExporter() {
-        isShowingFileExporter = true
     }
 }

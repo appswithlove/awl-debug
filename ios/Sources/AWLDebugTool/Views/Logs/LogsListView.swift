@@ -11,85 +11,11 @@ import SwiftUI
 public struct LogsListView: View {
     @Environment(\.dismiss)
     var dismiss
-    
-    @ObservedObject private var debugTool = AWLDebugTool.shared
-    @ObservedObject private var networkLogger = AWLDebugTool.shared.networkLogger
-    
-    @State private var searchText = LS.Strings.emptyString
-    @State private var isFilterActive = false
-    
-    let onClose: () -> ()
-    
-    public init(onClose: @escaping () -> ()) {
-        self.onClose = onClose
-    }
-    
-    private var filteredLogs: [NetworkLog] {
-        let searched = searchText.isEmpty ? networkLogger.networkTraffic : networkLogger.networkTraffic.filter {
-            $0.method.localizedCaseInsensitiveContains(searchText) ||
-            $0.url.localizedCaseInsensitiveContains(searchText)
-        }
-        
-        let filteredByRequestMethods = searched.filter { log in
-            if let isActive = networkLogger.methods[log.method] {
-                return isActive
-            }
-            return false
-        }
-        
-        let filteredByResponseCodes = filteredByRequestMethods.filter { log in
-            if let isActive = networkLogger.codes[log.statusCode] {
-                return isActive
-            }
-            return false
-        }
 
-        let filteredByEndpoints = filteredByResponseCodes.filter { log in
-            if let isActive = networkLogger.endpoints[networkLogger.findFirstMatch(in: log.url, with: Constants.Regex.endpointsPattern) ?? ""] {
-                return isActive
-            }
-            return false
-        }
-        
-        return filteredByEndpoints.sorted { log1, log2 in
-            switch networkLogger.sortingOrder {
-            case .ascending:
-                return log1.date < log2.date
-            case .descending:
-                return log1.date > log2.date
-            }
-        }
-    }
-    
-    private let dateFormatter: DateFormatter = {
-        let df = DateFormatter()
-        df.dateFormat = Constants.Date.dateFormatSecondary
-        return df
-    }()
-    
-    private func colorFor(statusCode: Int) -> Color {
-        switch statusCode {
-        case 200...299: return .green
-        case 300...399: return .blue
-        case 400...499: return .orange
-        case 500...599: return .red
-        default: return .purple
-        }
-    }
-    
-    var isSortingOrderButtonDisabled: Bool {
-        return networkLogger.networkTraffic.count < 2
-    }
-    
-    var isDeleteLogsButtonDisabled: Bool {
-        return networkLogger.networkTraffic.isEmpty
-    }
-    
-    var isFilterChangedByUser: Bool {
-        return networkLogger.methods.values.contains(false) || networkLogger.codes.values.contains(false)
-        || networkLogger.endpoints.values.contains(false)
-    }
-    
+    @StateObject private var viewModel = LogsListViewModel()
+
+    public init() {}
+
     public var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             LogsOptions
@@ -103,21 +29,40 @@ public struct LogsListView: View {
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button {
-                    onClose()
+                    viewModel.exportNetworkLogs()
+                } label: {
+                    Image.with(icon: .export)
+                }
+                .disabled(viewModel.isDeleteLogsButtonDisabled)
+            }
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
                     dismiss()
                 } label: {
                     Text(LS.Headers.btnClose)
                 }
             }
         }
+        .fileExporter(isPresented: $viewModel.isShowingFileExporter,
+                      document: viewModel.document,
+                      contentType: .plainText,
+                      defaultFilename: viewModel.filename
+        ) { result in
+            switch result {
+            case .success(let file):
+                print("\(LS.logWatermark) \(file)")
+            case .failure(let error):
+                print("\(LS.logWatermark) \(error)")
+            }
+        }
     }
-    
+
     @ViewBuilder var EmptyLogsList: some View {
-        if filteredLogs.isEmpty {
+        if viewModel.filteredLogs.isEmpty {
             Text(LS.Strings.emptyListOfLogs)
         }
     }
-    
+
     @ViewBuilder var LogsOptions: some View {
         HStack(alignment: .center) {
             NumberOfRequestsText
@@ -128,53 +73,57 @@ public struct LogsListView: View {
         }
         .padding(.vertical, 6)
         .padding(.horizontal, 16)
-        .sheet(isPresented: $isFilterActive) {
-            FilterView(isFilterActive: $isFilterActive)
+        .sheet(isPresented: $viewModel.isFilterActive) {
+            FilterView(isFilterActive: $viewModel.isFilterActive)
         }
     }
-    
+
     @ViewBuilder var NumberOfRequestsText: some View {
         Group {
             Text(LS.Strings.numberOfLogs) +
-            Text("\(filteredLogs.count) / \(networkLogger.networkLogsLimit)")
+            Text("\(viewModel.filteredLogs.count) / \(viewModel.networkLogsLimit)")
                 .bold()
         }
         .font(.system(size: 12))
     }
-    
+
     @ViewBuilder var FilterLogsButton: some View {
         Button {
-            isFilterActive = true
+            viewModel.isFilterActive = true
         } label: {
-            Image.with(icon: isFilterChangedByUser ? .filtersSet : .filtersUnset)
+            Image.with(icon: viewModel.isFilterChangedByUser ? .filtersSet : .filtersUnset)
         }
         .padding(4)
     }
-    
+
     @ViewBuilder var SortingOrderToggleButton: some View {
         Button {
-            networkLogger.sortingOrder = networkLogger.sortingOrder == .ascending ? .descending : .ascending
+            viewModel.toggleSortingOrder()
         } label: {
-            Image.with(icon: .sortingOrder)
+            Image.with(icon: viewModel.sortingOrderIcon)
         }
         .padding(4)
-        .disabled(isSortingOrderButtonDisabled)
+        .disabled(viewModel.isSortingOrderButtonDisabled)
     }
-    
+
     @ViewBuilder var RemoveAllLogsButton: some View {
         Button {
-            networkLogger.deleteNetworkLogs()
+            viewModel.isShowingDeleteNetworkLogs.toggle()
         } label: {
             Image.with(icon: .clear)
                 .foregroundColor(.red)
-                .opacity(isDeleteLogsButtonDisabled ? Constants.Values.disabledBtnOpacity : Constants.Values.enabledBtnOpacity)
+                .opacity(viewModel.isDeleteLogsButtonDisabled ? Constants.Values.disabledBtnOpacity : Constants.Values.enabledBtnOpacity)
         }
         .padding(4)
-        .disabled(isDeleteLogsButtonDisabled)
+        .disabled(viewModel.isDeleteLogsButtonDisabled)
+        .destructiveAlertViewModifier(isShowingAlert: $viewModel.isShowingDeleteNetworkLogs,
+                                      title: LS.Alert.deleteNLTitle,
+                                      message: LS.Alert.deleteNLMessage,
+                                      action: { viewModel.deleteNetworkLogs() })
     }
-    
+
     @ViewBuilder var LogsList: some View {
-        List(filteredLogs) { log in
+        List(viewModel.filteredLogs) { log in
             VStack(alignment: .leading) {
                 LogDate(date: log.date)
                 LogUrl(url: log.url)
@@ -182,18 +131,18 @@ public struct LogsListView: View {
             }
         }
         .listStyle(.plain)
-        .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: LS.Strings.searchLogs)
+        .searchable(text: $viewModel.searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: LS.Strings.searchLogs)
         .autocorrectionDisabled(true)
         .textInputAutocapitalization(.never)
         .padding(.leading, -4)
         .padding(.trailing, 16)
     }
-    
+
     @ViewBuilder
     private func LogDate(date: Date) -> some View {
         let datePart = DatesWorker.extractDate(date)
         let timePart = DatesWorker.extractTime(date)
-        
+
         HStack(spacing: 6) {
             Text(datePart)
                 .foregroundColor(.secondary)
@@ -202,8 +151,8 @@ public struct LogsListView: View {
         }
         .font(.caption2)
     }
-    
-    @ViewBuilder 
+
+    @ViewBuilder
     private func LogUrl(url: String) -> some View {
         HStack {
             Text(url)
@@ -212,8 +161,8 @@ public struct LogsListView: View {
         .foregroundColor(.primary)
         .padding(.vertical, 2)
     }
-    
-    @ViewBuilder 
+
+    @ViewBuilder
     private func LogInfo(method: String, statusCode: Int, duration: Int) -> some View {
         HStack {
             Text(method)
@@ -221,14 +170,14 @@ public struct LogsListView: View {
             Text("(\(duration)ms)")
         }
         .font(.callout)
-        .foregroundColor(colorFor(statusCode: statusCode))
+        .foregroundColor(viewModel.colorFor(statusCode: statusCode))
     }
 }
 
 struct LogsView_Previews: PreviewProvider {
     static var previews: some View {
         NavigationView {
-            LogsListView(onClose: {})
+            LogsListView()
         }
     }
 }

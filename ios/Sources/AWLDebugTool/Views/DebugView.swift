@@ -23,20 +23,7 @@ public struct DebugView: View {
     
     private var fcmToken: String?
     private let customView: (() -> any View)?
-    
-    var isDeleteLogsButtonDisabled: Bool {
-        networkLogger.networkTraffic.isEmpty
-    }
-    
-    func fetchNetworkLogsAsString() -> String {
-        let df = DateFormatter()
-        df.dateFormat = Constants.Date.dateFormatSecondary
-        
-        return networkLogger.networkTraffic
-            .map { "\(df.string(from: $0.date)) \($0.method) (\($0.statusCode)) \($0.duration)ms - \($0.url)" }
-            .joined(separator: "\n")
-    }
-    
+
     public init(fcmToken: String?, customView: (() -> any View)? = nil) {
         self.fcmToken = fcmToken
         self.customView = customView
@@ -52,6 +39,14 @@ public struct DebugView: View {
                     AnyView(customView!())
                 }
                 
+                SessionView(sessionManager: sessionManager)
+                
+                FirebaseView()
+                
+                FCMPushTokenView(fcmToken: fcmToken)
+
+                DeeplinksView(manager: deeplinksManager)
+
                 UserDefaultsView(isShowingDeleteUserDefaults: $vm.isShowingDeleteUserDefaults,
                                  showDeleteUserDefaultsAlert: vm.showDeleteUserDefaultsAlert)
                 
@@ -68,14 +63,6 @@ public struct DebugView: View {
                     }
                 )
                 
-                FirebaseView()
-
-                SessionView(sessionManager: sessionManager)
-
-                FCMPushTokenView(fcmToken: fcmToken)
-
-                DeeplinksView(manager: deeplinksManager)
-
                 ColorSchemeSectionView(preferredColorScheme: $vm.preferredColorScheme)
                 FontSizeSectionView(preferredFontSize: $vm.preferredFontSize)
 
@@ -97,23 +84,7 @@ public struct DebugView: View {
                     Text(LS.Performance.performanceSectionTitle)
                 }
                 
-                LogsView(
-                    networkLogger: networkLogger,
-                    isDeleteLogsButtonDisabled: isDeleteLogsButtonDisabled,
-                    showDeleteNetworkLogsAlert: vm.showDeleteNetworkLogsAlert,
-                    isShowingDeleteNetworkLogs: $vm.isShowingDeleteNetworkLogs,
-                    
-                    deleteNetworkLogs: { networkLogger.deleteNetworkLogs() },
-                    
-                    isShowingDeleteUserDefaults: $vm.isShowingDeleteUserDefaults,
-                    dismiss: { dismiss() },
-                    filename: $vm.filename,
-                    fetchNetworkLogsAsString: fetchNetworkLogsAsString,
-                    showFileExporter: { logs in
-                        vm.document.text = logs
-                        vm.showFileExporter()
-                    }
-                )
+                LogsView(networkLogger: networkLogger)
                 
                 ScreenRecordingView(isScreenRecordingOn: $screenRecorder.isScreenRecordingOn,
                                     isScreenRecordingOnByDefault: $screenRecorder.isScreenRecordingOnByDefault,
@@ -132,18 +103,6 @@ public struct DebugView: View {
                         Text(LS.Headers.btnClose)
                     }
                 }
-            }
-        }
-        .fileExporter(isPresented: $vm.isShowingFileExporter,
-                      document: vm.document,
-                      contentType: .plainText,
-                      defaultFilename: vm.filename
-        ) { result in
-            switch result {
-            case .success(let file):
-                print("\(LS.logWatermark) \(file)")
-            case .failure(let error):
-                print("\(LS.logWatermark) \(error)")
             }
         }
         .onAppear {
