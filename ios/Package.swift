@@ -24,7 +24,11 @@ let package = Package(
         .target(
             name: "AWLDebugTool",
             dependencies: [],
-            path: "AWLDebugTool/Sources"),
+            path: "AWLDebugTool/Sources",
+            resources: [
+                .process("Resources/Assets.xcassets"),
+            ]
+        ),
         .testTarget(
             name: "AWLDebugToolTests",
             dependencies: ["AWLDebugTool"],

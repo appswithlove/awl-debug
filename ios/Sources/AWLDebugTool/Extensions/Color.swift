@@ -8,5 +8,5 @@
 import SwiftUI
 
 extension Color {
-    static let logTimeColor = Color("logTimeColor")
+    static let logTimeColor = Color("logTimeColor", bundle: .module)
 }
