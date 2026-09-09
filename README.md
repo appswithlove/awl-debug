@@ -25,26 +25,21 @@ Made by [Apps with love](https://appswithlove.com). Licensed under [Apache 2.0](
 
 # ⛺️ Setup
 
-1. add the following dependencies to your project's `build.gradle` file:
+## 1. Add the dependencies
 
-```
+```kotlin
 // full debug panel in debug builds, inert no-op in release builds
 debugImplementation("com.appswithlove.debug:debug:0.6.0")
 releaseImplementation("com.appswithlove.debug:debug-no-op:0.6.0")
 ```
 
-Both artifacts expose the same public API (`DevSheet`, `DevConfig`, `DevModulesConfig`,
-`SessionProvider`, `DevLogTree`, `DevHttpLogInterceptor`, …) via the shared
-`com.appswithlove.debug:debug-api` artifact, so the same call sites compile against either.
-The `debug-no-op` variant strips all debug UI, gesture detection and log collection from
-release builds — `DevSheet` simply renders your content.
+Two lines are required, one per build type. Why is explained below.
 
-> The config/contract types now live under `com.appswithlove.debug.api.*`
-> (e.g. `com.appswithlove.debug.api.DevConfig`, `com.appswithlove.debug.api.session.SessionProvider`).
+## 2. Make sure `mavenCentral()` is in your repositories
 
-2. make sure `mavenCentral()` is in your repositories (default in new Android projects):
+Default in new Android projects:
 
-```
+```kotlin
 dependencyResolutionManagement {
     repositories {
         google()
@@ -54,6 +49,45 @@ dependencyResolutionManagement {
 ```
 
 All artifacts are published to [Maven Central](https://central.sonatype.com/namespace/com.appswithlove.debug). No token or extra repository needed.
+
+## How the artifacts fit together
+
+awl-debug ships as a **real + no-op pair** with a shared API, the same pattern LeakCanary and Chucker use.
+Your app code calls `DevSheet { ... }`, `Timber.plant(DevLogTree())` and `DevHttpLogInterceptor()`
+unconditionally. Which implementation ends up in the APK is decided by Gradle per build type, not by
+`if (BuildConfig.DEBUG)` checks scattered through your code.
+
+| Artifact | What it contains | Weight |
+|---|---|---|
+| `debug-api` | Only the contract types: `DevConfig`, `DevModulesConfig`, `SessionProvider`, `FcmTokenProvider`, `DeeplinkItem`. Pulled in transitively, never referenced directly. | a few KB |
+| `debug` | The real panel: Compose sheet, three-finger gesture, log collector, HTTP interceptor, session and FCM modules, charts. | ~430 KB plus its Compose / Material 3 / Vico dependencies |
+| `debug-no-op` | The same public functions and classes with empty bodies. `DevSheet` just renders your `content`, `DevLogTree` and `DevHttpLogInterceptor` do nothing. Depends only on `debug-api`. | ~14 KB |
+
+Both AARs expose identical signatures under identical package names, so the same call sites compile
+against either. The shared types live in `debug-api` exactly once so the two AARs can never collide.
+
+**What you get from this**
+
+- Release builds contain no debug UI, gesture detection or log buffering. Not disabled: absent from the binary.
+- The Session module can read and overwrite auth tokens. That code does not exist in production builds.
+- None of the panel's UI dependencies (Vico charts, extra Material 3, DataStore) are added to your release APK.
+- No conditionals in app code. Plant the tree, add the interceptor, wrap your root composable, done.
+
+**Additional build types**
+
+`debugImplementation` and `releaseImplementation` only cover the two default build types. If your app
+defines more (`staging`, `qa`, ...), each needs its own line, otherwise that build type gets neither
+artifact and fails to compile:
+
+```kotlin
+stagingImplementation("com.appswithlove.debug:debug:0.6.0")
+```
+
+Pick `debug` for internal builds where the panel is useful and `debug-no-op` for anything that leaves
+the building.
+
+> The config/contract types live under `com.appswithlove.debug.api.*`
+> (e.g. `com.appswithlove.debug.api.DevConfig`, `com.appswithlove.debug.api.session.SessionProvider`).
 
 # 🧪 Testing the library locally
 
