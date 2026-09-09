@@ -2,11 +2,11 @@ name: CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "production" ]
     paths-ignore:
       - "**.md"
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "production" ]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
