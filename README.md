@@ -1,43 +1,67 @@
-# awl-debug 🚧
+# awl-debug
 
-Library for debugging and logging of Android apps.
+[![Maven Central](https://img.shields.io/maven-central/v/com.appswithlove.debug/debug?label=Maven%20Central)](https://central.sonatype.com/namespace/com.appswithlove.debug)
+[![CI](https://github.com/appswithlove/awl-debug/actions/workflows/build.yml/badge.svg)](https://github.com/appswithlove/awl-debug/actions/workflows/build.yml)
+[![API 25+](https://img.shields.io/badge/API-25%2B-brightgreen)](https://developer.android.com/tools/releases/platforms#7.1)
+[![Jetpack Compose](https://img.shields.io/badge/Jetpack%20Compose-Material%203-4285F4)](https://developer.android.com/compose)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-🚧Work in progress 🚧
+An in-app debug panel for Android. Wrap your root composable once, open the sheet with a three-finger tap, and inspect logs, HTTP traffic, auth tokens, push tokens, permissions and performance without leaving the app. Release builds ship a no-op variant, so none of it ends up in production.
 
-Made by [Apps with love](https://appswithlove.com). Licensed under [Apache 2.0](LICENSE).
+Made by [Apps with love](https://appswithlove.com).
 
-### Contributors
+## Contents
 
-- Vladislav Frolov
-- Michel Utke
-- Yannick Pulver
+- [Features](#features)
+- [Installation](#installation)
+  - [1. Add the dependencies](#1-add-the-dependencies)
+  - [2. Repositories](#2-repositories)
+  - [3. Additional build types](#3-additional-build-types)
+- [How the artifacts fit together](#how-the-artifacts-fit-together)
+- [Usage](#usage)
+  - [DevSheet](#devsheet)
+  - [Modules](#modules)
+  - [Deeplinks](#deeplinks)
+  - [Session](#session)
+  - [FCM push token](#fcm-push-token)
+  - [Custom modules](#custom-modules)
+  - [HTTP logging](#http-logging)
+  - [Timber integration](#timber-integration)
+  - [Activate and deactivate](#activate-and-deactivate)
+- [Local development](#local-development)
+- [Releasing](#releasing)
+- [License](#license)
 
-### Features
+## Features
 
-- [x] Open and close DevSheet by three finger tap
-- [x] Logs: filter by query, export to file (Timber + HTTP integration)
-- [x] Deeplinks: fire deeplinks from the sheet
-- [x] Session: inspect / edit / delete auth tokens
-- [x] Permissions, Performance and Accessibility modules
-- [x] Test crashes
-- [x] FCM push token: display, refresh and revoke (you provide the source)
-- [x] Custom modules can be added
+- Debug sheet opens and closes with a three-finger tap
+- Logs: Timber and HTTP entries, filter by query, export to file
+- HTTP inspector via an OkHttp interceptor
+- Deeplinks: fire ad-hoc or preconfigured deeplinks from the sheet
+- Session: inspect, copy, edit or delete auth tokens per provider
+- FCM push token: display, refresh, revoke (you supply the source, no Firebase dependency)
+- Permissions, performance and accessibility modules
+- Test crashes
+- App info from your build config plus custom key/value pairs
+- Custom modules: append your own composables to the sheet
+- No-op artifact for release builds
 
-# ⛺️ Setup
+## Installation
 
-## 1. Add the dependencies
+### 1. Add the dependencies
 
 ```kotlin
-// full debug panel in debug builds, inert no-op in release builds
-debugImplementation("com.appswithlove.debug:debug:0.6.0")
-releaseImplementation("com.appswithlove.debug:debug-no-op:0.6.0")
+dependencies {
+    debugImplementation("com.appswithlove.debug:debug:0.6.0")
+    releaseImplementation("com.appswithlove.debug:debug-no-op:0.6.0")
+}
 ```
 
-Two lines are required, one per build type. Why is explained below.
+Two lines, one per build type: the `debug` build gets the real panel, the `release` build gets a stub with the same API and empty bodies. Your app code stays identical for both. Details in [How the artifacts fit together](#how-the-artifacts-fit-together).
 
-## 2. Make sure `mavenCentral()` is in your repositories
+### 2. Repositories
 
-Default in new Android projects:
+All artifacts are on [Maven Central](https://central.sonatype.com/namespace/com.appswithlove.debug). New Android projects already have it configured:
 
 ```kotlin
 dependencyResolutionManagement {
@@ -48,87 +72,45 @@ dependencyResolutionManagement {
 }
 ```
 
-All artifacts are published to [Maven Central](https://central.sonatype.com/namespace/com.appswithlove.debug). No token or extra repository needed.
+No token, no extra repository.
+
+### 3. Additional build types
+
+`debugImplementation` and `releaseImplementation` only cover the two default build types. If your app declares more (`staging`, `qa`, ...), each one needs its own line, otherwise that build type has neither artifact and fails to compile:
+
+```kotlin
+stagingImplementation("com.appswithlove.debug:debug:0.6.0")       // internal build: real panel
+qaImplementation("com.appswithlove.debug:debug-no-op:0.6.0")      // goes to external testers: stub
+```
+
+Rule of thumb: `debug` for builds that stay inside the team, `debug-no-op` for anything that leaves the building.
 
 ## How the artifacts fit together
 
-awl-debug ships as a **real + no-op pair** with a shared API, the same pattern LeakCanary and Chucker use.
-Your app code calls `DevSheet { ... }`, `Timber.plant(DevLogTree())` and `DevHttpLogInterceptor()`
-unconditionally. Which implementation ends up in the APK is decided by Gradle per build type, not by
-`if (BuildConfig.DEBUG)` checks scattered through your code.
+awl-debug ships as a real + no-op pair with a shared API, the same pattern [LeakCanary](https://square.github.io/leakcanary/) and [Chucker](https://github.com/ChuckerTeam/chucker) use. Your app calls `DevSheet { ... }`, `Timber.plant(DevLogTree())` and `DevHttpLogInterceptor()` unconditionally. Which implementation ends up in the APK is decided by Gradle per build type, not by `if (BuildConfig.DEBUG)` checks in your code.
 
-| Artifact | What it contains | Weight |
+| Artifact | Contents | Weight |
 |---|---|---|
-| `debug-api` | Only the contract types: `DevConfig`, `DevModulesConfig`, `SessionProvider`, `FcmTokenProvider`, `DeeplinkItem`. Pulled in transitively, never referenced directly. | a few KB |
-| `debug` | The real panel: Compose sheet, three-finger gesture, log collector, HTTP interceptor, session and FCM modules, charts. | ~430 KB plus its Compose / Material 3 / Vico dependencies |
-| `debug-no-op` | The same public functions and classes with empty bodies. `DevSheet` just renders your `content`, `DevLogTree` and `DevHttpLogInterceptor` do nothing. Depends only on `debug-api`. | ~14 KB |
+| `debug-api` | Contract types only: `DevConfig`, `DevModulesConfig`, `DeeplinkItem`, `SessionProvider`, `FcmTokenProvider`. Pulled in transitively by both AARs, never referenced directly. | a few KB |
+| `debug` | The real panel: Compose sheet, three-finger gesture, log collector, HTTP interceptor, all modules, charts. | ~430 KB plus its Compose, Material 3 and Vico dependencies |
+| `debug-no-op` | The same public functions and classes with empty bodies. `DevSheet` renders your `content` and nothing else; `DevLogTree` and `DevHttpLogInterceptor` discard everything. Depends only on `debug-api`. | ~14 KB |
 
-Both AARs expose identical signatures under identical package names, so the same call sites compile
-against either. The shared types live in `debug-api` exactly once so the two AARs can never collide.
+Both AARs expose identical signatures under identical package names, so the same call sites compile against either. The shared types live in `debug-api` exactly once, so the two AARs can never collide on the classpath.
 
-**What you get from this**
+What this buys you:
 
 - Release builds contain no debug UI, gesture detection or log buffering. Not disabled: absent from the binary.
 - The Session module can read and overwrite auth tokens. That code does not exist in production builds.
 - None of the panel's UI dependencies (Vico charts, extra Material 3, DataStore) are added to your release APK.
 - No conditionals in app code. Plant the tree, add the interceptor, wrap your root composable, done.
 
-**Additional build types**
+The contract types live under `com.appswithlove.debug.api.*`, for example `com.appswithlove.debug.api.DevConfig` and `com.appswithlove.debug.api.session.SessionProvider`.
 
-`debugImplementation` and `releaseImplementation` only cover the two default build types. If your app
-defines more (`staging`, `qa`, ...), each needs its own line, otherwise that build type gets neither
-artifact and fails to compile:
+## Usage
 
-```kotlin
-stagingImplementation("com.appswithlove.debug:debug:0.6.0")
-```
+### DevSheet
 
-Pick `debug` for internal builds where the panel is useful and `debug-no-op` for anything that leaves
-the building.
-
-> The config/contract types live under `com.appswithlove.debug.api.*`
-> (e.g. `com.appswithlove.debug.api.DevConfig`, `com.appswithlove.debug.api.session.SessionProvider`).
-
-# 🧪 Testing the library locally
-
-To test this library in another project before publishing it to a remote repository, you can publish it to your local Maven repository:
-
-```
-./gradlew publishToMavenLocal -PRELEASE_SIGNING_ENABLED=false
-```
-
-`-PRELEASE_SIGNING_ENABLED=false` skips GPG signing, which is only required for Maven Central releases.
-
-This command installs the library into your local Maven repository, usually located at:
-
-```~/.m2/repository/```
-
-Then, in the project where you want to test the library, update your repositories block to include `mavenLocal()` before other repositories:
-
-```
-repositories {
-    mavenLocal()
-    mavenCentral()
-    google()
-}
-```
-
-
-Finally, add the library dependency using the same coordinates defined in your build.gradle:
-
-```
-dependencies {
-    implementation("com.appswithlove.debug:debug:0.6.0")
-}
-```
-
-Now you can build and run your project using the locally published version of the library.
-
-# 🚀 Usage
-
-## 🛠 DevSheet
-
-Wrap `DevSheet` around your top-level composable. The sheet opens with a **three-finger tap**.
+Wrap `DevSheet` around your top-level composable. The sheet opens with a three-finger tap while the dev tool is activated (see [Activate and deactivate](#activate-and-deactivate)).
 
 ```kotlin
 DevSheet(
@@ -139,25 +121,24 @@ DevSheet(
         buildType = BuildConfig.BUILD_TYPE,
     ),
 ) {
-    // your screen content
     MyApp()
 }
 ```
 
-### Parameters
-
 | Parameter | Default | Description |
 |---|---|---|
-| `devConfig` | `null` | App build info displayed in the sheet (version, flavor, build type) |
-| `logHistory` | `LogCollector.logHistory` | Log history to display; override to use a custom instance |
-| `modulesConfig` | `DevModulesConfig()` | Controls which built-in modules are shown; all enabled by default |
-| `isAlwaysActive` | `false` | When `true`, the three-finger tap gesture works even if the dev tool is toggled off |
+| `devConfig` | `null` | Build info shown in the App Info module: version name and code, flavor, build type, plus optional `customParams: Map<String, String>` |
+| `modulesConfig` | `DevModulesConfig()` | Which built-in modules are shown and their inputs, see [Modules](#modules) |
+| `customModules` | empty | Composable lambda appended at the bottom of the sheet, see [Custom modules](#custom-modules) |
+| `isAlwaysActive` | `false` | When `true`, the three-finger tap works even if the dev tool is deactivated |
 | `swipeToDismiss` | `false` | When `true`, the sheet can be dismissed by swiping down |
-| `customModules` | — | Composable lambda to append your own modules at the bottom of the sheet |
+| `inheritHostTheme` | `false` | When `true`, the sheet uses the host app's `MaterialTheme` instead of its own |
+| `logHistory` | `LogCollector.logHistory` | Log source to display; override to use a custom collector instance |
+| `modifier` | `Modifier` | Applied to the wrapping container |
 
-### Disabling modules
+### Modules
 
-Pass a `DevModulesConfig` to hide specific built-in modules:
+`DevModulesConfig` controls which modules appear. Everything is enabled by default; modules that need input (deeplinks, session, FCM) hide themselves when nothing is provided.
 
 ```kotlin
 DevSheet(
@@ -170,12 +151,20 @@ DevSheet(
 }
 ```
 
-## 🔗 Deeplinks
+| Field | Default | Module |
+|---|---|---|
+| `showLogsModule` | `true` | Logs (Timber + HTTP) |
+| `showPerformanceModule` | `true` | Performance |
+| `showPermissionsModule` | `true` | Permissions |
+| `showAccessibilityModule` | `true` | Accessibility |
+| `showDeeplinksModule` / `deeplinks` | `true` / empty | [Deeplinks](#deeplinks) |
+| `showSessionModule` / `sessionProviders` | `true` / empty | [Session](#session), hidden when the list is empty |
+| `showFcmPushTokenModule` / `fcmTokenProvider` | `true` / `null` | [FCM push token](#fcm-push-token), hidden when `null` |
+| `showTestCrashesModule` | `true` | Test crashes |
 
-The Deeplinks module lets you fire deeplinks directly from the debug sheet — useful for testing navigation during development.
+### Deeplinks
 
-- Enter or paste a deeplink URL and tap **Shoot** to launch it
-- Optionally pre-configure a list of deeplinks for one-tap access
+Fire deeplinks straight from the sheet to test navigation. Enter a URL and tap **Shoot**, or preconfigure a list for one-tap access:
 
 ```kotlin
 DevSheet(
@@ -190,17 +179,16 @@ DevSheet(
 }
 ```
 
-## 🔐 Session
+### Session
 
-The Session module lets you inspect and manipulate the current auth state directly from the debug sheet.
+Inspect and manipulate the current auth state per token source:
 
-**Features:**
 - Shows logged in / logged out status per provider
-- Copy the current access token to clipboard
-- Edit the token (e.g. paste invalid token to trigger a refresh) — only when `onSetToken` is provided
-- Delete the token to break the session — only when `onSetToken` is provided
+- Copies the current token to the clipboard
+- Edits the token (for example paste an invalid one to trigger a refresh), only when `onSetToken` is provided
+- Deletes the token to break the session, only when `onSetToken` is provided
 
-Implement `SessionProvider` for each token source in your app and pass the list to `DevModulesConfig`:
+Implement `SessionProvider` for each token source and pass the list:
 
 ```kotlin
 DevSheet(
@@ -210,9 +198,14 @@ DevSheet(
                 override val label = "Auth Token"
                 override val token: Flow<String?> = authStorage.tokenFlow
 
-                // Optional — omit to hide the Edit/Delete buttons
+                // optional: omit to hide the Edit and Delete buttons
                 override val onSetToken: suspend (String?) -> Unit = { authStorage.setToken(it) }
-            }
+            },
+            object : SessionProvider {
+                override val label = "Refresh Token"
+                override val token: Flow<String?> = authStorage.refreshTokenFlow
+                override val onSetToken: suspend (String?) -> Unit = { authStorage.setRefreshToken(it) }
+            },
         )
     )
 ) {
@@ -220,30 +213,11 @@ DevSheet(
 }
 ```
 
-`tokenFlow` must emit whenever the token changes (login, logout, refresh) - this is how the module stays in sync without manual refreshes.
+`token` must emit whenever the value changes (login, logout, refresh); that is how the module stays in sync without manual refreshes. The module is hidden when `sessionProviders` is empty.
 
-Multiple providers are supported — each is shown as a separate entry:
+### FCM push token
 
-```kotlin
-sessionProviders = listOf(
-    object : SessionProvider {
-        override val label = "Auth Token"
-        override val token: Flow<String?> = authStorage.tokenFlow
-        override val onSetToken: suspend (String?) -> Unit = { authStorage.setToken(it) }
-    },
-    object : SessionProvider {
-        override val label = "Refresh Token"
-        override val token: Flow<String?> = authStorage.refreshTokenFlow
-        override val onSetToken: suspend (String?) -> Unit = { authStorage.setRefreshToken(it) }
-    },
-)
-```
-
-The module is hidden automatically when `sessionProviders` is empty.
-
-## 📲 FCM Push Token
-
-The FCM module displays the current push token and, optionally, lets you refresh or revoke it. The library has **no Firebase dependency** — you supply the token and the actions via `FcmTokenProvider`:
+Displays the current push token and, optionally, lets you refresh or revoke it. The library has no Firebase dependency; you supply the token and the actions:
 
 ```kotlin
 DevSheet(
@@ -251,13 +225,13 @@ DevSheet(
         fcmTokenProvider = object : FcmTokenProvider {
             override val token: Flow<String?> = fcmStorage.tokenFlow
 
-            // Optional — omit to hide the button
+            // optional: omit to hide the button
             override val onRefresh: suspend () -> Unit = {
                 FirebaseMessaging.getInstance().deleteToken().await()
                 fcmStorage.set(FirebaseMessaging.getInstance().token.await())
             }
 
-            // Optional — omit to hide the button
+            // optional: omit to hide the button
             override val onRevoke: suspend () -> Unit = {
                 FirebaseMessaging.getInstance().deleteToken().await()
                 fcmStorage.set(null)
@@ -269,25 +243,25 @@ DevSheet(
 }
 ```
 
-- `token` must emit whenever the token changes — this keeps the displayed value in sync (e.g. after a refresh).
-- `onRefresh` / `onRevoke` default to `null`; each button only appears when its action is provided.
-- The module is hidden automatically when `fcmTokenProvider` is `null`.
+`token` must emit whenever it changes so the displayed value stays current. Each button only appears when its action is provided. The module is hidden when `fcmTokenProvider` is `null`.
 
-## 🛠️ Custom modules
+### Custom modules
+
+Append your own composables to the bottom of the sheet:
 
 ```kotlin
 DevSheet(
     customModules = {
-        Text("My custom debug info")
+        Text("Feature flags: ${flags.joinToString()}")
     }
 ) {
     MyApp()
 }
 ```
 
-## 🌐 HTTP logging
+### HTTP logging
 
-To capture HTTP traffic in DevTool, add `DevHttpLogInterceptor` to your `OkHttpClient`:
+Add `DevHttpLogInterceptor` to your `OkHttpClient`. Every request and response shows up in the Logs module:
 
 ```kotlin
 val client = OkHttpClient.Builder()
@@ -295,50 +269,78 @@ val client = OkHttpClient.Builder()
     .build()
 ```
 
-It logs all requests and responses.
+### Timber integration
 
-## 🪵 Timber integration
-
-To forward Timber logs to the debug panel, plant `DevLogTree` in your `Application.onCreate()`:
+Plant `DevLogTree` in `Application.onCreate()` to forward Timber logs to the panel:
 
 ```kotlin
 class MyApp : Application() {
     override fun onCreate() {
         super.onCreate()
-        Timber.plant(DevLogTree())
+        Timber.plant(Timber.DebugTree(), DevLogTree())
     }
 }
 ```
 
-`DevLogTree` only logs to the debug panel. To also log to logcat, plant `Timber.DebugTree()` alongside it:
+`DevLogTree` only logs to the panel. Keep `Timber.DebugTree()` alongside it if you also want logcat output.
 
-```kotlin
-Timber.plant(Timber.DebugTree(), DevLogTree())
-```
+### Activate and deactivate
 
-## 🔘 Activate / deactivate devTool
-
-The three-finger tap only opens the sheet while the dev tool is activated (or `isAlwaysActive = true`). Toggle it programmatically via `DevSettings`; both calls are `suspend`/`Flow` based:
+The three-finger tap only opens the sheet while the dev tool is activated, unless `isAlwaysActive = true`. The flag is persisted on the device. Toggle it from your own UI, for example a hidden switch in settings:
 
 ```kotlin
 val context = LocalContext.current
 val scope = rememberCoroutineScope()
+val isActivated by DevSettings.isDevToolActivated(context).collectAsState(initial = false)
 
-scope.launch {
-    DevSettings.activateDevTool(context, activate = true)   // or false
-}
-
-val isActivated: Flow<Boolean> = DevSettings.isDevToolActivated(context)
+Switch(
+    checked = isActivated,
+    onCheckedChange = { scope.launch { DevSettings.activateDevTool(context, it) } },
+)
 ```
 
-Inside the sheet, `DevAction.ActivateDevTool` submitted to the `DevViewModel` toggles the same flag.
+`DevSettings.activateDevTool(context, Boolean)` is a `suspend` function; `DevSettings.isDevToolActivated(context)` returns a `Flow<Boolean>`. Inside the sheet, the App Info module offers the same toggle.
 
-# 📦 Releasing
+## Local development
 
-Bump `VERSION_NAME` in `gradle.properties`, merge to `main`, then push `main` to `production`.
-The `Publish` workflow builds, tests, signs and uploads all three artifacts to Maven Central and creates a GitHub release tagged with the version.
+Build and test:
 
-# 📄 License
+```
+./gradlew build
+```
+
+Run the sample app from `sample/` to try the panel. It plants `DevLogTree`, fires an HTTP request and exposes a switch that activates the dev tool.
+
+To test an unreleased version in another project, publish to your local Maven repository. The flag skips GPG signing, which is only needed for Maven Central:
+
+```
+./gradlew publishToMavenLocal -PRELEASE_SIGNING_ENABLED=false
+```
+
+Then, in the consuming project, put `mavenLocal()` first in its repositories and depend on the version from `gradle.properties`:
+
+```kotlin
+repositories {
+    mavenLocal()
+    google()
+    mavenCentral()
+}
+
+dependencies {
+    debugImplementation("com.appswithlove.debug:debug:<VERSION_NAME>")
+    releaseImplementation("com.appswithlove.debug:debug-no-op:<VERSION_NAME>")
+}
+```
+
+## Releasing
+
+1. Bump `VERSION_NAME` in `gradle.properties` and merge to `main` via pull request.
+2. Open a pull request from `main` to `production`. It requires one approval.
+3. Merging runs the `Publish` workflow: build and test, sign, upload all three artifacts to Maven Central, create a GitHub release tagged with the version.
+
+The publish job waits for the Central Portal to validate the deployment and fails with the portal's reasons if it is rejected. Artifacts appear on Maven Central roughly 15 to 30 minutes after a successful run.
+
+## License
 
 ```
 Copyright 2024 Apps with love AG
