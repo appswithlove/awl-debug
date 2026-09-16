@@ -52,8 +52,8 @@ Made by [Apps with love](https://appswithlove.com).
 
 ```kotlin
 dependencies {
-    debugImplementation("com.appswithlove.debug:debug:0.6.0")
-    releaseImplementation("com.appswithlove.debug:debug-no-op:0.6.0")
+    debugImplementation("com.appswithlove.debug:debug:0.6.1")
+    releaseImplementation("com.appswithlove.debug:debug-no-op:0.6.1")
 }
 ```
 
@@ -79,8 +79,8 @@ No token, no extra repository.
 `debugImplementation` and `releaseImplementation` only cover the two default build types. If your app declares more (`staging`, `qa`, ...), each one needs its own line, otherwise that build type has neither artifact and fails to compile:
 
 ```kotlin
-stagingImplementation("com.appswithlove.debug:debug:0.6.0")       // internal build: real panel
-qaImplementation("com.appswithlove.debug:debug-no-op:0.6.0")      // goes to external testers: stub
+stagingImplementation("com.appswithlove.debug:debug:0.6.1")       // internal build: real panel
+qaImplementation("com.appswithlove.debug:debug-no-op:0.6.1")      // goes to external testers: stub
 ```
 
 Rule of thumb: `debug` for builds that stay inside the team, `debug-no-op` for anything that leaves the building.

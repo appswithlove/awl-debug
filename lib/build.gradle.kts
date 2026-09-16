@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.maven.publish)
+    alias(libs.plugins.roborazzi)
 }
 
 android {
@@ -47,6 +48,21 @@ android {
         buildConfig = true
     }
 
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+            all {
+                // Screenshot tests only run when recording / verifying screenshots.
+                val isRoborazziTask = gradle.startParameter.taskNames.any { name ->
+                    name.contains("Roborazzi", ignoreCase = true)
+                }
+                if (!isRoborazziTask) {
+                    it.exclude("**/*ScreenshotTest*")
+                }
+            }
+        }
+    }
+
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
@@ -68,6 +84,14 @@ dependencies {
     testImplementation(libs.kotest.assertions.core)
     testImplementation(libs.turbine)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.robolectric)
+    testImplementation(libs.roborazzi)
+    testImplementation(libs.roborazzi.compose)
+    testImplementation(libs.roborazzi.junit.rule)
+    testImplementation(libs.androidx.ui.test.junit4)
+    debugImplementation(platform(libs.androidx.compose.bom))
+    debugImplementation(libs.androidx.ui.test.manifest)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -78,6 +102,10 @@ dependencies {
     implementation(libs.okhttp)
     compileOnly(libs.timber)
     implementation(libs.vico.compose) // Charts
+}
+
+roborazzi {
+    outputDir.set(file("src/test/screenshots"))
 }
 
 mavenPublishing {
