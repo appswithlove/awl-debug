@@ -33,7 +33,7 @@ fun AccessibilityModule(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "Font Scale",
+                text = "Font Scale (× system)",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface,
             )
@@ -53,7 +53,7 @@ fun AccessibilityModule(
 
         DevOutlinedButton(
             modifier = Modifier.fillMaxWidth(),
-            text = "Reset to default",
+            text = "Reset to system",
             contentColor = MaterialTheme.colorScheme.onSurface,
             onClick = { onFontScaleChanged(1f) },
         )

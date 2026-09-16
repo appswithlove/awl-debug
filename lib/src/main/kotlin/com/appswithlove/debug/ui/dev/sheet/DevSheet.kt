@@ -152,7 +152,7 @@ fun DevSheet(
             .threeFingerTap { viewModel.submitAction(DevAction.ShowDevSheet()) }
     ) {
         CompositionLocalProvider(
-            LocalDensity provides Density(density.density, fontScale)
+            LocalDensity provides Density(density.density, density.fontScale * fontScale)
         ) {
             content()
         }
