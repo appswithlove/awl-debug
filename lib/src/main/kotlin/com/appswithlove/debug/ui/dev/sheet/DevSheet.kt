@@ -138,6 +138,7 @@ fun DevSheet(
 ) {
     val hostColorScheme = MaterialTheme.colorScheme
     val state = viewModel.state.collectAsStateWithLifecycle()
+    var useSystemFontScale by rememberSaveable { mutableStateOf(true) }
     var fontScale by rememberSaveable { mutableFloatStateOf(1f) }
 
     val density = LocalDensity.current
@@ -151,10 +152,12 @@ fun DevSheet(
             .fillMaxSize()
             .threeFingerTap { viewModel.submitAction(DevAction.ShowDevSheet()) }
     ) {
-        CompositionLocalProvider(
-            LocalDensity provides Density(density.density, density.fontScale * fontScale)
-        ) {
+        if (useSystemFontScale) {
             content()
+        } else {
+            CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
+                content()
+            }
         }
 
         DevTheme(
@@ -171,6 +174,12 @@ fun DevSheet(
                 swipeToDismiss = swipeToDismiss,
                 onTrackLogsChanged = { viewModel.setTrackLogs(it) },
                 onMaxLogsChanged = { viewModel.setMaxLogSize(it) },
+                systemFontScale = density.fontScale,
+                useSystemFontScale = useSystemFontScale,
+                onUseSystemFontScaleChanged = { useSystem ->
+                    useSystemFontScale = useSystem
+                    if (!useSystem) fontScale = density.fontScale
+                },
                 fontScale = fontScale,
                 onFontScaleChanged = { fontScale = it },
             )
@@ -190,6 +199,9 @@ private fun DevSheetContent(
     swipeToDismiss: Boolean = false,
     onTrackLogsChanged: (Boolean) -> Unit,
     onMaxLogsChanged: (Int) -> Unit,
+    systemFontScale: Float = 1f,
+    useSystemFontScale: Boolean = true,
+    onUseSystemFontScaleChanged: (Boolean) -> Unit = {},
     fontScale: Float = 1f,
     onFontScaleChanged: (Float) -> Unit = {},
 ) {
@@ -358,6 +370,9 @@ private fun DevSheetContent(
                         )
 
                         AccessibilityModule(
+                            systemFontScale = systemFontScale,
+                            useSystemFontScale = useSystemFontScale,
+                            onUseSystemFontScaleChanged = onUseSystemFontScaleChanged,
                             fontScale = fontScale,
                             onFontScaleChanged = onFontScaleChanged,
                         )
