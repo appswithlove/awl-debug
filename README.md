@@ -50,18 +50,44 @@ Made by [Apps with love](https://appswithlove.com).
 
 ### 1. Add the dependencies
 
+Library for debugging and logging of Android apps.
+
+🚧Work in progress 🚧
+
+Made by [Apps with love](https://appswithlove.com). Licensed under [Apache 2.0](LICENSE).
+
+### Contributors
+
+- Vladislav Frolov
+- Michel Utke
+- Yannick Pulver
+
+### Features
+
+- [x] Open and close DevSheet by three finger tap
+- [x] Logs: filter by query, export to file (Timber + HTTP integration)
+- [x] Deeplinks: fire deeplinks from the sheet
+- [x] Session: inspect / edit / delete auth tokens
+- [x] Permissions, Performance and Accessibility modules
+- [x] Test crashes
+- [x] FCM push token: display, refresh and revoke (you provide the source)
+- [x] Custom modules can be added
+
+# ⛺️ Setup
+
+## 1. Add the dependencies
+
 ```kotlin
-dependencies {
-    debugImplementation("com.appswithlove.debug:debug:0.6.1")
-    releaseImplementation("com.appswithlove.debug:debug-no-op:0.6.1")
-}
+// full debug panel in debug builds, inert no-op in release builds
+debugImplementation("com.appswithlove.debug:debug:0.6.0")
+releaseImplementation("com.appswithlove.debug:debug-no-op:0.6.0")
 ```
 
-Two lines, one per build type: the `debug` build gets the real panel, the `release` build gets a stub with the same API and empty bodies. Your app code stays identical for both. Details in [How the artifacts fit together](#how-the-artifacts-fit-together).
+Two lines are required, one per build type. Why is explained below.
 
-### 2. Repositories
+## 2. Make sure `mavenCentral()` is in your repositories
 
-All artifacts are on [Maven Central](https://central.sonatype.com/namespace/com.appswithlove.debug). New Android projects already have it configured:
+Default in new Android projects:
 
 ```kotlin
 dependencyResolutionManagement {
@@ -74,7 +100,46 @@ dependencyResolutionManagement {
 
 No token, no extra repository.
 
-### 3. Additional build types
+## How the artifacts fit together
+
+awl-debug ships as a **real + no-op pair** with a shared API, the same pattern LeakCanary and Chucker use.
+Your app code calls `DevSheet { ... }`, `Timber.plant(DevLogTree())` and `DevHttpLogInterceptor()`
+unconditionally. Which implementation ends up in the APK is decided by Gradle per build type, not by
+`if (BuildConfig.DEBUG)` checks scattered through your code.
+
+| Artifact | What it contains | Weight |
+|---|---|---|
+| `debug-api` | Only the contract types: `DevConfig`, `DevModulesConfig`, `SessionProvider`, `FcmTokenProvider`, `DeeplinkItem`. Pulled in transitively, never referenced directly. | a few KB |
+| `debug` | The real panel: Compose sheet, three-finger gesture, log collector, HTTP interceptor, session and FCM modules, charts. | ~430 KB plus its Compose / Material 3 / Vico dependencies |
+| `debug-no-op` | The same public functions and classes with empty bodies. `DevSheet` just renders your `content`, `DevLogTree` and `DevHttpLogInterceptor` do nothing. Depends only on `debug-api`. | ~14 KB |
+
+Both AARs expose identical signatures under identical package names, so the same call sites compile
+against either. The shared types live in `debug-api` exactly once so the two AARs can never collide.
+
+**What you get from this**
+
+- Release builds contain no debug UI, gesture detection or log buffering. Not disabled: absent from the binary.
+- The Session module can read and overwrite auth tokens. That code does not exist in production builds.
+- None of the panel's UI dependencies (Vico charts, extra Material 3, DataStore) are added to your release APK.
+- No conditionals in app code. Plant the tree, add the interceptor, wrap your root composable, done.
+
+**Additional build types**
+
+`debugImplementation` and `releaseImplementation` only cover the two default build types. If your app
+defines more (`staging`, `qa`, ...), each needs its own line, otherwise that build type gets neither
+artifact and fails to compile:
+
+```kotlin
+stagingImplementation("com.appswithlove.debug:debug:0.6.0")
+```
+
+Pick `debug` for internal builds where the panel is useful and `debug-no-op` for anything that leaves
+the building.
+
+> The config/contract types live under `com.appswithlove.debug.api.*`
+> (e.g. `com.appswithlove.debug.api.DevConfig`, `com.appswithlove.debug.api.session.SessionProvider`).
+
+# 🧪 Testing the library locally
 
 `debugImplementation` and `releaseImplementation` only cover the two default build types. If your app declares more (`staging`, `qa`, ...), each one needs its own line, otherwise that build type has neither artifact and fails to compile:
 
