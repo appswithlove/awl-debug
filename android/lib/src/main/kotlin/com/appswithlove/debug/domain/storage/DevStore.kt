@@ -11,6 +11,8 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.appswithlove.debug.api.DeeplinkItem
+import com.appswithlove.debug.ui.dev.sheet.modules.accessibility.AccessibilitySettings
+import com.appswithlove.debug.ui.dev.sheet.modules.accessibility.Appearance
 import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -52,6 +54,9 @@ internal class DevStore(context: Context) {
         private val PERFORMANCE_OVERLAY_Y_KEY = floatPreferencesKey("PERFORMANCE_OVERLAY_Y_KEY")
 
         private val SAVED_DEEPLINKS_KEY = stringPreferencesKey("SAVED_DEEPLINKS_KEY")
+        private val A11Y_USE_SYSTEM_FONT_SCALE_KEY = booleanPreferencesKey("A11Y_USE_SYSTEM_FONT_SCALE_KEY")
+        private val A11Y_FONT_SCALE_KEY = floatPreferencesKey("A11Y_FONT_SCALE_KEY")
+        private val A11Y_APPEARANCE_KEY = stringPreferencesKey("A11Y_APPEARANCE_KEY")
     }
 
     /** Overlay visibility and position (dp from the top start corner). */
@@ -97,6 +102,23 @@ internal class DevStore(context: Context) {
             }
         } catch (_: IllegalArgumentException) {
             emptyList()
+        }
+    }
+
+    val accessibility: Flow<AccessibilitySettings> = dataStore.data
+        .map { preferences ->
+            AccessibilitySettings(
+                useSystemFontScale = preferences[A11Y_USE_SYSTEM_FONT_SCALE_KEY] ?: true,
+                fontScale = preferences[A11Y_FONT_SCALE_KEY] ?: 1f,
+                appearance = Appearance.entries.find { it.name == preferences[A11Y_APPEARANCE_KEY] } ?: Appearance.System,
+            )
+        }
+
+    suspend fun setAccessibility(value: AccessibilitySettings) {
+        dataStore.edit { preferences ->
+            preferences[A11Y_USE_SYSTEM_FONT_SCALE_KEY] = value.useSystemFontScale
+            preferences[A11Y_FONT_SCALE_KEY] = value.fontScale
+            preferences[A11Y_APPEARANCE_KEY] = value.appearance.name
         }
     }
 

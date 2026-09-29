@@ -15,6 +15,7 @@ struct FireDeeplinkView: View {
     @State private var selectedDelay: TimeInterval = 5
     @State private var isScheduling = false
     @State private var toast: String? = nil
+    @State private var isMissingPermission = false
 
     var body: some View {
         Form {
@@ -80,6 +81,13 @@ struct FireDeeplinkView: View {
                     Text(toast)
                         .foregroundStyle(.secondary)
                         .font(.footnote)
+                    if isMissingPermission {
+                        Button(LS.Actions.openAppSettings) {
+                            if let url = URL(string: UIApplication.openSettingsURLString) {
+                                UIApplication.shared.open(url)
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -97,8 +105,10 @@ struct FireDeeplinkView: View {
             isScheduling = false
             switch result {
             case .success:
+                isMissingPermission = false
                 toast = LS.Deeplinks.scheduledSuccess(Int(selectedDelay))
             case .failure(let error):
+                isMissingPermission = error == .permissionDenied
                 toast = error.localizedDescription
             }
         }
