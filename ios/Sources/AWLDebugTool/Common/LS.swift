@@ -116,6 +116,9 @@ enum LS {
     struct Deeplinks {
         static let sectionTitle = "Deeplinks"
         static let addDeeplink = "Add deeplink"
+        static let input = "Enter deeplink"
+        static let invalid = "Invalid deeplink"
+        static let save = "Save"
         static let empty = "No deeplinks configured"
         static let fireNow = "Fire now"
         static let schedule = "Schedule & close app"

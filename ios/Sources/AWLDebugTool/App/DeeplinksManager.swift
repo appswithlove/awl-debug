@@ -47,7 +47,24 @@ public class DeeplinksManager: ObservableObject {
 
     func fireNow(_ deeplink: AWLDeeplink) {
         guard let url = URL(string: deeplink.url) else { return }
-        handleDeeplink(url)
+        fire(url)
+    }
+
+    /// A URL with a scheme, e.g. `myapp://path`; `nil` for anything else.
+    static func validURL(from text: String) -> URL? {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let url = URL(string: trimmed), let scheme = url.scheme, !scheme.isEmpty else {
+            return nil
+        }
+        return url
+    }
+
+    /// Closes the panel first, so the deeplink's target is visible.
+    func fire(_ url: URL) {
+        Task { @MainActor in
+            AWLDebugTool.close()
+            handleDeeplink(url)
+        }
     }
     
     fileprivate func handleDeeplink(_ url: URL) {
