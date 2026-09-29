@@ -160,7 +160,7 @@ DevSheet(
 | `showNetworkModule` | `true` | [Network](#http-logging), shown once a `DevHttpLogInterceptor` exists |
 | `showPerformanceModule` | `true` | Performance. Samples every second, but only while its switch or the overlay ("Show performance overlay") is on. Long-press the overlay to open the module. |
 | `showPermissionsModule` | `true` | Permissions |
-| `showAccessibilityModule` | `true` | Accessibility |
+| `showAccessibilityModule` | `true` | Accessibility: font size (system, preset steps or 50–200 %) and appearance (System, Light, Dark) for the app content, saved on the device. On Android 12+ the appearance is applied app-wide through `UiModeManager.setApplicationNightMode`; the system keeps that per app, also after restarts. Choosing "System" sets it back to `MODE_NIGHT_AUTO` (follow the device), which also replaces a night mode your app set itself. |
 | `showDeeplinksModule` / `deeplinks` | `true` / empty | [Deeplinks](#deeplinks) |
 | `showSessionModule` / `sessionProviders` | `true` / empty | [Session](#session), hidden when the list is empty |
 | `showFcmPushTokenModule` / `fcmTokenProvider` | `true` / `null` | [FCM push token](#fcm-push-token), hidden when `null` |

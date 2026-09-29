@@ -37,10 +37,8 @@ class AccessibilityModuleScreenshotTest {
                 ) {
                     AccessibilityModule(
                         systemFontScale = 1.3f,
-                        useSystemFontScale = true,
-                        onUseSystemFontScaleChanged = {},
-                        fontScale = 1f,
-                        onFontScaleChanged = {},
+                        settings = AccessibilitySettings(),
+                        onSettingsChanged = {},
                     )
                 }
             }
@@ -61,10 +59,12 @@ class AccessibilityModuleScreenshotTest {
                 ) {
                     AccessibilityModule(
                         systemFontScale = 1.3f,
-                        useSystemFontScale = false,
-                        onUseSystemFontScaleChanged = {},
-                        fontScale = 1.5f,
-                        onFontScaleChanged = {},
+                        settings = AccessibilitySettings(
+                            useSystemFontScale = false,
+                            fontScale = 1.5f,
+                            appearance = Appearance.Dark,
+                        ),
+                        onSettingsChanged = {},
                     )
                 }
             }
