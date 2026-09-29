@@ -38,6 +38,7 @@ internal fun SelectionDialog(
     values: List<Int>,
     selectedOption: Int,
     onOptionSelected: (Int) -> Unit,
+    label: (Int) -> String = Int::toString,
 ) {
     if (show.value) {
         Dialog(
@@ -62,6 +63,7 @@ internal fun SelectionDialog(
                 Spacer(modifier = Modifier.height(16.dp))
                 Options(
                     options = values,
+                    label = label,
                     selectedOption = selectedOption,
                     onSelect = { onOptionSelected(it) },
                 )
@@ -73,6 +75,7 @@ internal fun SelectionDialog(
 @Composable
 private fun Options(
     options: List<Int>,
+    label: (Int) -> String,
     selectedOption: Int,
     onSelect: (Int) -> Unit,
 ) {
@@ -80,6 +83,7 @@ private fun Options(
         options.forEachIndexed { index, option ->
             Option(
                 value = option,
+                label = label(option),
                 isSelected = selectedOption == option,
                 onClick = { onSelect(option) },
             )
@@ -95,6 +99,7 @@ private fun Options(
 @Composable
 private fun Option(
     value: Int,
+    label: String,
     isSelected: Boolean,
     onClick: (Int) -> Unit,
 ) {
@@ -109,7 +114,7 @@ private fun Option(
         ) {
             Text(
                 modifier = Modifier.height(24.dp),
-                text = value.toString(),
+                text = label,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurface,
             )
