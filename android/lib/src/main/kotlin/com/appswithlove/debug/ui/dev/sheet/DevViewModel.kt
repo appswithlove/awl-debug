@@ -20,9 +20,11 @@ internal class DevViewModel(
     private val pendingActions = MutableSharedFlow<DevAction>()
     private val isShown = MutableStateFlow(false)
 
+    private val isAlwaysActive = MutableStateFlow(false)
+
     val state = combine(
         devStore.isDevToolActivated,
-        devStore.isDevToolAlwaysActive,
+        isAlwaysActive,
         isShown,
     ) { active, isAlwaysActive, shown ->
         DevSheetState(
@@ -65,13 +67,9 @@ internal class DevViewModel(
         }
     }
 
+    /** Lets triggers open the sheet without the stored activation; the stored flag stays untouched. */
     fun setIsAlwaysActive(isAlwaysActive: Boolean) {
-        viewModelScope.launch {
-            devStore.setDevToolAlwaysActive(isAlwaysActive)
-            if (isAlwaysActive) {
-                devStore.setDevToolActivated(true)
-            }
-        }
+        this.isAlwaysActive.value = isAlwaysActive
     }
 
     fun submitAction(action: DevAction) {

@@ -40,7 +40,6 @@ internal class DevStore(context: Context) {
 
         private val DEV_TOOL_ACTIVATED_KEY = booleanPreferencesKey("DEV_TOOL_ACTIVATED_KEY")
 
-        private val DEV_TOOL_ALWAYS_ACTIVE_KEY = booleanPreferencesKey("ACTIVATE_DEV_TOOL_KEY")
 
         private val NETWORK_TRACKING_KEY = booleanPreferencesKey("NETWORK_TRACKING_KEY")
         private val NETWORK_MAX_SIZE_KEY = intPreferencesKey("NETWORK_MAX_SIZE_KEY")
@@ -161,17 +160,6 @@ internal class DevStore(context: Context) {
     suspend fun setDevToolActivated(value: Boolean) {
         dataStore.edit { preferences ->
             preferences[DEV_TOOL_ACTIVATED_KEY] = value
-        }
-    }
-
-    val isDevToolAlwaysActive: Flow<Boolean> = dataStore.data
-        .map { preferences ->
-            preferences[DEV_TOOL_ALWAYS_ACTIVE_KEY] ?: false
-        }
-
-    suspend fun setDevToolAlwaysActive(value: Boolean) {
-        dataStore.edit { preferences ->
-            preferences[DEV_TOOL_ALWAYS_ACTIVE_KEY] = value
         }
     }
 
