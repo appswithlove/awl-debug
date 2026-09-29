@@ -51,13 +51,9 @@ class AWLDebugURLProtocol: URLProtocol {
     private let challengeLock = NSLock()
     private var pendingChallengeCompletion: ((URLSession.AuthChallengeDisposition, URLCredential?) -> Void)?
     
-    override init(request: URLRequest, cachedResponse: CachedURLResponse?, client: URLProtocolClient?) {
-        super.init(request: request, cachedResponse: cachedResponse, client: client)
-        
-        if session == nil {
-            session = URLSession(configuration: .default, delegate: self, delegateQueue: nil)
-        }
-    }
+    private var clientRunLoop: CFRunLoop?
+    private var clientRunLoopModes: [CFString] = []
+    private var isStopped = false
     
     override public class func canInit(with request: URLRequest) -> Bool {
         
@@ -77,12 +73,21 @@ class AWLDebugURLProtocol: URLProtocol {
             return
         }
         AWLDebugURLProtocol.setProperty(true, forKey: Constants.RequestHandledKey, in: newRequest)
+        
+        clientRunLoop = CFRunLoopGetCurrent()
+        clientRunLoopModes = [CFRunLoopMode.defaultMode.rawValue]
+        if let currentMode = RunLoop.current.currentMode, currentMode != .default {
+            clientRunLoopModes.append(currentMode.rawValue as CFString)
+        }
+        
+        session = URLSession(configuration: makeSessionConfiguration(), delegate: self, delegateQueue: nil)
         sessionTask = session?.dataTask(with: newRequest as URLRequest)
         sessionTask?.resume()
         currentRequest = RequestInfo(request: newRequest)
     }
     
     override public func stopLoading() {
+        isStopped = true
         resolvePendingChallenge(.cancelAuthenticationChallenge, nil)
         sessionTask?.cancel()
 //        currentRequest?.httpBody = request.httpBodyStream?.readfully()
@@ -107,12 +112,39 @@ class AWLDebugURLProtocol: URLProtocol {
         }
     }
     
+    private func makeSessionConfiguration() -> URLSessionConfiguration {
+        let configuration = URLSessionConfiguration.default
+        configuration.protocolClasses = configuration.protocolClasses?.filter { ObjectIdentifier($0) != ObjectIdentifier(AWLDebugURLProtocol.self) }
+        // The app's own session caches what this protocol forwards; a second cache here would answer requests without a network load or trust evaluation.
+        configuration.urlCache = nil
+        configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
+        configuration.timeoutIntervalForRequest = request.timeoutInterval
+        return configuration
+    }
+    
+    /// URLProtocol clients must be called on the thread that called `startLoading`.
+    private func performOnClientThread(_ block: @escaping () -> Void, whenStopped: (() -> Void)? = nil) {
+        guard let clientRunLoop = clientRunLoop else {
+            whenStopped?()
+            return
+        }
+        CFRunLoopPerformBlock(clientRunLoop, clientRunLoopModes as CFArray) { [self] in
+            if isStopped {
+                whenStopped?()
+            } else {
+                block()
+            }
+        }
+        CFRunLoopWakeUp(clientRunLoop)
+    }
 }
 
 extension AWLDebugURLProtocol: URLSessionDataDelegate {
     
     public func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
-        client?.urlProtocol(self, didLoad: data)
+        performOnClientThread { [self] in
+            client?.urlProtocol(self, didLoad: data)
+        }
 //        if currentRequest?.dataResponse == nil {
 //            currentRequest?.dataResponse = data
 //        } else {
@@ -122,45 +154,63 @@ extension AWLDebugURLProtocol: URLSessionDataDelegate {
     
     public func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive response: URLResponse, completionHandler: @escaping (URLSession.ResponseDisposition) -> Void) {
         let policy = URLCache.StoragePolicy(rawValue: request.cachePolicy.rawValue) ?? .notAllowed
-        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: policy)
-        currentRequest?.initResponse(response: response)
+        performOnClientThread { [self] in
+            client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: policy)
+            currentRequest?.initResponse(response: response)
+        }
         completionHandler(.allow)
     }
     
     public func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
-        if let error = error {
-            currentRequest?.errorDescription = error.localizedDescription
-            client?.urlProtocol(self, didFailWithError: error)
-        } else {
-            client?.urlProtocolDidFinishLoading(self)
+        performOnClientThread { [self] in
+            if let error = error {
+                currentRequest?.errorDescription = error.localizedDescription
+                client?.urlProtocol(self, didFailWithError: error)
+            } else {
+                client?.urlProtocolDidFinishLoading(self)
+            }
         }
     }
     
     public func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest, completionHandler: @escaping (URLRequest?) -> Void) {
-        client?.urlProtocol(self, wasRedirectedTo: request, redirectResponse: response)
-        completionHandler(request)
+        // The app's session decides about the redirect through its own delegate and loads it through this protocol again.
+        // Not following it here keeps it a single request; if the app declines, the redirect response below becomes the final one.
+        completionHandler(nil)
+        guard let redirectRequest = (request as NSURLRequest).mutableCopy() as? NSMutableURLRequest else {
+            return
+        }
+        AWLDebugURLProtocol.removeProperty(forKey: Constants.RequestHandledKey, in: redirectRequest)
+        performOnClientThread { [self] in
+            client?.urlProtocol(self, wasRedirectedTo: redirectRequest as URLRequest, redirectResponse: response)
+        }
     }
     
     public func urlSession(_ session: URLSession, didBecomeInvalidWithError error: Error?) {
         guard let error = error else { return }
-        currentRequest?.errorDescription = error.localizedDescription
-        client?.urlProtocol(self, didFailWithError: error)
+        performOnClientThread { [self] in
+            currentRequest?.errorDescription = error.localizedDescription
+            client?.urlProtocol(self, didFailWithError: error)
+        }
     }
     
     public func urlSession(_ session: URLSession, task: URLSessionTask, didReceive challenge: URLAuthenticationChallenge, completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
-        guard let client = client else {
-            completionHandler(.performDefaultHandling, nil)
-            return
-        }
-        
-        // Forward the challenge to the app's own session delegate so its trust evaluation (e.g. pinning) and credentials apply.
-        challengeLock.lock()
-        pendingChallengeCompletion?(.cancelAuthenticationChallenge, nil)
-        pendingChallengeCompletion = completionHandler
-        challengeLock.unlock()
-        
-        let forwardedChallenge = URLAuthenticationChallenge(authenticationChallenge: challenge, sender: self)
-        client.urlProtocol(self, didReceive: forwardedChallenge)
+        performOnClientThread({ [self] in
+            guard let client = client else {
+                completionHandler(.performDefaultHandling, nil)
+                return
+            }
+            
+            // Forward the challenge to the app's own session delegate so its trust evaluation (e.g. pinning) and credentials apply.
+            challengeLock.lock()
+            pendingChallengeCompletion?(.cancelAuthenticationChallenge, nil)
+            pendingChallengeCompletion = completionHandler
+            challengeLock.unlock()
+            
+            let forwardedChallenge = URLAuthenticationChallenge(authenticationChallenge: challenge, sender: self)
+            client.urlProtocol(self, didReceive: forwardedChallenge)
+        }, whenStopped: {
+            completionHandler(.cancelAuthenticationChallenge, nil)
+        })
     }
     
     public func urlSessionDidFinishEvents(forBackgroundURLSession session: URLSession) {
