@@ -5,6 +5,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
@@ -37,6 +38,31 @@ internal class DevStore(context: Context) {
         private val NETWORK_EXCLUDED_METHODS_KEY = stringSetPreferencesKey("NETWORK_EXCLUDED_METHODS_KEY")
         private val NETWORK_EXCLUDED_STATUS_KEY = stringSetPreferencesKey("NETWORK_EXCLUDED_STATUS_KEY")
         private val NETWORK_EXCLUDED_HOSTS_KEY = stringSetPreferencesKey("NETWORK_EXCLUDED_HOSTS_KEY")
+
+        private val PERFORMANCE_OVERLAY_VISIBLE_KEY = booleanPreferencesKey("PERFORMANCE_OVERLAY_VISIBLE_KEY")
+        private val PERFORMANCE_OVERLAY_X_KEY = floatPreferencesKey("PERFORMANCE_OVERLAY_X_KEY")
+        private val PERFORMANCE_OVERLAY_Y_KEY = floatPreferencesKey("PERFORMANCE_OVERLAY_Y_KEY")
+    }
+
+    /** Overlay visibility and position (dp from the top start corner). */
+    val performanceOverlay: Flow<PerformanceOverlayPreferences> = dataStore.data
+        .map { preferences ->
+            PerformanceOverlayPreferences(
+                isVisible = preferences[PERFORMANCE_OVERLAY_VISIBLE_KEY] ?: false,
+                xDp = preferences[PERFORMANCE_OVERLAY_X_KEY] ?: 16f,
+                yDp = preferences[PERFORMANCE_OVERLAY_Y_KEY] ?: 96f,
+            )
+        }
+
+    suspend fun setPerformanceOverlayVisible(visible: Boolean) {
+        dataStore.edit { preferences -> preferences[PERFORMANCE_OVERLAY_VISIBLE_KEY] = visible }
+    }
+
+    suspend fun setPerformanceOverlayPosition(xDp: Float, yDp: Float) {
+        dataStore.edit { preferences ->
+            preferences[PERFORMANCE_OVERLAY_X_KEY] = xDp
+            preferences[PERFORMANCE_OVERLAY_Y_KEY] = yDp
+        }
     }
 
     val networkPreferences: Flow<NetworkPreferences> = dataStore.data
@@ -101,4 +127,10 @@ internal data class NetworkPreferences(
     val excludedMethods: Set<String> = emptySet(),
     val excludedStatusClasses: Set<String> = emptySet(),
     val excludedHosts: Set<String> = emptySet(),
+)
+
+internal data class PerformanceOverlayPreferences(
+    val isVisible: Boolean = false,
+    val xDp: Float = 16f,
+    val yDp: Float = 96f,
 )

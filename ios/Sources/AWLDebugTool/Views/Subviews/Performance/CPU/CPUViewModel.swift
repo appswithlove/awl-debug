@@ -25,7 +25,7 @@ final class CPUViewModel: ObservableObject {
         self.cpuMonitor = cpuMonitor
         cpuMonitor.collection.snapshotPublisher
             .throttle(
-                for: .seconds(2),
+                for: .seconds(1),
                 scheduler: RunLoop.main,
                 latest: true
             )
@@ -41,7 +41,7 @@ final class CPUViewModel: ObservableObject {
         history = cpuMonitor.collection.history
         historyCapacity = cpuMonitor.collection.historyCapacity
         
-        currentCPUTotalUsage = snap.cpuTotalUsage
+        currentCPUTotalUsage = snap.cpuPercent
         currentCores         = snap.cores
         currentTopThreads    = Array(snap.threads.prefix(5))
         currentThermalState  = TemperatureState.from(snap.thermalState)

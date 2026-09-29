@@ -40,7 +40,7 @@ struct FontSizeSectionView: View {
                 }
             }
             .alert(LS.Settings.fontSizeInfoButton, isPresented: $isShowingInfo) {
-                Button(LS.Actions.openAppSettings) {
+                Button(LS.Settings.openSettings) {
                     if let url = URL(string: UIApplication.openSettingsURLString) {
                         UIApplication.shared.open(url)
                     }
@@ -49,9 +49,6 @@ struct FontSizeSectionView: View {
             } message: {
                 Text(LS.Settings.fontSizeInfoMessage)
             }
-        } header: {
-            Spacer()
-                .frame(height: 0)
         }
     }
 }

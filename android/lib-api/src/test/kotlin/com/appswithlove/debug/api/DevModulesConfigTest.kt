@@ -64,6 +64,7 @@ class DevModulesConfigTest {
         showTestCrashesModule = false,
         showSessionModule = false,
         showNetworkModule = false,
+        showClearAppDataModule = false,
     )
 
     private object FakeSessionProvider : SessionProvider {

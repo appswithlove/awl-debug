@@ -64,7 +64,7 @@ struct ProprietaryActionButton: View {
     }
 }
 #Preview {
-    ProprietaryActionButton(text: LS.Actions.clearAppUserDefaults,
+    ProprietaryActionButton(text: LS.ClearData.button,
                             icon: .clear,
                             iconColor: IconColor.deletion,
                             isDisabled: false,

@@ -17,11 +17,10 @@ public struct DebugView: View {
     @ObservedObject private var permissionsManager = PermissionsManager()
     @ObservedObject private var networkReachabilityManager = NetworkReachabilityManager()
     @ObservedObject private var appLogs = AWLDebugTool.shared.appLogs
+    @ObservedObject private var performance = AWLDebugTool.shared.performance
     
     @StateObject private var vm = DebugViewModel()
 
-    @Environment(\.dismiss) var dismiss
-    
     private var fcmToken: String?
     private let customView: (() -> any View)?
 
@@ -31,7 +30,7 @@ public struct DebugView: View {
     }
     
     public var body: some View {
-        NavigationView {
+        NavigationStack {
             Form {
                 AboutView(internetAccesStatusIcon: networkReachabilityManager.connectionStatusIcon.name,
                           internetAccesStatusColor: networkReachabilityManager.connectionStatusIcon.color)
@@ -48,27 +47,21 @@ public struct DebugView: View {
 
                 DeeplinksView(manager: deeplinksManager)
 
-                UserDefaultsView(isShowingDeleteUserDefaults: $vm.isShowingDeleteUserDefaults,
-                                 showDeleteUserDefaultsAlert: vm.showDeleteUserDefaultsAlert)
+                UserDefaultsView(appGroupIdentifiers: debugTool.appGroupIdentifiers)
                 
-                PermissionsView(
-                    statuses: permissionsManager.statuses,
-                    checkIfPermissionRequestTypeExistsInApp: { type in
-                        permissionsManager.checkIfPermissionRequestTypeExistsInApp(type)
-                    },
-                    request: { type in
-                        Task { await permissionsManager.request(type) }
-                    },
-                    openAppSettings: {
-                        permissionsManager.openAppSettings()
-                    }
-                )
+                PermissionsView(manager: permissionsManager)
                 
                 ColorSchemeSectionView(preferredColorScheme: $vm.preferredColorScheme)
                 FontSizeSectionView(preferredFontSize: $vm.preferredFontSize)
 
                 Section {
+                    Toggle(LS.Performance.measure, isOn: $performance.isMeasuring)
                     Toggle(LS.Performance.showPerformanceOverlay, isOn: $vm.isPerformanceWidgetVisible)
+                        .onChange(of: vm.isPerformanceWidgetVisible) { _ in
+                            performance.updateSampling()
+                        }
+
+                    BatteryView(monitor: debugTool.batteryMonitor)
                         
                     CPUView(cpuMonitor: debugTool.cpuMonitor)
                         .padding(.top, 24)
@@ -115,7 +108,7 @@ public struct DebugView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
-                        dismiss()
+                        AWLDebugTool.close()
                     } label: {
                         Text(LS.Headers.btnClose)
                     }

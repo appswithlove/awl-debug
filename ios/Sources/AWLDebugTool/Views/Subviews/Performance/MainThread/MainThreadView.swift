@@ -17,6 +17,9 @@ struct MainThreadView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Label(latencyTitle, systemImage: "clock.badge.exclamationmark")
+            Text(LS.Performance.freezes(count: vm.freezeCount, longestMs: Int(vm.longestFreezeMs)))
+                .font(.caption)
+                .foregroundStyle(vm.freezeCount > 0 ? .red : .secondary)
 
             var hangThreshold: CGFloat = 100 // 100ms
             // Recent hangs from the history window

@@ -57,20 +57,14 @@ internal fun LogsModule(
     onMaxLogsChanged: (Int) -> Unit,
 ) {
     val selectedSeverityTags = logHistory.selectedSeverityTags.collectAsState()
-    val logs = logHistory.filteredLogEntries.collectAsState(initial = emptyList()).value.filter {
-        if (selectedSeverityTags.value.isEmpty()) {
-            true
-        } else {
-            it.severity in selectedSeverityTags.value
-        }
-    }
+    val logs = logHistory.filteredLogEntries.collectAsState(initial = emptyList()).value
     val trackLogs = logHistory.trackLogs.collectAsState()
     val maxLogsSize = logHistory.maxSize.collectAsState()
     val logsSizeOptions = listOf(10, 50, 250, 500, 750, 1000)
     val query = logHistory.query.collectAsState()
     val logsSettingTitle = "Number of logs per session"
     val showLogsPerSessionDialog = remember { mutableStateOf(false) }
-    val logEntryExpanded = remember { mutableStateOf(false) }
+    val expandedEntryIds = remember { mutableStateOf(emptySet<Long>()) }
 
     Column(
         modifier = modifier,
@@ -141,67 +135,69 @@ internal fun LogsModule(
                         )
                     }
                 } else {
-                    itemsIndexed(logs.reversed()) { index, entry ->
+                    itemsIndexed(logs.reversed(), key = { _, entry -> entry.id }) { index, entry ->
                         val text = entry.message
+                        val isExpanded = entry.id in expandedEntryIds.value
 
-                        if (entry.severity in selectedSeverityTags.value || selectedSeverityTags.value.isEmpty()) {
-                            Column(
-                                modifier = Modifier
-                                    .pointerInput(Unit) {
-                                        detectTapGestures(
-                                            onLongPress = { onEntryLongPress(text) },
-                                            onTap = {
-                                                logEntryExpanded.value = !logEntryExpanded.value
-                                            },
-                                        )
-                                    },
-                            ) {
-                                Text(
-                                    text = entry.formattedTime,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                                )
-                                Text(
-                                    text = buildAnnotatedString {
-                                        if (entry.severity != null) {
-                                            val tagColor = when (entry.severity) {
-                                                DevLogSeverity.DEBUG -> {
-                                                    MaterialTheme.colorScheme.onSurface.copy(
-                                                        alpha = 0.5f,
-                                                    )
-                                                }
-
-                                                DevLogSeverity.INFO -> AppTheme.colors.info
-                                                DevLogSeverity.WARN -> AppTheme.colors.warning
-                                                DevLogSeverity.ERROR -> AppTheme.colors.error
-                                            }
-                                            withStyle(
-                                                SpanStyle(
-                                                    color = tagColor,
-                                                    fontWeight = FontWeight.Bold
+                        Column(
+                            modifier = Modifier
+                                .pointerInput(Unit) {
+                                    detectTapGestures(
+                                        onLongPress = { onEntryLongPress(text) },
+                                        onTap = {
+                                            // Read the state at tap time: the gesture block outlives recompositions.
+                                            val expanded = expandedEntryIds.value
+                                            expandedEntryIds.value =
+                                                if (entry.id in expanded) expanded - entry.id else expanded + entry.id
+                                        },
+                                    )
+                                },
+                        ) {
+                            Text(
+                                text = entry.formattedTime,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                            )
+                            Text(
+                                text = buildAnnotatedString {
+                                    if (entry.severity != null) {
+                                        val tagColor = when (entry.severity) {
+                                            DevLogSeverity.DEBUG -> {
+                                                MaterialTheme.colorScheme.onSurface.copy(
+                                                    alpha = 0.5f,
                                                 )
-                                            ) {
-                                                append(entry.severity.name)
                                             }
-                                        }
-                                        if (entry.tag != null) {
-                                            withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
-                                                append(" | ${entry.tag}")
-                                            }
+
+                                            DevLogSeverity.INFO -> AppTheme.colors.info
+                                            DevLogSeverity.WARN -> AppTheme.colors.warning
+                                            DevLogSeverity.ERROR -> AppTheme.colors.error
                                         }
                                         withStyle(
-                                            SpanStyle(color = MaterialTheme.colorScheme.onSurface),
+                                            SpanStyle(
+                                                color = tagColor,
+                                                fontWeight = FontWeight.Bold
+                                            )
                                         ) {
-                                            append(" | $text")
+                                            append(entry.severity.name)
                                         }
-                                    },
-                                    style = MaterialTheme.typography.bodySmall,
-                                    overflow = if (logEntryExpanded.value) TextOverflow.Visible else TextOverflow.Ellipsis,
-                                    maxLines = if (logEntryExpanded.value) Int.MAX_VALUE else 3,
-                                )
-                                if (index != 0 && logs.size > 1) {
-                                    HorizontalDivider()
-                                }
+                                    }
+                                    if (entry.tag != null) {
+                                        withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                                            append(" | ${entry.tag}")
+                                        }
+                                    }
+                                    withStyle(
+                                        SpanStyle(color = MaterialTheme.colorScheme.onSurface),
+                                    ) {
+                                        append(" | $text")
+                                    }
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                overflow = if (isExpanded) TextOverflow.Visible else TextOverflow.Ellipsis,
+                                maxLines = if (isExpanded) Int.MAX_VALUE else 3,
+                            )
+                            if (index != 0 && logs.size > 1) {
+                                HorizontalDivider()
                             }
                         }
                     }

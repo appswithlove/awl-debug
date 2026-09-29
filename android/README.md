@@ -27,6 +27,7 @@ Made by [Apps with love](https://appswithlove.com).
   - [Custom modules](#custom-modules)
   - [HTTP logging](#http-logging)
   - [Timber integration](#timber-integration)
+  - [Kermit integration](#kermit-integration)
   - [Activate and deactivate](#activate-and-deactivate)
   - [Feedback](#feedback)
 - [Local development](#local-development)
@@ -41,7 +42,8 @@ Made by [Apps with love](https://appswithlove.com).
 - Deeplinks: fire ad-hoc or preconfigured deeplinks from the sheet
 - Session: inspect, copy, edit or delete auth tokens per provider
 - FCM push token: display, refresh, revoke (you supply the source, no Firebase dependency)
-- Permissions, performance and accessibility modules
+- Performance: CPU, RAM, battery and UI freezes (frames over 700 ms), with charts and a draggable overlay
+- Permissions and accessibility modules
 - Test crashes
 - App info from your build config plus custom key/value pairs
 - Custom modules: append your own composables to the sheet
@@ -95,7 +97,7 @@ awl-debug ships as a real + no-op pair with a shared API, the same pattern [Leak
 | `debug-api` | Contract types only: `DevConfig`, `DevModulesConfig`, `DevNetworkConfig`, `DeeplinkItem`, `SessionProvider`, `FcmTokenProvider`. Pulled in transitively by both AARs, never referenced directly. | a few KB |
 | `debug` | The real panel: Compose sheet, three-finger gesture, log collector, HTTP interceptor, all modules, charts. | ~430 KB plus its Compose, Material 3 and Vico dependencies |
 | `feedback` / `feedback-no-op` | Optional in-app feedback (see [Feedback](#feedback)) and its stub, same pairing rule. The no-op renders your content only, has no shake detection and no `INTERNET` permission. | |
-| `debug-no-op` | The same public functions and classes with empty bodies. `DevSheet` renders your `content` and nothing else; `DevLogTree` and `DevHttpLogInterceptor` discard everything. Depends only on `debug-api`. | ~14 KB |
+| `debug-no-op` | The same public functions and classes with empty bodies. `DevSheet` renders your `content` and nothing else; `DevLogTree`, `DevKermitLogWriter` and `DevHttpLogInterceptor` discard everything. Depends only on `debug-api`. | ~14 KB |
 
 Both AARs expose identical signatures under identical package names, so the same call sites compile against either. The build enforces this: `apiCheck` compares each module's public API with its dump in `api/`, and `apiParityCheck` fails when `lib` and `lib-no-op` (or `feedback` and `feedback-no-op`) differ. The shared types live in `debug-api` exactly once, so the two AARs can never collide on the classpath.
 
@@ -156,13 +158,14 @@ DevSheet(
 |---|---|---|
 | `showLogsModule` | `true` | Logs (Timber + HTTP summaries) |
 | `showNetworkModule` | `true` | [Network](#http-logging), shown once a `DevHttpLogInterceptor` exists |
-| `showPerformanceModule` | `true` | Performance |
+| `showPerformanceModule` | `true` | Performance. Samples every second, but only while its switch or the overlay ("Show performance overlay") is on. Long-press the overlay to open the module. |
 | `showPermissionsModule` | `true` | Permissions |
 | `showAccessibilityModule` | `true` | Accessibility |
 | `showDeeplinksModule` / `deeplinks` | `true` / empty | [Deeplinks](#deeplinks) |
 | `showSessionModule` / `sessionProviders` | `true` / empty | [Session](#session), hidden when the list is empty |
 | `showFcmPushTokenModule` / `fcmTokenProvider` | `true` / `null` | [FCM push token](#fcm-push-token), hidden when `null` |
 | `showTestCrashesModule` | `true` | Test crashes |
+| `showClearAppDataModule` | `true` | Clear App Data: after a confirmation, `ActivityManager.clearApplicationUserData()` deletes all app data (including AWL Debug settings and runtime permissions) and ends the process |
 
 ### Deeplinks
 
@@ -185,10 +188,12 @@ DevSheet(
 
 Inspect and manipulate the current auth state per token source:
 
-- Shows logged in / logged out status per provider
-- Copies the current token to the clipboard
+- Shows "Logged in" / "Logged out" per provider and the token masked (first 6 and last 4 characters) until you reveal it
+- Copies the current token to the clipboard (marked as sensitive)
 - Edits the token (for example paste an invalid one to trigger a refresh), only when `onSetToken` is provided
 - Deletes the token to break the session, only when `onSetToken` is provided
+- Invalidates the token so the next request gets a 401: calls `onInvalidate`, or writes `<token>.invalid` through `onSetToken`
+- Runs the app's `onLogin`, `onRefresh` and `onLogout`. While an action runs its button shows progress, errors appear as "Action failed: …"
 
 Implement `SessionProvider` for each token source and pass the list:
 
@@ -216,6 +221,16 @@ DevSheet(
 ```
 
 `token` must emit whenever the value changes (login, logout, refresh); that is how the module stays in sync without manual refreshes. The module is hidden when `sessionProviders` is empty.
+
+Token stores without a `Flow` can use `PollingSessionProvider`, which reads a suspend getter every second while the panel shows it:
+
+```kotlin
+PollingSessionProvider(
+    label = "Access Token",
+    onSetToken = { tokenStore.write(it) },
+    onInvalidate = { tokenStore.revokeOnServer() }, // optional, for opaque tokens
+) { tokenStore.read() }
+```
 
 ### FCM push token
 
@@ -322,6 +337,33 @@ class MyApp : Application() {
 ```
 
 `DevLogTree` only logs to the panel and keeps the Timber tag and throwable of each entry. Keep `Timber.DebugTree()` alongside it if you also want logcat output.
+
+### Kermit integration
+
+Kotlin Multiplatform projects that log with [Kermit](https://github.com/touchlab/Kermit) add `DevKermitLogWriter` on Android. Entries keep the Kermit tag and throwable. Kermit is a `compileOnly` dependency, so your app's Kermit version is used.
+
+Register the writer from Android code that already depends on `debug` / `debug-no-op`, for example the app's `Application`, so shared code needs no debug dependency:
+
+```kotlin
+// androidApp/src/main/kotlin/.../MyApp.kt
+class MyApp : Application() {
+    override fun onCreate() {
+        super.onCreate()
+        Logger.addLogWriter(DevKermitLogWriter())
+    }
+}
+```
+
+If the writer has to be set up in the shared module, keep it in `androidMain` and give the Android target of the shared module the same `debug` / `debug-no-op` split as the app:
+
+```kotlin
+// shared/src/androidMain/kotlin/.../DebugLogging.android.kt
+fun installDebugLogWriter() {
+    Logger.addLogWriter(DevKermitLogWriter())
+}
+```
+
+Like Timber entries, Kermit messages are redacted before they are stored (`Bearer <token>`, `Basic <credentials>`).
 
 ### Activate and deactivate
 

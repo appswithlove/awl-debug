@@ -4,6 +4,8 @@ import Foundation
 public struct AWLDebugConfig {
     public var network: NetworkConfig
     public var logs: LogsConfig
+    /// App-group `UserDefaults` suites that "Clear App Data" also empties.
+    public var appGroupIdentifiers: [String] = []
 
     public init(network: NetworkConfig = NetworkConfig(), logs: LogsConfig = LogsConfig()) {
         self.network = network

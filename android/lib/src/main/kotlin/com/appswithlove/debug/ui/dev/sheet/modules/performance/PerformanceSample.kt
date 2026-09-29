@@ -10,6 +10,8 @@ internal data class PerformanceSample(
     val totalRamMb: Long,
     val batteryPercent: Int,
     val currentDrawMa: Int,
+    /** Longest frame of the interval. */
+    val uiFreezeMs: Long = 0L,
     val timestamp: Long = System.currentTimeMillis(),
 ) {
     val formattedTime: String =

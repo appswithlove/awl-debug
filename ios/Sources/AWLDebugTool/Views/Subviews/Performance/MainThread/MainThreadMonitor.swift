@@ -16,6 +16,9 @@ extension MainThreadMonitor {
 }
 
 final class MainThreadMonitor {
+    /// A ping that waits longer than this counts as a UI freeze.
+    static let freezeThresholdMs: CGFloat = 700
+
     lazy private(set) var collection = MonitorCollectionHelper<Snapshot>(
         interval: 0.1,
         historyCapacity: 600,
@@ -23,7 +26,31 @@ final class MainThreadMonitor {
         readSnapshot: { [weak self] in self?.readSnapshot() }
     )
 
-    func start() { collection.start() }
+    /// Freezes since the measurement started; updated on the main thread.
+    private(set) var freezeCount = 0
+    private(set) var longestFreezeMs: CGFloat = 0
+    private var freezeCounting: AnyCancellable?
+
+    func start() {
+        guard !collection.isRunning else { return }
+        freezeCount = 0
+        longestFreezeMs = 0
+        freezeCounting = collection.snapshotPublisher.sink { [weak self] snapshot in
+            self?.record(snapshot)
+        }
+        collection.start()
+    }
+
+    func stop() {
+        collection.stop()
+        freezeCounting = nil
+    }
+
+    func record(_ snapshot: Snapshot) {
+        guard snapshot.latencyMs > Self.freezeThresholdMs else { return }
+        freezeCount += 1
+        longestFreezeMs = max(longestFreezeMs, snapshot.latencyMs)
+    }
 
     // MARK: - Private
 

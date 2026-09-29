@@ -96,7 +96,7 @@ final class PerformanceWidgetViewModel: ObservableObject {
         self.mainThreadMonitor = mainThreadMonitor
         cpuMonitor.collection.snapshotPublisher
             .throttle(
-                for: .seconds(3),
+                for: .seconds(1),
                 scheduler: RunLoop.main,
                 latest: true
             )
@@ -109,7 +109,7 @@ final class PerformanceWidgetViewModel: ObservableObject {
     }
 
     private func apply(_ snap: CPUMonitor.CPUSnapshot) {
-        historyCPU = cpuMonitor.collection.history.map { $0.cpuTotalUsage }
+        historyCPU = cpuMonitor.collection.history.map { $0.cpuPercent }
         historyCPUCapacity = cpuMonitor.collection.historyCapacity
         
         historyRam = ramMonitor.collection.history.map { CGFloat($0.footprint / 1024 / 1024) }

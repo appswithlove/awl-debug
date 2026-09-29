@@ -16,9 +16,11 @@ data class DevModulesConfig(
     val sessionProviders: List<SessionProvider> = emptyList(),
     /** Shown once a `DevHttpLogInterceptor` has been created. */
     val showNetworkModule: Boolean = true,
+    /** "Clear App Data" resets the app to a fresh install after a confirmation. */
+    val showClearAppDataModule: Boolean = true,
 ) {
     val hasAnyModuleEnabled = showLogsModule || showPerformanceModule ||
             showPermissionsModule || showAccessibilityModule || showDeeplinksModule ||
             (showFcmPushTokenModule && fcmTokenProvider != null) || showTestCrashesModule ||
-            (showSessionModule && sessionProviders.isNotEmpty()) || showNetworkModule
+            (showSessionModule && sessionProviders.isNotEmpty()) || showNetworkModule || showClearAppDataModule
 }
