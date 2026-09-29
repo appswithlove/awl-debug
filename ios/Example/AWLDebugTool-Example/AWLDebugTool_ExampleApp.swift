@@ -96,6 +96,9 @@ struct DebugPanelView: View {
                 Button("Custom button 2") {
                     print("Custom button 2 Action")
                 }
+                Button("Close panel") {
+                    AWLDebugTool.close()
+                }
             } header: {
                 Text("Custom section header 1")
             }

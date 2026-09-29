@@ -32,6 +32,11 @@ struct ContentView: View {
                         AuthTestView()
                             .navigationTitle("Auth")
                     }
+                    
+                    NavigationLink("Panel") {
+                        PanelTestView()
+                            .navigationTitle("Panel")
+                    }
                 }
                 .buttonStyle(.bordered)
             }

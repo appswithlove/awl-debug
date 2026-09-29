@@ -18,7 +18,7 @@ struct AddDeeplinkView: View {
     }
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             Form {
                 Section {
                     TextField(LS.Deeplinks.titlePlaceholder, text: $title)

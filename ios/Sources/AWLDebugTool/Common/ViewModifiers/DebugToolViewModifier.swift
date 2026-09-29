@@ -23,25 +23,6 @@ extension DebugToolViewModifier {
         @AppStorage(DebugView.Keys.preferredFontSize)
         var preferredFontSize: DebugView.AppFontSize = .system
         
-        @Published var isShowingDebugTool = false
-        var showDebugToolEvents: [DebugToolViewModifier.ShowDebugToolEvents] = []
-        
-        init() {
-            NotificationCenter.default.addObserver(self, selector: #selector(userDidTakeScreenshotNotification),
-                                                   name: UIApplication.userDidTakeScreenshotNotification, object: nil)
-        }
-        
-        @objc private func userDidTakeScreenshotNotification() {
-            if showDebugToolEvents.contains(.userDidTakeScreenshot) {
-                isShowingDebugTool = true;
-            }
-        }
-        
-        func threeTapsAction() {
-            if showDebugToolEvents.contains(.threeTaps) {
-                isShowingDebugTool = true
-            }
-        }
     }
 }
 
@@ -57,13 +38,6 @@ public struct DebugToolViewModifier: ViewModifier {
         content
             .applyFontSize(viewModel.preferredFontSize.sizeCategory)
             .preferredColorScheme(viewModel.preferredColorScheme.colorScheme)
-            .contentShape(Rectangle())
-            .simultaneousGesture(
-                TapGesture(count: 3)
-                    .onEnded {
-                        viewModel.threeTapsAction()
-                    }
-            )
             .overlay {
                 VStack {
                     ZStack {
@@ -101,19 +75,23 @@ public struct DebugToolViewModifier: ViewModifier {
                     }
                 }
             }
-            .sheet(isPresented: $viewModel.isShowingDebugTool, content: {
-                DebugView(fcmToken: fcmToken, customView: customView)
-                    .presentationDetents([.medium, .large])
-            })
             .onAppear {
-                viewModel.showDebugToolEvents = showDebugToolEvents
+                let presenter = DebugPanelPresenter.shared
+                presenter.events = showDebugToolEvents
+                presenter.content.fcmToken = fcmToken
+                presenter.content.customView = customView
+                // On the window rather than this view, so taps also count inside sheets and full-screen covers.
+                presenter.installInActiveScene()
+            }
+            .onChange(of: fcmToken) { fcmToken in
+                DebugPanelPresenter.shared.content.fcmToken = fcmToken
             }
     }
 }
 
 extension View {
     @ViewBuilder
-    fileprivate func applyFontSize(_ size: ContentSizeCategory?) -> some View {
+    func applyFontSize(_ size: ContentSizeCategory?) -> some View {
         if let size {
             self.environment(\.sizeCategory, size)
         } else {
