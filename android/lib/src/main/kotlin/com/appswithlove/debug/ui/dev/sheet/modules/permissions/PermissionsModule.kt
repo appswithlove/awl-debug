@@ -31,7 +31,7 @@ import androidx.core.content.ContextCompat
 import com.appswithlove.debug.ui.theme.DevTheme
 
 @Composable
-fun PermissionsModule(modifier: Modifier = Modifier) {
+internal fun PermissionsModule(modifier: Modifier = Modifier) {
     val context = LocalContext.current
 
     val grouped = remember {

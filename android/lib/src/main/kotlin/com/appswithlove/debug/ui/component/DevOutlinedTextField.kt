@@ -21,7 +21,7 @@ import com.appswithlove.debug.ui.theme.AppTheme
 import com.appswithlove.debug.ui.theme.DevTheme
 
 @Composable
-fun DevOutlinedTextField(
+internal fun DevOutlinedTextField(
     modifier: Modifier = Modifier,
     value: String,
     placeholder: String,

@@ -18,7 +18,7 @@ import kotlinx.coroutines.launch
 private const val MAX_SAMPLES = 60
 private const val SAMPLE_INTERVAL_MS = 2000L
 
-class PerformanceMonitor(context: Context) {
+internal class PerformanceMonitor(context: Context) {
     private val activityManager =
         context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
     private val batteryManager =

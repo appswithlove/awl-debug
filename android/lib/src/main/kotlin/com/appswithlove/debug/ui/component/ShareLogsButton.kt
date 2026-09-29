@@ -21,7 +21,7 @@ import java.io.File
 import java.nio.charset.StandardCharsets
 
 @Composable
-fun ShareLogsButton(
+internal fun ShareLogsButton(
     modifier: Modifier = Modifier,
     logHistory: LogHistory
 ) {

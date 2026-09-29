@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-class DevViewModel(
+internal class DevViewModel(
     private val devStore: DevStore,
     private val logCollector: DevLogCollector = devLogCollector,
 ) : ViewModel() {
@@ -37,7 +37,7 @@ class DevViewModel(
             pendingActions.collect { action ->
                 when (action) {
                     is DevAction.ActivateDevTool -> activateDevTool()
-                    is DevAction.ShowDevSheet -> showDevSheet()
+                    is DevAction.ShowDevSheet -> showDevSheet(action.show)
                 }
             }
         }

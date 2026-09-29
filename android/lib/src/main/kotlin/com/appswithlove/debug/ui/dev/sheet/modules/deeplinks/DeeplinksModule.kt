@@ -34,7 +34,7 @@ import com.appswithlove.debug.ui.component.DevOutlinedTextField
 import com.appswithlove.debug.ui.theme.DevTheme
 
 @Composable
-fun DeeplinksModule(
+internal fun DeeplinksModule(
     modifier: Modifier = Modifier,
     deeplinks: List<DeeplinkItem> = emptyList(),
 ) {

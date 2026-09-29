@@ -13,7 +13,7 @@ import com.appswithlove.debug.ui.component.icons.TablerIcons
 import com.appswithlove.debug.ui.theme.AppTheme
 
 @Composable
-fun TestCrashesModule() {
+internal fun TestCrashesModule() {
     Column(modifier = Modifier.padding(vertical = 12.dp)) {
 
         DevOutlinedButton(
@@ -52,11 +52,11 @@ fun TestCrashesModule() {
     }
 }
 
-fun crashOne() {
+internal fun crashOne() {
     throw RuntimeException("Don't worry, be happy!")
 }
 
-fun crashTwo() {
+internal fun crashTwo() {
     val testArray = emptyArray<Int>()
     testArray[0]
     testArray[1] = 5

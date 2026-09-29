@@ -13,7 +13,7 @@ private val isEmulator = Build.FINGERPRINT.startsWith("generic")
     || Build.DEVICE.startsWith("emulator")
     || (Build.BRAND.startsWith("generic") && Build.DEVICE.startsWith("generic"))
 
-fun Modifier.threeFingerTap(onThreeFingerTap: () -> Unit): Modifier {
+internal fun Modifier.threeFingerTap(onThreeFingerTap: () -> Unit): Modifier {
     val requiredPointers = if (isEmulator) 2 else 3
     return this.pointerInput(Unit) {
         awaitEachGesture {

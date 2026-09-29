@@ -103,8 +103,6 @@ import kotlinx.coroutines.launch
  *
  * @param modifier Modifier to be applied to the `DevSheet`. Note that this only modifies the
  * `DevSheet` itself, not the content.
- * @param viewModel The [DevViewModel] that manages the state of the `DevSheet`.
- * @param logHistory The [LogHistory] to be displayed in the logs module.
  * @param devConfig The [DevConfig] to be displayed in the app info module. Map your app's
  * `BuildConfig` to this to show app info on the sheet.
  * @param modulesConfig A [com.appswithlove.debug.api.DevModulesConfig] that controls which built-in modules are shown in the
@@ -126,8 +124,34 @@ import kotlinx.coroutines.launch
 @Composable
 fun DevSheet(
     modifier: Modifier = Modifier,
-    viewModel: DevViewModel = rememberDevViewModel(),
-    logHistory: LogHistory = LogCollector.logHistory,
+    devConfig: DevConfig? = null,
+    modulesConfig: DevModulesConfig = DevModulesConfig(),
+    customModules: @Composable ColumnScope.() -> Unit = {},
+    isAlwaysActive: Boolean = false,
+    swipeToDismiss: Boolean = false,
+    inheritHostTheme: Boolean = false,
+    content: @Composable () -> Unit,
+) {
+    DevSheet(
+        viewModel = rememberDevViewModel(),
+        logHistory = LogCollector.logHistory,
+        modifier = modifier,
+        devConfig = devConfig,
+        modulesConfig = modulesConfig,
+        customModules = customModules,
+        isAlwaysActive = isAlwaysActive,
+        swipeToDismiss = swipeToDismiss,
+        inheritHostTheme = inheritHostTheme,
+        content = content,
+    )
+}
+
+/** [DevSheet] with an injectable [viewModel] and [logHistory]; kept internal so the public API matches `debug-no-op`. */
+@Composable
+internal fun DevSheet(
+    viewModel: DevViewModel,
+    logHistory: LogHistory,
+    modifier: Modifier = Modifier,
     devConfig: DevConfig? = null,
     modulesConfig: DevModulesConfig = DevModulesConfig(),
     customModules: @Composable ColumnScope.() -> Unit = {},
@@ -226,7 +250,7 @@ private fun DevSheetContent(
             sheetState.hide()
         }.invokeOnCompletion {
             if (!sheetState.isVisible) {
-                actioner(DevAction.ShowDevSheet())
+                actioner(DevAction.ShowDevSheet(show = false))
             }
         }
     }

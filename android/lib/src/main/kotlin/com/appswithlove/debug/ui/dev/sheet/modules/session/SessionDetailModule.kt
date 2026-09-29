@@ -45,7 +45,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 
 @Composable
-fun SessionDetailModule(
+internal fun SessionDetailModule(
     modifier: Modifier = Modifier,
     sessionManager: SessionManager,
 ) {

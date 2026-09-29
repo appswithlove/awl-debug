@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.map
 //needs to be outside of the class!!
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "dev_settings")
 
-class DevStore(context: Context) {
+internal class DevStore(context: Context) {
     private val dataStore: DataStore<Preferences> = context.dataStore
 
     companion object {

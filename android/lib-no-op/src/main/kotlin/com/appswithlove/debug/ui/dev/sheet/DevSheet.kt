@@ -8,9 +8,8 @@ import com.appswithlove.debug.api.DevModulesConfig
 
 /**
  * No-op stub of `DevSheet` for production flavors. Renders [content] only — no
- * three-finger-tap gesture, no debug UI, no log collection. Mirrors the public
- * call sites of the real `DevSheet` so the same source compiles against either
- * artifact; the internal-only `viewModel` and `logHistory` overrides are omitted.
+ * three-finger-tap gesture, no debug UI, no log collection. Has the same public
+ * signature as the real `DevSheet`, so the same source compiles against either artifact.
  */
 @Composable
 @Suppress("UNUSED_PARAMETER")

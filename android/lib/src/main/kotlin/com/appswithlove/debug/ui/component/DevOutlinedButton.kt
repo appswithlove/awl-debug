@@ -22,7 +22,7 @@ import com.appswithlove.debug.ui.component.icons.TablerIcons
 private const val DISABLED_CONTENT_ALPHA = 0.38f
 
 @Composable
-fun DevOutlinedButton(
+internal fun DevOutlinedButton(
     modifier: Modifier = Modifier,
     text: String,
     leadingIcon: @Composable (() -> Unit)? = null,

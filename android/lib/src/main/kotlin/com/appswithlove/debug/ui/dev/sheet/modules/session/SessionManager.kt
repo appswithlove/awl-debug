@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 
-class SessionManager(providers: List<SessionProvider>) {
+internal class SessionManager(providers: List<SessionProvider>) {
 
     data class ProviderState(
         val provider: SessionProvider,

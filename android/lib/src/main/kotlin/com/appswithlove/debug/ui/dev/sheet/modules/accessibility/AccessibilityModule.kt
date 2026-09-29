@@ -23,7 +23,7 @@ import kotlin.math.roundToInt
  * system accessibility setting untouched. Off, [fontScale] is applied as an absolute value.
  */
 @Composable
-fun AccessibilityModule(
+internal fun AccessibilityModule(
     modifier: Modifier = Modifier,
     systemFontScale: Float,
     useSystemFontScale: Boolean,

@@ -4,7 +4,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-data class PerformanceSample(
+internal data class PerformanceSample(
     val cpuPercent: Float,
     val usedRamMb: Long,
     val totalRamMb: Long,

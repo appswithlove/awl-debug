@@ -133,7 +133,6 @@ DevSheet(
 | `isAlwaysActive` | `false` | When `true`, the three-finger tap works even if the dev tool is deactivated |
 | `swipeToDismiss` | `false` | When `true`, the sheet can be dismissed by swiping down |
 | `inheritHostTheme` | `false` | When `true`, the sheet uses the host app's `MaterialTheme` instead of its own |
-| `logHistory` | `LogCollector.logHistory` | Log source to display; override to use a custom collector instance |
 | `modifier` | `Modifier` | Applied to the wrapping container |
 
 ### Modules
@@ -290,7 +289,7 @@ class MyApp : Application() {
 }
 ```
 
-`DevLogTree` only logs to the panel. Keep `Timber.DebugTree()` alongside it if you also want logcat output.
+`DevLogTree` only logs to the panel and keeps the Timber tag and throwable of each entry. Keep `Timber.DebugTree()` alongside it if you also want logcat output.
 
 ### Activate and deactivate
 

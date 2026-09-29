@@ -35,7 +35,7 @@ private val LightColorScheme = lightColorScheme()
  * neutral Material default instead of inheriting the host colors.
  */
 @Composable
-fun DevTheme(
+internal fun DevTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     colorScheme: ColorScheme? = null,
     typography: Typography = MaterialTheme.typography,
@@ -78,7 +78,7 @@ fun DevTheme(
     }
 }
 
-object AppTheme {
+internal object AppTheme {
     val colors: AppColors
         @Composable
         get() = LocalAppColors.current
