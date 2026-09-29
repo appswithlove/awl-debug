@@ -124,10 +124,14 @@ public struct LogsListView: View {
 
     @ViewBuilder var LogsList: some View {
         List(viewModel.filteredLogs) { log in
-            VStack(alignment: .leading) {
-                LogDate(date: log.date)
-                LogUrl(url: log.url)
-                LogInfo(method: log.method, statusCode: log.statusCode, duration: log.duration)
+            NavigationLink {
+                LogDetailView(log: log)
+            } label: {
+                VStack(alignment: .leading) {
+                    LogDate(date: log.date)
+                    LogUrl(url: log.url)
+                    LogInfo(method: log.method, statusCode: log.statusCode, duration: log.duration)
+                }
             }
         }
         .listStyle(.plain)
@@ -168,6 +172,12 @@ public struct LogsListView: View {
             Text(method)
             Text("\(statusCode)")
             Text("(\(duration)ms)")
+            if duration > viewModel.slowRequestThresholdMs {
+                Text(LS.Network.slow)
+                    .font(.caption)
+                    .padding(.horizontal, 6)
+                    .background(Capsule().stroke())
+            }
         }
         .font(.callout)
         .foregroundColor(viewModel.colorFor(statusCode: statusCode))
