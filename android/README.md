@@ -91,7 +91,7 @@ awl-debug ships as a real + no-op pair with a shared API, the same pattern [Leak
 
 | Artifact | Contents | Weight |
 |---|---|---|
-| `debug-api` | Contract types only: `DevConfig`, `DevModulesConfig`, `DeeplinkItem`, `SessionProvider`, `FcmTokenProvider`. Pulled in transitively by both AARs, never referenced directly. | a few KB |
+| `debug-api` | Contract types only: `DevConfig`, `DevModulesConfig`, `DevNetworkConfig`, `DeeplinkItem`, `SessionProvider`, `FcmTokenProvider`. Pulled in transitively by both AARs, never referenced directly. | a few KB |
 | `debug` | The real panel: Compose sheet, three-finger gesture, log collector, HTTP interceptor, all modules, charts. | ~430 KB plus its Compose, Material 3 and Vico dependencies |
 | `debug-no-op` | The same public functions and classes with empty bodies. `DevSheet` renders your `content` and nothing else; `DevLogTree` and `DevHttpLogInterceptor` discard everything. Depends only on `debug-api`. | ~14 KB |
 
@@ -260,7 +260,7 @@ DevSheet(
 
 ### HTTP logging
 
-Add `DevHttpLogInterceptor` to your `OkHttpClient`. Every request and response shows up in the Logs module:
+Add `DevHttpLogInterceptor` to your `OkHttpClient`. Every request is recorded with method, URL, status, duration, headers and bodies, and a one-line summary (tag `HTTP`) shows up in the Logs module:
 
 ```kotlin
 val client = OkHttpClient.Builder()
@@ -268,11 +268,37 @@ val client = OkHttpClient.Builder()
     .build()
 ```
 
-The values of `Authorization`, `Proxy-Authorization`, `Cookie` and `Set-Cookie` are always logged as `[REDACTED]`. Add more header names (case-insensitive) with `redactHeaders`. Request and response bodies are cut off after `maxBodyBytes` (default 256 KiB). One-shot and duplex request bodies are never read.
+Use `addNetworkInterceptor()` instead if you also want to see headers OkHttp adds, such as cookies from the `CookieJar`.
+
+Values are redacted on the device before anything is stored:
+
+- `Authorization`, `Proxy-Authorization`, `Cookie`, `Set-Cookie` and userinfo in URLs (`https://[REDACTED]@host`), always.
+- Header names in `redactHeaders` (case-insensitive).
+- JSON fields at any depth, form fields and multipart fields in `redactJsonFields`. Matching ignores case, `_` and `-`.
+- Query parameters in `redactQueryParams`.
+
+Bodies are cut off after `maxBodyBytes` (default 256 KiB), after redaction. Only text bodies are stored; binary content, files in multipart bodies, one-shot and duplex request bodies, event streams and bodies over 1 MiB are replaced with a short placeholder. `captureBodies = false` stores no bodies at all.
 
 ```kotlin
-DevHttpLogInterceptor(redactHeaders = setOf("X-Api-Key"))
+DevHttpLogInterceptor(
+    DevNetworkConfig(
+        redactHeaders = setOf("X-Api-Key"),
+        redactJsonFields = setOf("password", "accessToken", "pin"),
+        slowRequestThresholdMs = 2_000,
+    )
+)
 ```
+
+| Parameter | Default |
+|---|---|
+| `captureBodies` | `true` |
+| `maxBodyBytes` | `256 * 1024` |
+| `redactHeaders` | empty |
+| `redactJsonFields` | `password`, `accessToken`, `refreshToken`, `idToken`, `clientSecret` |
+| `redactQueryParams` | `access_token`, `token`, `api_key` |
+| `slowRequestThresholdMs` | `1_000` |
+
+Log messages from any source are also redacted: `Bearer <token>` and `Basic <credentials>` become `Bearer [REDACTED]` and `Basic [REDACTED]`.
 
 Log exports are shared through the library's own `FileProvider` (authority `${applicationId}.awldebug.fileprovider`, limited to `cacheDir/awl-debug/`), so it does not conflict with a `FileProvider` in your app.
 

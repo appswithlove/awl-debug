@@ -102,6 +102,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.datastore)
     implementation(libs.okhttp)
+    implementation(libs.kotlinx.serialization.json)
     compileOnly(libs.timber)
     implementation(libs.vico.compose) // Charts
 }
