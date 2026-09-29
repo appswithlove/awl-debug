@@ -1,6 +1,7 @@
 package com.appswithlove.debug.ui.dev.log
 
 import com.appswithlove.debug.api.DevNetworkConfig
+import com.appswithlove.debug.reporting.RemoteReporting
 import com.appswithlove.debug.ui.dev.network.BodyCapture
 import com.appswithlove.debug.ui.dev.network.NetworkCollector
 import com.appswithlove.debug.ui.dev.network.NetworkEntry
@@ -95,6 +96,7 @@ class DevHttpLogInterceptor(
 
     private fun record(entry: NetworkEntry) {
         store.add(entry)
+        RemoteReporting.onNetworkEntry(entry)
         logCollector.log(Log(entry.severity(), entry.summary(), tag = LOG_TAG))
     }
 

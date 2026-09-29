@@ -1,7 +1,10 @@
 public final class com/appswithlove/debug/AwlDebug {
 	public static final field $stable I
 	public static final field INSTANCE Lcom/appswithlove/debug/AwlDebug;
+	public final fun flushReports ()V
 	public final fun handleDeeplinkIntent (Landroid/content/Intent;)Z
+	public final fun setUserIdentifier (Ljava/lang/String;)V
+	public final fun startRemoteReporting (Landroid/content/Context;Lcom/appswithlove/debug/api/reporting/RemoteReportingConfig;)V
 }
 
 public final class com/appswithlove/debug/domain/model/DevSettings {
