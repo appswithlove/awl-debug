@@ -1,3 +1,13 @@
+public final class com/appswithlove/debug/api/AwlDistribution : java/lang/Enum {
+	public static final field Debug Lcom/appswithlove/debug/api/AwlDistribution;
+	public static final field Internal Lcom/appswithlove/debug/api/AwlDistribution;
+	public static final field Store Lcom/appswithlove/debug/api/AwlDistribution;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public final fun getWireValue ()Ljava/lang/String;
+	public static fun valueOf (Ljava/lang/String;)Lcom/appswithlove/debug/api/AwlDistribution;
+	public static fun values ()[Lcom/appswithlove/debug/api/AwlDistribution;
+}
+
 public final class com/appswithlove/debug/api/DeeplinkItem {
 	public fun <init> (Ljava/lang/String;Ljava/lang/String;)V
 	public final fun component1 ()Ljava/lang/String;

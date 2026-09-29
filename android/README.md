@@ -28,6 +28,7 @@ Made by [Apps with love](https://appswithlove.com).
   - [HTTP logging](#http-logging)
   - [Timber integration](#timber-integration)
   - [Activate and deactivate](#activate-and-deactivate)
+  - [Feedback](#feedback)
 - [Local development](#local-development)
 - [Releasing](#releasing)
 - [License](#license)
@@ -93,9 +94,10 @@ awl-debug ships as a real + no-op pair with a shared API, the same pattern [Leak
 |---|---|---|
 | `debug-api` | Contract types only: `DevConfig`, `DevModulesConfig`, `DevNetworkConfig`, `DeeplinkItem`, `SessionProvider`, `FcmTokenProvider`. Pulled in transitively by both AARs, never referenced directly. | a few KB |
 | `debug` | The real panel: Compose sheet, three-finger gesture, log collector, HTTP interceptor, all modules, charts. | ~430 KB plus its Compose, Material 3 and Vico dependencies |
+| `feedback` / `feedback-no-op` | Optional in-app feedback (see [Feedback](#feedback)) and its stub, same pairing rule. The no-op renders your content only, has no shake detection and no `INTERNET` permission. | |
 | `debug-no-op` | The same public functions and classes with empty bodies. `DevSheet` renders your `content` and nothing else; `DevLogTree` and `DevHttpLogInterceptor` discard everything. Depends only on `debug-api`. | ~14 KB |
 
-Both AARs expose identical signatures under identical package names, so the same call sites compile against either. The build enforces this: `apiCheck` compares each module's public API with its dump in `api/`, and fails when `lib` and `lib-no-op` differ. The shared types live in `debug-api` exactly once, so the two AARs can never collide on the classpath.
+Both AARs expose identical signatures under identical package names, so the same call sites compile against either. The build enforces this: `apiCheck` compares each module's public API with its dump in `api/`, and `apiParityCheck` fails when `lib` and `lib-no-op` (or `feedback` and `feedback-no-op`) differ. The shared types live in `debug-api` exactly once, so the two AARs can never collide on the classpath.
 
 What this buys you:
 
@@ -338,6 +340,47 @@ Switch(
 
 `DevSettings.activateDevTool(context, Boolean)` is a `suspend` function; `DevSettings.isDevToolActivated(context)` returns a `Flow<Boolean>`. Inside the sheet, the App Info module offers the same toggle.
 
+### Feedback
+
+Testers report a problem straight from the app: the report carries a screenshot they can mark up (pen, arrow, colors, undo), a text (typed or dictated) and device and app metadata. It is sent as `multipart/form-data` to `{endpoint}/v1/feedback` with the `X-App-Key` header.
+
+```kotlin
+dependencies {
+    debugImplementation("com.appswithlove.debug:feedback:<version>")
+    releaseImplementation("com.appswithlove.debug:feedback-no-op:<version>")
+}
+```
+
+Wrap the app content in `FeedbackHost`. Shaking the device starts a report; `FeedbackLauncher` adds an entry, for example as a custom module of the `DevSheet`:
+
+```kotlin
+val feedbackConfig = FeedbackConfig(
+    endpoint = BuildConfig.FEEDBACK_ENDPOINT,
+    appKey = BuildConfig.FEEDBACK_APP_KEY,
+    appVersion = BuildConfig.VERSION_NAME,
+    buildNumber = BuildConfig.VERSION_CODE.toString(),
+    environment = BuildConfig.FLAVOR,
+    extraMetadata = { mapOf("screen" to currentScreenName()) },
+)
+
+FeedbackHost(config = feedbackConfig) {
+    DevSheet(customModules = { FeedbackLauncher() }) {
+        MyApp()
+    }
+}
+```
+
+Place `FeedbackHost` outside of the `DevSheet` as shown: the screenshot shows what `FeedbackHost` wraps, and dialogs and bottom sheets are never part of it.
+
+| Parameter | Default | Description |
+|---|---|---|
+| `extraMetadata` | empty | Read when a report starts. Up to 30 entries, keys up to 64 characters (empty keys are dropped), values up to 500. A `screen` entry becomes the report's screen (up to 200 characters). |
+| `shakeToReport` | `true` | Shaking starts a report while the app is in the foreground |
+| `distribution` | `null` | `AwlDistribution.Debug`, `Internal` or `Store`. Only sent when set, because older feedback services reject unknown metadata fields |
+| `reporter` | `null` | `FeedbackReporter(name, email)`, only sent when set, same reason |
+
+A `null` config passes the content through and `FeedbackLauncher` shows "Feedback not configured", so builds without endpoint or key still work.
+
 ## Local development
 
 Build and test:
@@ -346,7 +389,9 @@ Build and test:
 ./gradlew build
 ```
 
-`build` includes `apiCheck`. After an intended public API change, run `./gradlew apiDump` and commit the updated `api/*.api` files. Change `lib` and `lib-no-op` together, their dumps must stay identical.
+`build` includes `apiCheck`. After an intended public API change, run `./gradlew apiDump` and commit the updated `api/*.api` files. Change `lib` and `lib-no-op` (and `feedback` and `feedback-no-op`) together, their dumps must stay identical.
+
+The libraries compile against OkHttp 4.12, the lowest supported version, so they do not force an upgrade on apps. Apps on OkHttp 5 get their version through Gradle resolution. To build and test against another version, pass `-PokhttpVersion`, for example `./gradlew :lib:testDebugUnitTest :feedback:testDebugUnitTest -PokhttpVersion=5.3.2`.
 
 Run the sample app from `sample/` to try the panel. It plants `DevLogTree`, fires an HTTP request and exposes a switch that activates the dev tool.
 

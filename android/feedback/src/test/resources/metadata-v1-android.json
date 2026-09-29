@@ -1,0 +1,12 @@
+{
+  "platform": "android",
+  "osVersion": "16",
+  "deviceModel": "Google Pixel 9",
+  "appVersion": "1.4.0",
+  "buildNumber": "812",
+  "environment": "staging",
+  "locale": "de-CH",
+  "screen": "RecipeDetail",
+  "timestamp": "2026-09-25T08:15:00.123Z",
+  "extra": { "screen": "RecipeDetail", "recipeId": "4711" }
+}

@@ -98,16 +98,35 @@ subprojects {
     }
 }
 
-// debug and debug-no-op are swapped per build type, so their public API must be identical.
+// Real and no-op artifacts are swapped per build type, so their public API must be identical.
+val noOpPairs = listOf("lib" to "lib-no-op", "feedback" to "feedback-no-op")
+
 tasks.register("apiParityCheck") {
-    description = "Fails when lib and lib-no-op API dumps differ."
-    val debugApi = layout.projectDirectory.file("lib/api/lib.api")
-    val noOpApi = layout.projectDirectory.file("lib-no-op/api/lib-no-op.api")
-    inputs.file(debugApi)
-    inputs.file(noOpApi)
+    description = "Fails when the API dumps of a real artifact and its no-op variant differ."
+    val dumps = noOpPairs.map { (real, noOp) ->
+        layout.projectDirectory.file("$real/api/$real.api") to layout.projectDirectory.file("$noOp/api/$noOp.api")
+    }
+    dumps.forEach { (real, noOp) ->
+        inputs.file(real)
+        inputs.file(noOp)
+    }
     doLast {
-        check(debugApi.asFile.readText() == noOpApi.asFile.readText()) {
-            "lib/api/lib.api and lib-no-op/api/lib-no-op.api differ. Keep the public API of both artifacts identical."
+        dumps.forEach { (real, noOp) ->
+            check(real.asFile.readText() == noOp.asFile.readText()) {
+                "${real.asFile.path} and ${noOp.asFile.path} differ. Keep the public API of both artifacts identical."
+            }
+        }
+    }
+}
+
+// Libraries compile against the lowest supported OkHttp. `-PokhttpVersion=<v>` runs the build and
+// tests against another version, for example the one an app resolves to.
+providers.gradleProperty("okhttpVersion").orNull?.let { okhttpVersion ->
+    subprojects {
+        configurations.configureEach {
+            resolutionStrategy.eachDependency {
+                if (requested.group == "com.squareup.okhttp3") useVersion(okhttpVersion)
+            }
         }
     }
 }
