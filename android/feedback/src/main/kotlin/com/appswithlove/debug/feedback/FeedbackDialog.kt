@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -56,6 +57,9 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -70,6 +74,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 private const val MAX_TEXT_LENGTH = 5000
+private const val MAX_REPORTER_NAME_LENGTH = 200
+private const val MAX_REPORTER_EMAIL_LENGTH = 254
 
 private sealed interface SendState {
     data object Idle : SendState
@@ -77,7 +83,7 @@ private sealed interface SendState {
     data class Failed(val error: SendError) : SendState
 }
 
-/** Where the text field is and whether it has focus, read by the touch handler without recomposing. */
+/** Where the input fields are and whether one has focus, read by the touch handler without recomposing. */
 private class KeyboardDismissal {
     var origin = Offset.Zero
     var fieldBounds = Rect.Zero
@@ -93,6 +99,7 @@ internal fun FeedbackDialog(
     onSent: () -> Unit,
     onQueued: () -> Unit,
     queue: FeedbackQueue = FeedbackQueue.shared(LocalContext.current),
+    reporterStore: ReporterStore = ReporterStore(LocalContext.current),
 ) {
     val scope = rememberCoroutineScope()
     val markup = remember(draft) { MarkupState() }
@@ -102,6 +109,12 @@ internal fun FeedbackDialog(
     var attachLogs by remember(draft) { mutableStateOf(config.attachLogsByDefault) }
     val isSending = sendState == SendState.Sending
     val keyboard = remember(draft) { KeyboardDismissal() }
+    val savedReporter = remember(draft) { reporterStore.load(fallback = config.reporter) }
+    var isEditingReporter by remember(draft) { mutableStateOf(savedReporter == null) }
+    var reporterName by remember(draft) { mutableStateOf(savedReporter?.name.orEmpty()) }
+    var reporterEmail by remember(draft) { mutableStateOf(savedReporter?.email.orEmpty()) }
+    val isEmailValid = reporterEmail.isBlank() || reporterEmail.trim().isValidEmail()
+    val isReporterValid = reporterName.isNotBlank() && isEmailValid
 
     val speech = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         when (result.resultCode) {
@@ -128,6 +141,11 @@ internal fun FeedbackDialog(
 
     fun send() {
         sendState = SendState.Sending
+        val reporter = FeedbackReporter(name = reporterName.trim(), email = reporterEmail.trim().ifEmpty { null })
+        if (isEditingReporter) {
+            reporterStore.save(reporter)
+            isEditingReporter = false
+        }
         scope.launch {
             val image = withContext(Dispatchers.Default) {
                 encodeMarkedScreenshot(draft.screenshot.asAndroidBitmap(), markup.marks.toList())
@@ -137,7 +155,7 @@ internal fun FeedbackDialog(
                 endpoint = config.endpoint,
                 appKey = config.appKey,
                 text = text.trim(),
-                metadataJson = draft.metadataJson,
+                metadataJson = draft.metadataJson(reporter),
                 parts = listOfNotNull(
                     FeedbackPart("screenshot", image.fileName, image.mimeType, image.bytes),
                     draft.logs?.takeIf { attachLogs }?.let(::logsPart),
@@ -179,7 +197,7 @@ internal fun FeedbackDialog(
                         .fillMaxSize()
                         .onGloballyPositioned { keyboard.origin = it.positionInRoot() }
                         .pointerInput(keyboard) {
-                            // Any touch outside the text field closes the keyboard; it still reaches its target,
+                            // Any touch outside the input fields closes the keyboard; it still reaches its target,
                             // except the markup canvas, which ignores it (see isDismissingKeyboard).
                             awaitEachGesture {
                                 val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
@@ -193,7 +211,7 @@ internal fun FeedbackDialog(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Header(
-                        canSend = text.isNotBlank() && !isSending,
+                        canSend = text.isNotBlank() && isReporterValid && !isSending,
                         isSending = isSending,
                         isRetry = sendState is SendState.Failed,
                         onCancel = onCancel,
@@ -208,23 +226,39 @@ internal fun FeedbackDialog(
                             .weight(1f)
                             .fillMaxWidth(),
                     )
-                    OutlinedTextField(
-                        value = text,
-                        onValueChange = { text = it.take(MAX_TEXT_LENGTH) },
-                        enabled = !isSending,
-                        label = { Text(stringResource(R.string.feedback_text_label)) },
-                        minLines = 2,
-                        maxLines = 5,
-                        trailingIcon = {
-                            IconButton(onClick = ::dictate, enabled = !isSending) {
-                                Icon(painter = painterResource(R.drawable.feedback_ic_mic), contentDescription = stringResource(R.string.feedback_dictate))
-                            }
-                        },
+                    Column(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .onFocusChanged { keyboard.fieldFocused = it.isFocused }
+                            .onFocusChanged { keyboard.fieldFocused = it.hasFocus }
                             .onGloballyPositioned { keyboard.fieldBounds = it.boundsInRoot() },
-                    )
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        OutlinedTextField(
+                            value = text,
+                            onValueChange = { text = it.take(MAX_TEXT_LENGTH) },
+                            enabled = !isSending,
+                            label = { Text(stringResource(R.string.feedback_text_label)) },
+                            minLines = 2,
+                            maxLines = 5,
+                            trailingIcon = {
+                                IconButton(onClick = ::dictate, enabled = !isSending) {
+                                    Icon(painter = painterResource(R.drawable.feedback_ic_mic), contentDescription = stringResource(R.string.feedback_dictate))
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        if (isEditingReporter) {
+                            ReporterFields(
+                                name = reporterName,
+                                email = reporterEmail,
+                                isEmailValid = isEmailValid,
+                                enabled = !isSending,
+                                onNameChange = { reporterName = it.take(MAX_REPORTER_NAME_LENGTH) },
+                                onEmailChange = { reporterEmail = it.take(MAX_REPORTER_EMAIL_LENGTH) },
+                            )
+                        } else {
+                            SentAs(name = reporterName.trim(), enabled = !isSending, onChange = { isEditingReporter = true })
+                        }
+                    }
                     if (draft.logs != null) {
                         AttachmentSwitch(
                             label = stringResource(R.string.feedback_attach_logs),
@@ -271,6 +305,54 @@ private fun Header(
             Button(onClick = onSend, enabled = canSend) {
                 Text(stringResource(if (isRetry) R.string.feedback_retry else R.string.feedback_send))
             }
+        }
+    }
+}
+
+/** Asked until the tester sent a first report; the name is required, the email optional. */
+@Composable
+private fun ReporterFields(
+    name: String,
+    email: String,
+    isEmailValid: Boolean,
+    enabled: Boolean,
+    onNameChange: (String) -> Unit,
+    onEmailChange: (String) -> Unit,
+) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        OutlinedTextField(
+            value = name,
+            onValueChange = onNameChange,
+            enabled = enabled,
+            label = { Text(stringResource(R.string.feedback_reporter_prompt)) },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Next),
+            modifier = Modifier.weight(1f),
+        )
+        OutlinedTextField(
+            value = email,
+            onValueChange = onEmailChange,
+            enabled = enabled,
+            label = { Text(stringResource(R.string.feedback_reporter_email)) },
+            singleLine = true,
+            isError = !isEmailValid,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Done),
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+@Composable
+private fun SentAs(name: String, enabled: Boolean, onChange: () -> Unit) {
+    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            text = stringResource(R.string.feedback_reporter_sent_as, name),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f),
+        )
+        TextButton(onClick = onChange, enabled = enabled) {
+            Text(stringResource(R.string.feedback_reporter_change))
         }
     }
 }

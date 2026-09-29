@@ -37,7 +37,7 @@ enum ScreenshotRenderer {
         format.scale = screenshot.scale
         return UIGraphicsImageRenderer(bounds: imageRect, format: format).image { context in
             screenshot.draw(in: imageRect)
-            MarkupGeometry.stroke(marks, in: context.cgContext, size: imageRect.size)
+            MarkupGeometry.draw(marks, in: context.cgContext, size: imageRect.size)
         }
     }
 

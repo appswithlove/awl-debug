@@ -420,7 +420,7 @@ Switch(
 
 ### Feedback
 
-Testers report a problem straight from the app: the report carries a screenshot they can mark up (pen, arrow, colors, undo), a text (typed or dictated) and device and app metadata. It is sent as `multipart/form-data` to `{endpoint}/v1/feedback` with the `X-App-Key` header.
+Testers report a problem straight from the app: the report carries a screenshot they can mark up (pen, arrow, colors, undo, and redact, which blacks out an area before the image leaves the device), a text (typed or dictated) and device and app metadata. It is sent as `multipart/form-data` to `{endpoint}/v1/feedback` with the `X-App-Key` header.
 
 ```kotlin
 dependencies {
@@ -457,7 +457,7 @@ Start a report from your own UI with `AwlFeedback.start()`, or place `FeedbackLa
 | `extraMetadata` | empty | Read when a report starts. Up to 30 entries, keys up to 64 characters (empty keys are dropped), values up to 500. A `screen` entry becomes the report's screen (up to 200 characters). |
 | `triggers` | `Shake`, `Screenshot` | `DevTrigger`s that start a report while the app is in the foreground. `Screenshot` needs Android 14 (API 34). A trigger in both `triggers` and the `DevSheet` triggers starts feedback only and logs a warning. Replaces `shakeToReport`, which is deprecated |
 | `distribution` | `null` | `AwlDistribution.Debug`, `Internal` or `Store`. Only sent when set, because older feedback services reject unknown metadata fields |
-| `reporter` | `null` | `FeedbackReporter(name, email)`, only sent when set, same reason |
+| `reporter` | `null` | `FeedbackReporter(name, email)` prefills the reporter. Without it the first report asks for a name (email optional); "Sent as {name}" with "Change" afterwards. Needs a service that accepts `reporter` |
 
 A `null` config passes the content through and `FeedbackLauncher` shows "Feedback not configured", so builds without endpoint or key still work.
 

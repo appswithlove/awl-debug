@@ -52,10 +52,10 @@ import java.util.UUID
 
 private const val LOG_TAG = "Feedback"
 
-/** Everything captured at the moment the tester starts a report. */
+/** Everything captured at the moment the tester starts a report; the reporter is only known when it is sent. */
 internal class FeedbackDraft(
     val screenshot: ImageBitmap,
-    val metadataJson: String,
+    val metadataJson: (reporter: FeedbackReporter?) -> String,
     val idempotencyKey: String = UUID.randomUUID().toString(),
     /** `logs.txt`, `null` without the debug panel. */
     val logs: ByteArray? = null,
@@ -75,16 +75,16 @@ internal class FeedbackController(
         if (draft != null) return
         val extra = currentConfig.extraMetadata()
         val timestamp = Date()
+        val device = DeviceInfo.current()
         scope.launch {
             if (layer.size.width == 0 || layer.size.height == 0) {
                 Log.w(LOG_TAG, "Nothing recorded yet, cannot take a screenshot")
                 return@launch
             }
-            val device = DeviceInfo.current()
             val screenshot = layer.toImageBitmap()
             draft = FeedbackDraft(
                 screenshot = screenshot,
-                metadataJson = buildMetadataJson(currentConfig, device, extra, timestamp),
+                metadataJson = { reporter -> buildMetadataJson(currentConfig, device, extra, timestamp, reporter) },
                 logs = captureLogsAttachment(currentConfig, device, timestamp),
             )
         }
