@@ -15,8 +15,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-private const val MAX_SAMPLES = 60
-private const val SAMPLE_INTERVAL_MS = 2000L
+private const val MAX_SAMPLES = 120
+internal const val SAMPLE_INTERVAL_MS = 1000L
 
 internal class PerformanceMonitor(context: Context) {
     private val activityManager =
@@ -25,9 +25,22 @@ internal class PerformanceMonitor(context: Context) {
         context.getSystemService(Context.BATTERY_SERVICE) as BatteryManager
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var samplingJob: Job? = null
+    private val cores = Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
+
+    private val freezeTracker = FreezeTracker()
+    private val frameSource = ChoreographerFrameSource(freezeTracker)
 
     private val _isTracking = MutableStateFlow(false)
     val isTracking = _isTracking.asStateFlow()
+
+    private val _isOverlayVisible = MutableStateFlow(false)
+    val isOverlayVisible = _isOverlayVisible.asStateFlow()
+
+    private val _freezes = MutableStateFlow(FreezeStats())
+    val freezes = _freezes.asStateFlow()
+
+    /** `true` while samples are taken, i.e. while the module switch or the overlay is on. */
+    val isSampling: Boolean get() = samplingJob?.isActive == true
 
     private val _samples = MutableStateFlow<List<PerformanceSample>>(emptyList())
     val samples = _samples.asStateFlow()
@@ -37,22 +50,39 @@ internal class PerformanceMonitor(context: Context) {
 
     fun setTracking(enabled: Boolean) {
         _isTracking.value = enabled
-        if (enabled) {
+        updateSampling()
+    }
+
+    fun setOverlayVisible(visible: Boolean) {
+        _isOverlayVisible.value = visible
+        updateSampling()
+    }
+
+    fun clear() {
+        _samples.value = emptyList()
+        freezeTracker.reset()
+        _freezes.value = FreezeStats()
+    }
+
+    private fun updateSampling() {
+        val shouldSample = _isTracking.value || _isOverlayVisible.value
+        if (shouldSample == isSampling) return
+        if (shouldSample) {
             _startBatteryPercent.value =
                 batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
                     .takeIf { it >= 0 }
             startSampling()
         } else {
             samplingJob?.cancel()
+            samplingJob = null
+            frameSource.stop()
         }
     }
 
-    fun clear() {
-        _samples.value = emptyList()
-    }
-
     private fun startSampling() {
-        samplingJob?.cancel()
+        freezeTracker.reset()
+        _freezes.value = FreezeStats()
+        frameSource.start()
         samplingJob = scope.launch {
             var prevCpu = Process.getElapsedCpuTime()
             var prevWall = SystemClock.elapsedRealtime()
@@ -64,7 +94,7 @@ internal class PerformanceMonitor(context: Context) {
                 val currWall = SystemClock.elapsedRealtime()
                 val wallDelta = currWall - prevWall
                 val cpuPercent = if (wallDelta > 0) {
-                    ((currCpu - prevCpu).toFloat() / wallDelta * 100f).coerceIn(0f, 100f)
+                    ((currCpu - prevCpu).toFloat() / wallDelta / cores * 100f).coerceIn(0f, 100f)
                 } else {
                     0f
                 }
@@ -89,11 +119,16 @@ internal class PerformanceMonitor(context: Context) {
                     totalRamMb = totalRamMb,
                     batteryPercent = batteryPercent,
                     currentDrawMa = currentDrawMa,
+                    uiFreezeMs = freezeTracker.takeIntervalMaxMs(),
                 )).let { if (it.size > MAX_SAMPLES) it.takeLast(MAX_SAMPLES) else it }
 
+                _freezes.value = FreezeStats(freezeTracker.freezeCount, freezeTracker.longestFreezeMs)
                 prevCpu = currCpu
                 prevWall = currWall
             }
         }
     }
 }
+
+/** UI freezes since sampling started. */
+internal data class FreezeStats(val count: Int = 0, val longestMs: Long = 0L)

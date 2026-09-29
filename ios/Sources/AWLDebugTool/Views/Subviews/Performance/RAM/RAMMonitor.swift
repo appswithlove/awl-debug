@@ -30,7 +30,7 @@ extension RAMMonitor {
 // MARK: - RAMMonitor
 
 final class RAMMonitor {
-    lazy private(set) var collection = MonitorCollectionHelper<RAMSnapshot>(interval: 0.5, historyCapacity: 120, queueName: "ram.monitor", readSnapshot: { [weak self] in
+    lazy private(set) var collection = MonitorCollectionHelper<RAMSnapshot>(interval: 1, historyCapacity: 120, queueName: "ram.monitor", readSnapshot: { [weak self] in
         self?.readSnapshot()
     })
     
@@ -40,6 +40,10 @@ final class RAMMonitor {
 
     func start() {
         collection.start()
+    }
+
+    func stop() {
+        collection.stop()
     }
 
     private func readSnapshot() -> RAMSnapshot {

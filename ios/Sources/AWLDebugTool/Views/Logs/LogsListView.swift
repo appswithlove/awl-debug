@@ -37,7 +37,11 @@ public struct LogsListView: View {
             }
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button {
-                    dismiss()
+                    if AWLDebugTool.isOpen {
+                        AWLDebugTool.close()
+                    } else {
+                        dismiss()
+                    }
                 } label: {
                     Text(LS.Headers.btnClose)
                 }
@@ -186,7 +190,7 @@ public struct LogsListView: View {
 
 struct LogsView_Previews: PreviewProvider {
     static var previews: some View {
-        NavigationView {
+        NavigationStack {
             LogsListView()
         }
     }

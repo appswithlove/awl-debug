@@ -26,19 +26,28 @@ struct SessionView: View {
 
 private struct TokenRow: View {
     @ObservedObject var tokenModel: AWLDebugTool.TokenDebugModel
-    @State private var tokenText: String = ""
+    @State private var isRevealed = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(tokenModel.label)
-                .font(.headline)
+            HStack {
+                Text(tokenModel.label)
+                    .font(.headline)
+                Spacer()
+                Circle()
+                    .fill(tokenModel.token == nil ? Color.gray : Color.green)
+                    .frame(width: 8, height: 8)
+                Text(tokenModel.token == nil ? LS.Session.loggedOut : LS.Session.loggedIn)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
 
             HStack {
                 Button {
-                    UIPasteboard.general.string = tokenText
+                    UIPasteboard.general.string = tokenModel.token
                 } label: {
                     HStack {
-                        Text(tokenText)
+                        Text(displayedToken)
                         Image(systemName: "doc.on.doc")
                     }
                     .font(.caption)
@@ -46,6 +55,17 @@ private struct TokenRow: View {
                     .lineLimit(1)
                 }
                 .buttonStyle(.borderless)
+                .disabled(tokenModel.token == nil)
+                .accessibilityLabel(LS.Actions.copy)
+
+                Button {
+                    isRevealed.toggle()
+                } label: {
+                    Image(systemName: isRevealed ? "eye.slash" : "eye")
+                }
+                .buttonStyle(.borderless)
+                .disabled(tokenModel.token == nil)
+                .accessibilityLabel(isRevealed ? LS.Session.hide : LS.Session.reveal)
 
                 Spacer()
 
@@ -61,8 +81,17 @@ private struct TokenRow: View {
         }
         .padding(.vertical, 4)
         .task {
-            tokenText = tokenModel.getTokenValue() ?? LS.Strings.unknownValue
+            // Live while visible: the app's token changes (login, refresh, logout) show up without reopening.
+            while !Task.isCancelled {
+                await tokenModel.refresh()
+                try? await Task.sleep(nanoseconds: AWLDebugTool.TokenDebugModel.refreshInterval)
+            }
         }
+    }
+
+    private var displayedToken: String {
+        guard let token = tokenModel.token else { return LS.Strings.unknownValue }
+        return isRevealed ? token : AWLDebugTool.TokenDebugModel.masked(token)
     }
 }
 

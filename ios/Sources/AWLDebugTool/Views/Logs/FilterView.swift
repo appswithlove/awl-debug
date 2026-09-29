@@ -14,7 +14,7 @@ struct FilterView: View {
     @Binding var isFilterActive: Bool
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             Form {
                 Toggle(LS.Settings.educationalMode, isOn: $networkLogger.isEducationalaModeOn)
                 

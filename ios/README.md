@@ -66,7 +66,11 @@ func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive respo
 }
 ```
 
-3. Open AWLDebugTool inside app by clicking 3 times on screen (or by taking a screenshot, if `.userDidTakeScreenshot` is included in `showDebugToolEvents`)
+3. Open AWLDebugTool inside app by clicking 3 times on screen (or by taking a screenshot, if `.userDidTakeScreenshot` is included in `showDebugToolEvents`). The panel opens in a window of its own, above the app's sheets and full-screen covers.
+
+From code, for example from a custom module: `AWLDebugTool.open()`, `AWLDebugTool.close()`, `AWLDebugTool.toggle()`, `AWLDebugTool.isOpen`.
+
+UIKit apps without a SwiftUI root call `AWLDebugTool.install(in: windowScene)` instead of `includeDebugTool()`, after the scene's window is visible (for example at the end of `scene(_:willConnectTo:options:)`).
 
 ## Usage
 <b>Functionalities</b>
@@ -74,12 +78,15 @@ func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive respo
 ### 1. About
 - user can see general data about underlying app
 (device, app name, app version and build number, current time, internet access)
-- app version and build number are also always visible in a small overlay in the top-left corner of the screen
+- app version and build number are also visible in a small overlay in the top-left corner of the screen, above sheets too; testers switch it off with "Show version overlay" (stored per device), apps with `AWLDebugConfig.showVersionOverlay = false`
 
 ### 2. Network logging
 - user can record network logs.
 - user can see network logs in real time and filter them.
 - user can export network logs.
+
+#### App logs
+The Logs module shows the app's own unified-log entries (`os_log`, `Logger`, Kermit's `OSLogWriter`) without any code in the app, plus entries added with `AWLDebugTool.log("message", level: .warn, tag: "Auth", error: error)`. Apple's own subsystems (`com.apple.*`) are left out; `AWLDebugConfig(logs: .init(subsystems: ["com.example.app"]))` shows only the listed ones. `Bearer` and `Basic` credentials are redacted before an entry is stored. Search and level filters also apply to "Export logs".
 
 ### 3. UserDefaults
 - user can clear UserDefaults for underlying app.
@@ -114,6 +121,8 @@ func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive respo
 ### 11. Performance overlay
 - user can enable a draggable overlay showing live CPU usage, RAM usage and main thread latency
 - helps spot performance regressions or main thread blocking directly while using the app
+- measuring runs only while "Measure performance" is on or the overlay is visible; otherwise no timer runs
+- CPU is the process's share of all cores (0–100 %), battery level comes from `UIDevice`, and a main-thread ping waiting longer than 700 ms counts as a UI freeze
 
 ### 12. Screen recording
 - you can switch ON/OFF recording via debug panel. (default state you can set by AWLDebugTool.start(isScreenRecordingOn: true))

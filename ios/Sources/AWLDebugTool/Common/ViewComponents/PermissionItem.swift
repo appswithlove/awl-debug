@@ -8,43 +8,24 @@
 import SwiftUI
 
 struct PermissionItem: View {
-    let status: RequestPermissionStatus
+    let status: RequestPermissionStatus?
     let type: PermissionRequestType
-    let available: Bool
-    let openSystemPermissionRequest: () -> Void
-    let openSettingsAction: () -> Void
-    
+
     var body: some View {
         HStack {
             Label(type.title, systemImage: type.symbol)
-            
             Spacer()
-            
-            Button {
-                guard available else { return }
-                
-                switch status {
-                case .notDetermined:
-                    openSystemPermissionRequest()
-                case .gotPermission, .denied:
-                    openSettingsAction()
-                }
-            } label: {
-                if !available {
-                    Text(LS.Buttons.unavailable)
-                        .foregroundStyle(.gray)
-                } else {
-                    switch status {
-                    case .gotPermission, .denied:
-                        Text(LS.Buttons.settings)
-                    case .notDetermined:
-                        Text(LS.Buttons.enable)
-                    }
-                }
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(!available ? .gray : (status == .gotPermission ? .gray : .blue))
-            .disabled(!available)
+            Text((status ?? .unknown).title)
+                .foregroundStyle(color)
+        }
+    }
+
+    private var color: Color {
+        switch status {
+        case .granted, .provisional: return .green
+        case .limited: return .orange
+        case .denied: return .red
+        case .notDetermined, .unknown, nil: return .secondary
         }
     }
 }

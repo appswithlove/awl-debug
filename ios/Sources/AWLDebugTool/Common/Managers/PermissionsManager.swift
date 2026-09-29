@@ -5,207 +5,134 @@
 //  Created by Hrvoje Hajduković on 19.09.2025..
 //
 
-import AVFoundation
-// TODO: fixme - ITMS-90683: Missing purpose string in Info.plist
-//import Contacts
-//import EventKit
-import MapKit
-import Photos
+import ObjectiveC
 import SwiftUI
+import UserNotifications
 
+/// Reads permission statuses without linking any permission framework: the SDK would otherwise need usage
+/// keys the app may not have (ITMS-90683). A status is read only when the app itself loaded the framework.
 @MainActor
-class PermissionsManager: NSObject, ObservableObject, CLLocationManagerDelegate {
-    @Published var statuses: [PermissionRequestType: RequestPermissionStatus] = [:]
-    @Published var availablePermissionRequestTypes: [PermissionRequestType] = []
+class PermissionsManager: ObservableObject {
+    @Published private(set) var statuses: [PermissionRequestType: RequestPermissionStatus] = [:]
+    @Published private(set) var declaredTypes: [PermissionRequestType] = []
 
-    private var locationManager: CLLocationManager?
-    // TODO: fixme - ITMS-90683: Missing purpose string in Info.plist
-//    private let eventStore = EKEventStore()
-//    private let contactStore = CNContactStore()
+    private let bundle: Bundle
 
-    override init() {
-        super.init()
-        Task { await refreshStatuses() }
-        checkIfPermissionRequestTypesExistsInApp()
+    init(bundle: Bundle = .main) {
+        self.bundle = bundle
+        declaredTypes = PermissionRequestType.allCases.filter { type in
+            type.usageKeys.isEmpty || bundle.hasPlistKeys(type.usageKeys)
+        }
     }
 
     func refreshStatuses() async {
         var newStatuses: [PermissionRequestType: RequestPermissionStatus] = [:]
-
-        for type in PermissionRequestType.allCases {
-            newStatuses[type] = await checkStatus(for: type)
+        for type in declaredTypes {
+            newStatuses[type] = await status(for: type)
         }
-
         statuses = newStatuses
     }
 
-    private func checkStatus(for type: PermissionRequestType) async -> RequestPermissionStatus {
-        // TODO: fixme - ITMS-90683: Missing purpose string in Info.plist
-        switch type {
-//        case .locationAccess:
-//            let status = CLLocationManager().authorizationStatus
-//            switch status {
-//            case .authorizedAlways, .authorizedWhenInUse: return .gotPermission
-//            case .denied, .restricted: return .denied
-//            case .notDetermined: return .notDetermined
-//            @unknown default: return .denied
-//            }
-
-//        case .cameraAccess:
-//            switch AVCaptureDevice.authorizationStatus(for: .video) {
-//            case .authorized: return .gotPermission
-//            case .denied, .restricted: return .denied
-//            case .notDetermined: return .notDetermined
-//            @unknown default: return .denied
-//            }
-
-//        case .microphoneAccess:
-//            switch AVCaptureDevice.authorizationStatus(for: .audio) {
-//            case .authorized: return .gotPermission
-//            case .denied, .restricted: return .denied
-//            case .notDetermined: return .notDetermined
-//            @unknown default: return .denied
-//            }
-
-//        case .photosAccess:
-//            let status = PHPhotoLibrary.authorizationStatus(for: .readWrite)
-//            switch status {
-//            case .authorized, .limited: return .gotPermission
-//            case .denied, .restricted: return .denied
-//            case .notDetermined: return .notDetermined
-//            @unknown default: return .denied
-//            }
-
-//        case .contactsAccess:
-//            switch CNContactStore.authorizationStatus(for: .contacts) {
-//            case .authorized: return .gotPermission
-//            case .denied, .restricted: return .denied
-//            case .notDetermined: return .notDetermined
-//            @unknown default: return .denied
-//            }
-
-//        case .calendarAccess:
-//            switch EKEventStore.authorizationStatus(for: .event) {
-//            case .fullAccess: return .gotPermission
-//            case .denied, .restricted: return .denied
-//            case .notDetermined: return .notDetermined
-//            default: return .denied
-//            }
-
-//        case .remindersAccess:
-//            switch EKEventStore.authorizationStatus(for: .reminder) {
-//            case .fullAccess: return .gotPermission
-//            case .denied, .restricted: return .denied
-//            case .notDetermined: return .notDetermined
-//            default: return .denied
-//            }
-
-        case .notificationsAccess:
-            let settings = await UNUserNotificationCenter.current().notificationSettings()
-            switch settings.authorizationStatus {
-            case .authorized, .provisional: return .gotPermission
-            case .denied: return .denied
-            case .notDetermined: return .notDetermined
-            default: return .denied
-            }
-        }
-    }
-    
-    func checkIfPermissionRequestTypesExistsInApp() {
-        availablePermissionRequestTypes.removeAll()
-        
-        if let dict = Bundle.main.infoDictionary {
-            print("\(LS.logWatermark) 📋 Full Info.plist keys at runtime:")
-            for (key, value) in dict {
-                print("\(LS.logWatermark) - \(key): \(value)")
-            }
-        }
-
-        for permissionRequestType in PermissionRequestType.allCases {
-            let requiredKeys = permissionRequestType.requiredPlistKeys
-            
-            // Notifications do not require keys, always add them
-            if requiredKeys.isEmpty || Bundle.main.hasPlistKeys(requiredKeys) {
-                availablePermissionRequestTypes.append(permissionRequestType)
-                print("\(LS.logWatermark) ✅ Found permission: \(permissionRequestType)")
-            } else {
-                print("\(LS.logWatermark) ❌ Missing Info.plist keys for \(permissionRequestType)")
-            }
-        }
-        
-        print("\(LS.logWatermark) 📋 Available permissions in app:")
-        print("\(LS.logWatermark) \(availablePermissionRequestTypes)")
-    }
-    
-    func checkIfPermissionRequestTypeExistsInApp(_ type: PermissionRequestType) -> Bool {
-        availablePermissionRequestTypes.contains(type)
-    }
-    
-    func request(_ type: PermissionRequestType) async {
-//        if !Bundle.main.hasPlistKeys(type.requiredPlistKeys) && type != .notificationsAccess {
-        if !Bundle.main.hasPlistKeys(type.requiredPlistKeys) && type.isInfoPlistKeyNecessary {
-            print("\(LS.logWatermark) Missing Info.plist keys for \(type). Redirecting to Settings.")
-            requestPermissionThroughSettings()
-            return
-        }
-
-        // TODO: fixme - ITMS-90683: Missing purpose string in Info.plist
-        switch type {
-//        case .locationAccess:
-//            locationManager = CLLocationManager()
-//            locationManager?.delegate = self
-//            locationManager?.requestWhenInUseAuthorization()
-
-//        case .cameraAccess:
-//            _ = await AVCaptureDevice.requestAccess(for: .video)
-
-//        case .microphoneAccess:
-//            _ = await AVCaptureDevice.requestAccess(for: .audio)
-
-//        case .photosAccess:
-//            _ = await PHPhotoLibrary.requestAuthorization(for: .readWrite)
-
-//        case .contactsAccess:
-//            _ = try? await contactStore.requestAccess(for: .contacts)
-
-//        case .calendarAccess:
-//            if #available(iOS 17, *) {
-//                _ = try? await eventStore.requestFullAccessToEvents()
-//            } else {
-//                _ = try? await eventStore.requestAccess(to: .event)
-//            }
-
-//        case .remindersAccess:
-//            if #available(iOS 17, *) {
-//                _ = try? await eventStore.requestFullAccessToReminders()
-//            } else {
-//                _ = try? await eventStore.requestAccess(to: .reminder)
-//            }
-
-        case .notificationsAccess:
-            let authorizationOptions: UNAuthorizationOptions = [.alert, .sound, .badge]
-            
-            _ = try? await UNUserNotificationCenter.current()
-                .requestAuthorization(options: authorizationOptions)
-        }
-
-        await refreshStatuses()
-    }
-
-    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-        Task { await refreshStatuses() }
-    }
-    
-    func requestPermissionThroughSettings() {
-        if let settings = URL(string: UIApplication.openSettingsURLString), UIApplication.shared.canOpenURL(settings) {
-            UIApplication.shared.open(settings)
-        }
-    }
-    
     func openAppSettings() {
-        if let settingsURL = URL(string: UIApplication.openSettingsURLString),
-           UIApplication.shared.canOpenURL(settingsURL) {
+        if let settingsURL = URL(string: UIApplication.openSettingsURLString) {
             UIApplication.shared.open(settingsURL)
         }
+    }
+
+    private func status(for type: PermissionRequestType) async -> RequestPermissionStatus {
+        switch type {
+        case .notificationsAccess:
+            switch await UNUserNotificationCenter.current().notificationSettings().authorizationStatus {
+            case .authorized, .ephemeral: return .granted
+            case .provisional: return .provisional
+            case .denied: return .denied
+            case .notDetermined: return .notDetermined
+            @unknown default: return .unknown
+            }
+        default:
+            return Self.runtimeStatus(for: type)
+        }
+    }
+
+    /// Raw values of the frameworks' authorization enums, read through the Objective-C runtime.
+    static func runtimeStatus(for type: PermissionRequestType) -> RequestPermissionStatus {
+        switch type {
+        case .locationAccess:
+            // CLAuthorizationStatus: notDetermined, restricted, denied, authorizedAlways, authorizedWhenInUse
+            return map(ObjCStatus.int32(className: "CLLocationManager", selector: "authorizationStatus").map(Int.init),
+                       [0: .notDetermined, 1: .denied, 2: .denied, 3: .granted, 4: .granted])
+        case .cameraAccess, .microphoneAccess:
+            // AVAuthorizationStatus: notDetermined, restricted, denied, authorized
+            let mediaType = type == .cameraAccess ? "vide" : "soun"
+            return map(ObjCStatus.int(className: "AVCaptureDevice", selector: "authorizationStatusForMediaType:", object: mediaType as NSString),
+                       [0: .notDetermined, 1: .denied, 2: .denied, 3: .granted])
+        case .photosAccess:
+            // PHAuthorizationStatus for PHAccessLevelReadWrite: notDetermined, restricted, denied, authorized, limited
+            return map(ObjCStatus.int(className: "PHPhotoLibrary", selector: "authorizationStatusForAccessLevel:", integer: 2),
+                       [0: .notDetermined, 1: .denied, 2: .denied, 3: .granted, 4: .limited])
+        case .contactsAccess:
+            // CNAuthorizationStatus for CNEntityTypeContacts: notDetermined, restricted, denied, authorized, limited
+            return map(ObjCStatus.int(className: "CNContactStore", selector: "authorizationStatusForEntityType:", integer: 0),
+                       [0: .notDetermined, 1: .denied, 2: .denied, 3: .granted, 4: .limited])
+        case .calendarAccess, .remindersAccess:
+            // EKAuthorizationStatus: notDetermined, restricted, denied, fullAccess, writeOnly
+            return map(ObjCStatus.int(className: "EKEventStore", selector: "authorizationStatusForEntityType:", integer: type == .calendarAccess ? 0 : 1),
+                       [0: .notDetermined, 1: .denied, 2: .denied, 3: .granted, 4: .limited])
+        case .bluetoothAccess:
+            // CBManagerAuthorization: notDetermined, restricted, denied, allowedAlways
+            return map(ObjCStatus.int(className: "CBManager", selector: "authorization"),
+                       [0: .notDetermined, 1: .denied, 2: .denied, 3: .granted])
+        case .motionAccess:
+            // CMAuthorizationStatus: notDetermined, restricted, denied, authorized
+            return map(ObjCStatus.int(className: "CMMotionActivityManager", selector: "authorizationStatus"),
+                       [0: .notDetermined, 1: .denied, 2: .denied, 3: .granted])
+        case .trackingAccess:
+            // ATTrackingManagerAuthorizationStatus: notDetermined, restricted, denied, authorized
+            return map(ObjCStatus.int(className: "ATTrackingManager", selector: "trackingAuthorizationStatus"),
+                       [0: .notDetermined, 1: .denied, 2: .denied, 3: .granted])
+        case .speechRecognitionAccess:
+            // SFSpeechRecognizerAuthorizationStatus: notDetermined, denied, restricted, authorized
+            return map(ObjCStatus.int(className: "SFSpeechRecognizer", selector: "authorizationStatus"),
+                       [0: .notDetermined, 1: .denied, 2: .denied, 3: .granted])
+        case .faceIDAccess, .localNetworkAccess, .notificationsAccess:
+            // No status API without prompting.
+            return .unknown
+        }
+    }
+
+    private static func map(_ rawValue: Int?, _ statuses: [Int: RequestPermissionStatus]) -> RequestPermissionStatus {
+        rawValue.flatMap { statuses[$0] } ?? .unknown
+    }
+}
+
+/// Calls a class method of a class that is only looked up at runtime. `nil` when the class is not loaded.
+enum ObjCStatus {
+    private typealias IntGetter = @convention(c) (AnyClass, Selector) -> Int
+    private typealias Int32Getter = @convention(c) (AnyClass, Selector) -> Int32
+    private typealias IntForInt = @convention(c) (AnyClass, Selector, Int) -> Int
+    private typealias IntForObject = @convention(c) (AnyClass, Selector, AnyObject) -> Int
+
+    static func int(className: String, selector: String) -> Int? {
+        implementation(className, selector).map { cls, sel, imp in unsafeBitCast(imp, to: IntGetter.self)(cls, sel) }
+    }
+
+    static func int32(className: String, selector: String) -> Int32? {
+        implementation(className, selector).map { cls, sel, imp in unsafeBitCast(imp, to: Int32Getter.self)(cls, sel) }
+    }
+
+    static func int(className: String, selector: String, integer: Int) -> Int? {
+        implementation(className, selector).map { cls, sel, imp in unsafeBitCast(imp, to: IntForInt.self)(cls, sel, integer) }
+    }
+
+    static func int(className: String, selector: String, object: AnyObject) -> Int? {
+        implementation(className, selector).map { cls, sel, imp in unsafeBitCast(imp, to: IntForObject.self)(cls, sel, object) }
+    }
+
+    private static func implementation(_ className: String, _ selectorName: String) -> (AnyClass, Selector, IMP)? {
+        let selector = NSSelectorFromString(selectorName)
+        guard let cls = NSClassFromString(className), let method = class_getClassMethod(cls, selector) else {
+            return nil
+        }
+        return (cls, selector, method_getImplementation(method))
     }
 }

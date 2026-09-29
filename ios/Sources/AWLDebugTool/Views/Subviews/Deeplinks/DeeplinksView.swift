@@ -9,9 +9,12 @@ struct DeeplinksView: View {
     @ObservedObject var manager: DeeplinksManager
 
     @State private var isAddingDeeplink = false
+    @State private var quickURL = ""
+    @State private var isQuickURLInvalid = false
 
     var body: some View {
         Section {
+            QuickField
             if manager.developerDeeplinks.isEmpty && manager.testerDeeplinks.isEmpty {
                 Text(LS.Deeplinks.empty)
                     .foregroundStyle(.secondary)
@@ -41,6 +44,51 @@ struct DeeplinksView: View {
         } header: {
             Text(LS.Deeplinks.sectionTitle)
         }
+    }
+
+    @ViewBuilder
+    private var QuickField: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            TextField(LS.Deeplinks.input, text: $quickURL)
+                .keyboardType(.URL)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled(true)
+                .submitLabel(.go)
+                .onSubmit(fireQuickURL)
+                .onChange(of: quickURL) { _ in
+                    isQuickURLInvalid = false
+                }
+            if isQuickURLInvalid {
+                Text(LS.Deeplinks.invalid)
+                    .font(.footnote)
+                    .foregroundStyle(.red)
+            }
+            HStack {
+                Button(LS.Deeplinks.fireNow, action: fireQuickURL)
+                    .buttonStyle(.borderedProminent)
+                Button(LS.Deeplinks.save, action: saveQuickURL)
+                    .buttonStyle(.bordered)
+            }
+            .disabled(quickURL.isEmpty || isQuickURLInvalid)
+        }
+        .padding(.vertical, 4)
+    }
+
+    private func fireQuickURL() {
+        guard let url = DeeplinksManager.validURL(from: quickURL) else {
+            isQuickURLInvalid = true
+            return
+        }
+        manager.fire(url)
+    }
+
+    private func saveQuickURL() {
+        guard let url = DeeplinksManager.validURL(from: quickURL) else {
+            isQuickURLInvalid = true
+            return
+        }
+        manager.add(title: url.absoluteString, url: url.absoluteString)
+        quickURL = ""
     }
 
     @ViewBuilder

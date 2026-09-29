@@ -8,36 +8,30 @@
 import SwiftUI
 
 struct PermissionsView: View {
-    let statuses: [PermissionRequestType: RequestPermissionStatus]
-    let checkIfPermissionRequestTypeExistsInApp: (PermissionRequestType) -> Bool
-    let request: (PermissionRequestType) async -> ()
-    let openAppSettings: () -> Void
-    
+    @ObservedObject var manager: PermissionsManager
+
     var body: some View {
         Section {
-            VStack {
-                ForEach(PermissionRequestType.allCases) { type in
-                    PermissionItem(status: statuses[type] ?? RequestPermissionStatus.notDetermined,
-                                   type: type,
-                                   available: checkIfPermissionRequestTypeExistsInApp(type),
-                                   openSystemPermissionRequest: { Task { await request(type) }},
-                                   openSettingsAction: { openAppSettings() })
-                }
+            if manager.declaredTypes.isEmpty {
+                Text(LS.Permissions.empty)
+                    .foregroundStyle(.secondary)
             }
-            
+            ForEach(manager.declaredTypes) { type in
+                PermissionItem(status: manager.statuses[type], type: type)
+            }
+
             ProprietaryActionButton(text: LS.Actions.openAppSettings,
                                     icon: .gear,
                                     iconColor: IconColor.action,
-                                    action: { openAppSettings() })
+                                    action: manager.openAppSettings)
         } header: {
             Text(LS.Headers.permissions)
         }
+        .task {
+            await manager.refreshStatuses()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+            Task { await manager.refreshStatuses() }
+        }
     }
-}
-
-#Preview {
-    PermissionsView(statuses: [:],
-                    checkIfPermissionRequestTypeExistsInApp: { _ in true},
-                    request: { _ in  },
-                    openAppSettings: {})
 }

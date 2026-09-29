@@ -4,6 +4,8 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -15,12 +17,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.appswithlove.debug.ui.component.DevOutlinedButton
+import com.appswithlove.debug.ui.component.DevSwitch
 import com.appswithlove.debug.ui.component.icons.TablerIcons
 import com.appswithlove.debug.ui.theme.AppTheme
 import com.appswithlove.debug.ui.theme.DevTheme
@@ -36,32 +40,47 @@ import com.patrykandpatrick.vico.compose.cartesian.layer.rememberLineCartesianLa
 import com.patrykandpatrick.vico.compose.cartesian.rememberCartesianChart
 import com.patrykandpatrick.vico.compose.cartesian.rememberVicoScrollState
 
-private const val SAMPLE_INTERVAL_SECONDS = 2
+private const val SAMPLE_INTERVAL_SECONDS = (SAMPLE_INTERVAL_MS / 1000).toInt()
 
 @Composable
 internal fun PerformanceModule(
     modifier: Modifier = Modifier,
     performanceMonitor: PerformanceMonitor,
+    onOverlayVisibleChanged: (Boolean) -> Unit,
 ) {
     val isTracking = performanceMonitor.isTracking.collectAsState()
+    val isOverlayVisible = performanceMonitor.isOverlayVisible.collectAsState()
+    val freezes = performanceMonitor.freezes.collectAsState()
     val samples = performanceMonitor.samples.collectAsState()
     val latestSample = samples.value.lastOrNull()
     val startBatteryPercent = performanceMonitor.startBatteryPercent.collectAsState()
     val cpuModelProducer = remember { CartesianChartModelProducer() }
     val ramModelProducer = remember { CartesianChartModelProducer() }
+    val freezeModelProducer = remember { CartesianChartModelProducer() }
 
     LaunchedEffect(samples.value) {
         val s = samples.value
         if (s.isNotEmpty()) {
             cpuModelProducer.runTransaction { lineSeries { series(s.map { it.cpuPercent }) } }
             ramModelProducer.runTransaction { lineSeries { series(s.map { it.usedRamMb }) } }
+            freezeModelProducer.runTransaction { lineSeries { series(s.map { it.uiFreezeMs }) } }
         }
     }
 
     Column(
-        modifier = modifier,
+        modifier = modifier.verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                modifier = Modifier.weight(1f),
+                text = "Show performance overlay",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            DevSwitch(checked = isOverlayVisible.value, onCheckedChange = onOverlayVisibleChanged)
+        }
+
         AnimatedVisibility(visible = isTracking.value && samples.value.isEmpty()) {
             Text(
                 text = "Collecting data...",
@@ -86,7 +105,13 @@ internal fun PerformanceModule(
                     val start = startBatteryPercent.value
                     val drop = if (start != null) start - latestSample.batteryPercent else 0
                     MetricBar(
-                        label = "Battery draw",
+                        label = "UI freeze",
+                        progress = latestSample.uiFreezeMs / FREEZE_THRESHOLD_MS.toFloat(),
+                        value = "${latestSample.uiFreezeMs} ms · ${freezes.value.count} ${if (freezes.value.count == 1) "freeze" else "freezes"}" +
+                            if (freezes.value.count > 0) ", longest ${freezes.value.longestMs} ms" else "",
+                    )
+                    MetricBar(
+                        label = "Battery",
                         progress = latestSample.currentDrawMa / 3000f,
                         value = "${latestSample.currentDrawMa} mA" + if (start != null) "  (${if (drop >= 0) "-" else "+"}${
                             kotlin.math.abs(drop)
@@ -100,6 +125,7 @@ internal fun PerformanceModule(
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 MetricChart(label = "CPU over time", modelProducer = cpuModelProducer, yAxisSuffix = "%")
                 MetricChart(label = "RAM over time", modelProducer = ramModelProducer, yAxisSuffix = " MB")
+                MetricChart(label = "UI freeze over time", modelProducer = freezeModelProducer, yAxisSuffix = " ms")
             }
         }
 
@@ -216,6 +242,7 @@ private fun PerformanceModulePreview() {
         PerformanceModule(
             modifier = Modifier.padding(8.dp),
             performanceMonitor = PerformanceMonitor(context),
+            onOverlayVisibleChanged = {},
         )
     }
 }
