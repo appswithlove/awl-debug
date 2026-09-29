@@ -129,3 +129,27 @@ NOTES:
 
 ### 13. Settings
 - user can adjust settings for DebugTool
+
+### 14. Feedback (`AWLDebugFeedback`)
+Separate product. Testers report a finding from a system screenshot or a device shake: they mark up the screen, describe the issue by typing or on-device dictation, and send it to the feedback service.
+
+```swift
+import AWLDebugFeedback
+
+#if DEBUG || STAGING
+RootView()
+    .feedbackTool(config: FeedbackConfig(
+        endpoint: URL(string: "https://feedback.example.com")!,
+        appKey: "<app key>",
+        appVersion: "1.0",
+        buildNumber: "42",
+        environment: "staging",
+        extraMetadata: { ["screen": currentScreenName] }
+    ))
+#endif
+```
+
+- Attach once, at the root. `feedbackTool(config: nil)` does nothing.
+- `distribution` and `reporter` are optional and only sent when set, because older feedback services reject unknown metadata keys.
+- Dictation needs `NSMicrophoneUsageDescription` and `NSSpeechRecognitionUsageDescription` in the app's `Info.plist`.
+- Tests: `xcodebuild test -scheme AWLDebugTool-Package -destination 'platform=iOS Simulator,name=iPhone 17 Pro'`.
