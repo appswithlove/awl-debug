@@ -91,6 +91,15 @@ import com.appswithlove.debug.ui.dev.sheet.modules.session.SessionManager
 import com.appswithlove.debug.ui.dev.sheet.modules.session.SessionModule
 import com.appswithlove.debug.ui.component.threeFingerTap
 import com.appswithlove.debug.ui.dev.log.LogCollector
+import com.appswithlove.debug.ui.dev.network.NetworkCollector
+import com.appswithlove.debug.ui.dev.network.NetworkViewModel
+import com.appswithlove.debug.ui.dev.network.exportTimestamp
+import com.appswithlove.debug.ui.dev.network.networkExportText
+import com.appswithlove.debug.ui.dev.network.toShareText
+import com.appswithlove.debug.ui.dev.sheet.modules.network.NetworkDetailModule
+import com.appswithlove.debug.ui.dev.sheet.modules.network.NetworkFiltersModule
+import com.appswithlove.debug.ui.dev.sheet.modules.network.NetworkModule
+import com.appswithlove.debug.ui.component.shareTextFile
 import com.appswithlove.debug.ui.dev.log.LogHistory
 import com.appswithlove.debug.ui.theme.AppTheme
 import com.appswithlove.debug.ui.theme.DevTheme
@@ -244,6 +253,26 @@ private fun DevSheetContent(
         }
     }
     var currentPage by rememberSaveable { mutableStateOf(DevSheetPage.Home) }
+    val networkViewModel = rememberNetworkViewModel()
+    val hasNetworkInterceptor by NetworkCollector.store.hasInterceptor.collectAsStateWithLifecycle()
+    val showNetworkModule = modulesConfig.showNetworkModule && hasNetworkInterceptor
+    var selectedNetworkEntryId by rememberSaveable { mutableStateOf<Long?>(null) }
+
+    fun copyToClipboard(text: String) {
+        coroutineScope.launch {
+            clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("AWL Debug", text)))
+        }
+    }
+
+    fun shareText(fileName: String, text: String, chooserTitle: String) {
+        coroutineScope.launch {
+            try {
+                shareTextFile(context, fileName, text, chooserTitle)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
 
     fun hideBottomSheet() {
         coroutineScope.launch {
@@ -290,7 +319,7 @@ private fun DevSheetContent(
             PredictiveBackHandler(enabled = currentPage != DevSheetPage.Home) { progress: Flow<BackEventCompat> ->
                 try {
                     progress.collect { event -> backProgress.snapTo(event.progress) }
-                    currentPage = DevSheetPage.Home
+                    currentPage = currentPage.parent
                     backProgress.snapTo(0f)
                 } catch (e: CancellationException) {
                     backProgress.animateTo(0f)
@@ -347,6 +376,94 @@ private fun DevSheetContent(
                             },
                             onMaxLogsChanged = onMaxLogsChanged,
                         )
+                    }
+                }
+
+                    DevSheetPage.Network -> {
+                    val networkState by networkViewModel.state.collectAsStateWithLifecycle()
+                    ModuleDetail(swipeToDismiss = swipeToDismiss) {
+                        ModuleDetailNavBar(
+                            title = "Network",
+                            onBack = { currentPage = DevSheetPage.Home },
+                            onClose = { hideBottomSheet() },
+                            actions = {
+                                DevSwitch(
+                                    checked = networkState.isTracking,
+                                    onCheckedChange = { networkViewModel.setTracking(it) },
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                            },
+                        )
+
+                        NetworkModule(
+                            modifier = Modifier.weight(1f),
+                            state = networkState,
+                            onSearch = networkViewModel::search,
+                            onEntryClick = { entry ->
+                                selectedNetworkEntryId = entry.id
+                                currentPage = DevSheetPage.NetworkDetail
+                            },
+                            onShowFilters = { currentPage = DevSheetPage.NetworkFilters },
+                            onSortChanged = networkViewModel::setSort,
+                            onClear = networkViewModel::clear,
+                            onExport = {
+                                val now = System.currentTimeMillis()
+                                shareText(
+                                    fileName = "awl-debug-network-${exportTimestamp(now)}.txt",
+                                    text = networkExportText(networkState.entries, networkState.filter, devConfig, now),
+                                    chooserTitle = "Export network logs",
+                                )
+                            },
+                            onMaxSizeChanged = networkViewModel::setMaxSize,
+                        )
+                    }
+                }
+
+                    DevSheetPage.NetworkFilters -> {
+                    val networkState by networkViewModel.state.collectAsStateWithLifecycle()
+                    ModuleDetail(swipeToDismiss = swipeToDismiss) {
+                        ModuleDetailNavBar(
+                            title = "Filters",
+                            onBack = { currentPage = DevSheetPage.Network },
+                            onClose = { hideBottomSheet() },
+                        )
+
+                        NetworkFiltersModule(
+                            modifier = Modifier.weight(1f),
+                            state = networkState,
+                            onExcludedMethodsChanged = networkViewModel::setExcludedMethods,
+                            onExcludedStatusClassesChanged = networkViewModel::setExcludedStatusClasses,
+                            onExcludedHostsChanged = networkViewModel::setExcludedHosts,
+                            onDone = { currentPage = DevSheetPage.Network },
+                        )
+                    }
+                }
+
+                    DevSheetPage.NetworkDetail -> {
+                    val entry = selectedNetworkEntryId?.let(networkViewModel::entry)
+                    ModuleDetail(swipeToDismiss = swipeToDismiss) {
+                        ModuleDetailNavBar(
+                            title = entry?.let { "${it.method} ${it.path}" } ?: "Network",
+                            onBack = { currentPage = DevSheetPage.Network },
+                            onClose = { hideBottomSheet() },
+                        )
+
+                        if (entry == null) {
+                            Text(text = "No requests yet", color = MaterialTheme.colorScheme.onSurface)
+                        } else {
+                            NetworkDetailModule(
+                                modifier = Modifier.weight(1f),
+                                entry = entry,
+                                onCopy = ::copyToClipboard,
+                                onShare = {
+                                    shareText(
+                                        fileName = "awl-debug-request-${exportTimestamp(entry.startedAtMillis)}.txt",
+                                        text = entry.toShareText(),
+                                        chooserTitle = "Share",
+                                    )
+                                },
+                            )
+                        }
                     }
                 }
 
@@ -494,6 +611,16 @@ private fun DevSheetContent(
                                 text = "Logs",
                                 onCLick = { currentPage = DevSheetPage.Logs },
                                 active = logsActive,
+                            )
+                        }
+
+                        if (showNetworkModule) {
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                            val networkTracking by NetworkCollector.store.isTracking.collectAsStateWithLifecycle()
+                            NavItem(
+                                text = "Network",
+                                onCLick = { currentPage = DevSheetPage.Network },
+                                active = networkTracking,
                             )
                         }
 
@@ -688,6 +815,16 @@ private fun NavItem(
 }
 
 @Composable
+private fun rememberNetworkViewModel(): NetworkViewModel {
+    val context = LocalContext.current
+    return viewModel(
+        factory = viewModelFactory {
+            initializer { NetworkViewModel(NetworkCollector.store, DevStore(context)) }
+        }
+    )
+}
+
+@Composable
 private fun rememberDevViewModel(): DevViewModel {
     val context = LocalContext.current
     return viewModel(
@@ -746,5 +883,11 @@ private fun DevSheetDarkPreview() {
 }
 
 private enum class DevSheetPage {
-    Home, Logs, Performance, Permissions, Accessibility, Deeplinks, Session, TestCrashes
+    Home, Logs, Network, NetworkFilters, NetworkDetail, Performance, Permissions, Accessibility, Deeplinks, Session, TestCrashes;
+
+    val parent: DevSheetPage
+        get() = when (this) {
+            NetworkFilters, NetworkDetail -> Network
+            else -> Home
+        }
 }

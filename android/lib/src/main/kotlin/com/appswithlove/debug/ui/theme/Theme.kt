@@ -21,6 +21,7 @@ private val LocalAppColors = staticCompositionLocalOf {
         warning = Color.Unspecified,
         positive = Color.Unspecified,
         error = Color.Unspecified,
+        redirect = Color.Unspecified,
     )
 }
 
@@ -50,7 +51,8 @@ internal fun DevTheme(
             info = InfoDark,
             warning = WarningDark,
             positive = Positive,
-            error = ErrorDark
+            error = ErrorDark,
+            redirect = RedirectDark,
         )
     } else {
         AppColors(
@@ -60,7 +62,8 @@ internal fun DevTheme(
             info = InfoLight,
             warning = WarningLight,
             positive = Positive,
-            error = ErrorLight
+            error = ErrorLight,
+            redirect = RedirectLight,
         )
     }
 

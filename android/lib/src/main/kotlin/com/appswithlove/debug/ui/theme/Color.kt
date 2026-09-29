@@ -16,6 +16,8 @@ internal val ErrorDark = Color(0xFFDA3434)
 internal val IconSubtleLight = Color(0x85404242)
 internal val IconSubtleDark = Color(0x85ABB6B6)
 internal val Positive = Color(0xFF4CAF50)
+internal val RedirectLight = Color(0xFF2F6FDE)
+internal val RedirectDark = Color(0xFF5B8DEF)
 
 @Immutable
 internal data class AppColors(
@@ -26,4 +28,5 @@ internal data class AppColors(
     val warning: Color,
     val positive: Color,
     val error: Color,
+    val redirect: Color,
 )

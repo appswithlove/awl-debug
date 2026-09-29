@@ -24,6 +24,11 @@ class DevModulesConfigTest {
     }
 
     @Test
+    fun hasAnyModuleEnabled_onlyNetworkEnabled_isTrue() {
+        allDisabled().copy(showNetworkModule = true).hasAnyModuleEnabled shouldBe true
+    }
+
+    @Test
     fun hasAnyModuleEnabled_sessionEnabledButNoProviders_isFalse() {
         allDisabled().copy(showSessionModule = true).hasAnyModuleEnabled shouldBe false
     }
@@ -58,6 +63,7 @@ class DevModulesConfigTest {
         showFcmPushTokenModule = false,
         showTestCrashesModule = false,
         showSessionModule = false,
+        showNetworkModule = false,
     )
 
     private object FakeSessionProvider : SessionProvider {

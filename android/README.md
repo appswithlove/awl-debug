@@ -35,8 +35,8 @@ Made by [Apps with love](https://appswithlove.com).
 ## Features
 
 - Debug sheet opens and closes with a three-finger tap
-- Logs: Timber and HTTP entries, filter by query, export to file
-- HTTP inspector via an OkHttp interceptor
+- Logs: Timber and HTTP summary entries, filter by query, export to file
+- Network: every OkHttp request with redacted headers and bodies, filters, search, detail, cURL copy and export
 - Deeplinks: fire ad-hoc or preconfigured deeplinks from the sheet
 - Session: inspect, copy, edit or delete auth tokens per provider
 - FCM push token: display, refresh, revoke (you supply the source, no Firebase dependency)
@@ -152,7 +152,8 @@ DevSheet(
 
 | Field | Default | Module |
 |---|---|---|
-| `showLogsModule` | `true` | Logs (Timber + HTTP) |
+| `showLogsModule` | `true` | Logs (Timber + HTTP summaries) |
+| `showNetworkModule` | `true` | [Network](#http-logging), shown once a `DevHttpLogInterceptor` exists |
 | `showPerformanceModule` | `true` | Performance |
 | `showPermissionsModule` | `true` | Permissions |
 | `showAccessibilityModule` | `true` | Accessibility |
@@ -260,7 +261,7 @@ DevSheet(
 
 ### HTTP logging
 
-Add `DevHttpLogInterceptor` to your `OkHttpClient`. Every request is recorded with method, URL, status, duration, headers and bodies, and a one-line summary (tag `HTTP`) shows up in the Logs module:
+Add `DevHttpLogInterceptor` to your `OkHttpClient`. Every request is recorded in the Network module with method, URL, status, duration, headers and bodies, and a one-line summary (tag `HTTP`) shows up in the Logs module:
 
 ```kotlin
 val client = OkHttpClient.Builder()
@@ -297,6 +298,8 @@ DevHttpLogInterceptor(
 | `redactJsonFields` | `password`, `accessToken`, `refreshToken`, `idToken`, `clientSecret` |
 | `redactQueryParams` | `access_token`, `token`, `api_key` |
 | `slowRequestThresholdMs` | `1_000` |
+
+The Network module lists requests with time, method, status (colored by class), duration and host + path, and marks requests above `slowRequestThresholdMs` as "slow". Search matches URL, method and status. Filters by method, status class and host, the sort order, the recording switch and "Number of logs per session" are saved on the device. The detail view shows headers and bodies (JSON indented, "Raw" toggle) and offers "Copy URL", "Copy cURL", "Copy response" and "Share". "Export network logs" shares `awl-debug-network-<timestamp>.txt` with the current search and filters applied.
 
 Log messages from any source are also redacted: `Bearer <token>` and `Basic <credentials>` become `Bearer [REDACTED]` and `Basic [REDACTED]`.
 
