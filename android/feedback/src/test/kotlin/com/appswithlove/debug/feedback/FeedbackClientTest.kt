@@ -20,7 +20,7 @@ class FeedbackClientTest {
 
     private val server = MockWebServer()
     private val client = FeedbackClient()
-    private val screenshot = EncodedImage(bytes = byteArrayOf(1, 2, 3), mimeType = "image/jpeg", fileName = "screenshot.jpg")
+    private val screenshot = FeedbackPart(name = "screenshot", fileName = "screenshot.jpg", mimeType = "image/jpeg", bytes = byteArrayOf(1, 2, 3))
     private val device = DeviceInfo(osVersion = "16", deviceModel = "Google Pixel 9", locale = "de-CH")
     private val extra = mapOf("screen" to "RecipeDetail", "userId" to "x".repeat(600))
 
@@ -48,12 +48,13 @@ class FeedbackClientTest {
         server.enqueue(MockResponse().setResponseCode(201).setBody("""{"taskId":"abc"}"""))
         val metadata = buildMetadataJson(config, device, extra, Date(0))
 
-        val result = client.send(config, text = "Button is cut off", metadataJson = metadata, screenshot = screenshot)
+        val result = client.send(report(text = "Button is cut off", metadataJson = metadata))
 
         result shouldBe SendResult.Success(taskId = "abc")
         val request = server.takeRequest()
         request.path shouldBe "/v1/feedback"
         request.headers["X-App-Key"] shouldBe config.appKey
+        request.headers["Idempotency-Key"] shouldBe IDEMPOTENCY_KEY
         val boundary = request.headers["Content-Type"]!!.toMediaType().parameter("boundary")!!
         val parts = MultipartReader(request.body, boundary).use { reader ->
             generateSequence { reader.nextPart() }.associate { part ->
@@ -89,7 +90,7 @@ class FeedbackClientTest {
     fun mapsRateLimitWithRetryAfter() = runTest {
         server.enqueue(MockResponse().setResponseCode(429).addHeader("Retry-After", "30").setBody("""{"error":"rate_limited"}"""))
 
-        val result = client.send(config, text = "t", metadataJson = "{}", screenshot = screenshot)
+        val result = client.send(report())
 
         result shouldBe SendResult.Failure(SendError.RateLimited(retryAfterSeconds = 30))
     }
@@ -111,8 +112,21 @@ class FeedbackClientTest {
         val unreachable = config.copy(endpoint = server.url("/").toString())
         server.shutdown()
 
-        val result = client.send(unreachable, text = "t", metadataJson = "{}", screenshot = screenshot)
+        val result = client.send(report(endpoint = unreachable.endpoint))
 
         result shouldBe SendResult.Failure(SendError.Network)
+    }
+
+    private fun report(text: String = "t", metadataJson: String = "{}", endpoint: String = config.endpoint) = FeedbackReport(
+        idempotencyKey = IDEMPOTENCY_KEY,
+        endpoint = endpoint,
+        appKey = config.appKey,
+        text = text,
+        metadataJson = metadataJson,
+        parts = listOf(screenshot),
+    )
+
+    private companion object {
+        const val IDEMPOTENCY_KEY = "7f1d3a52-1c1e-4f7e-9a53-2b1f0c3d4e5f"
     }
 }

@@ -48,6 +48,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
@@ -58,6 +59,8 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
 import androidx.core.view.WindowCompat
+import com.appswithlove.debug.feedback.queue.FeedbackQueue
+import com.appswithlove.debug.feedback.queue.SubmitResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -84,7 +87,8 @@ internal fun FeedbackDialog(
     draft: FeedbackDraft,
     onCancel: () -> Unit,
     onSent: () -> Unit,
-    client: FeedbackClient = remember { FeedbackClient() },
+    onQueued: () -> Unit,
+    queue: FeedbackQueue = FeedbackQueue.shared(LocalContext.current),
 ) {
     val scope = rememberCoroutineScope()
     val markup = remember(draft) { MarkupState() }
@@ -123,9 +127,18 @@ internal fun FeedbackDialog(
             val image = withContext(Dispatchers.Default) {
                 encodeMarkedScreenshot(draft.screenshot.asAndroidBitmap(), markup.marks.toList())
             }
-            when (val result = client.send(config, text.trim(), draft.metadataJson, image)) {
-                is SendResult.Success -> onSent()
-                is SendResult.Failure -> sendState = SendState.Failed(result.error)
+            val report = FeedbackReport(
+                idempotencyKey = draft.idempotencyKey,
+                endpoint = config.endpoint,
+                appKey = config.appKey,
+                text = text.trim(),
+                metadataJson = draft.metadataJson,
+                parts = listOf(FeedbackPart("screenshot", image.fileName, image.mimeType, image.bytes)),
+            )
+            when (val result = queue.submit(report)) {
+                SubmitResult.Sent -> onSent()
+                SubmitResult.Queued -> onQueued()
+                is SubmitResult.Failed -> sendState = SendState.Failed(result.error)
             }
         }
     }
