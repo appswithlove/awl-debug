@@ -36,6 +36,8 @@ internal class ReportingBuffer(
         var sealedEndedAtMillis: Long? = null,
         var lastEntryMillis: Long? = null,
         var droppedCount: Long = 0,
+        /** Entries in `entries.txt`, not yet in a batch. */
+        var pendingLines: Long = 0,
     )
 
     private val sessionsDir = File(root, "sessions")
@@ -49,7 +51,12 @@ internal class ReportingBuffer(
         records.clear()
         sessionsDir.listFiles()?.forEach { dir ->
             val record = readRecord(dir)
-            if (record == null) dir.deleteRecursively() else records[record.session.id] = record
+            if (record == null) {
+                dir.deleteRecursively()
+            } else {
+                record.pendingLines = readEntries(record.session.id).size.toLong()
+                records[record.session.id] = record
+            }
         }
         nextSeq = sealedBatches().maxOfOrNull { it.name.substringBefore('_').toLongOrNull() ?: 0L }?.plus(1) ?: 0L
         totalBytes = root.walkTopDown().filter { it.isFile }.sumOf { it.length() }
@@ -59,6 +66,9 @@ internal class ReportingBuffer(
     val sizeBytes: Long get() = totalBytes
 
     fun droppedCount(sessionId: String): Long = records[sessionId]?.droppedCount ?: 0
+
+    /** Entries not yet accepted by the service: in sealed batches plus not yet sealed. */
+    fun pendingEntries(): Long = sealedBatches().sumOf { batchEntryCount(it) } + records.values.sumOf { it.pendingLines }
 
     fun putSession(session: ReportingSession) {
         val record = records.getOrPut(session.id) { Record(session) }
@@ -71,6 +81,7 @@ internal class ReportingBuffer(
         val line = "${kind.prefix}$timestampMillis\t$json\n".toByteArray(Charsets.UTF_8)
         FileOutputStream(entriesFile(sessionId), true).use { it.write(line) }
         totalBytes += line.size
+        record.pendingLines++
         record.lastEntryMillis = maxOf(record.lastEntryMillis ?: timestampMillis, timestampMillis)
         if (totalBytes > maxBytes) trim()
     }
@@ -88,6 +99,7 @@ internal class ReportingBuffer(
         val needsBatch = entries.isNotEmpty() || record.droppedCount > 0 || (endedAt != null && endedAt != record.sealedEndedAtMillis)
         val written = if (needsBatch) writeBatches(session, entries, record.droppedCount) else emptyList()
         record.droppedCount = 0
+        record.pendingLines = 0
         record.sealedEndedAtMillis = endedAt
         entries.lastOrNull()?.let { record.lastEntryMillis = maxOf(record.lastEntryMillis ?: 0L, it.timestampMillis) }
         val entriesFile = entriesFile(sessionId)
@@ -195,7 +207,7 @@ internal class ReportingBuffer(
             val oldestBatch = sealedBatches().firstOrNull()
             if (oldestBatch != null) {
                 val parts = oldestBatch.name.removeSuffix(BATCH_SUFFIX).split('_')
-                val count = parts.getOrNull(2)?.toLongOrNull() ?: 0L
+                val count = batchEntryCount(oldestBatch)
                 val owner = parts.getOrNull(1)?.let { records[it] } ?: records.values.maxByOrNull { it.session.startedAtMillis }
                 owner?.let { it.droppedCount += count; writeRecord(it) }
                 deleteBatch(oldestBatch)
@@ -210,6 +222,7 @@ internal class ReportingBuffer(
             file.writeText(lines.drop(drop).joinToString("") { "$it\n" })
             totalBytes -= before - file.length()
             record.droppedCount += drop
+            record.pendingLines = (lines.size - drop).toLong()
             writeRecord(record)
         }
     }
@@ -257,6 +270,9 @@ internal class ReportingBuffer(
     } catch (_: Exception) {
         null
     }
+
+    private fun batchEntryCount(batch: File): Long =
+        batch.name.removeSuffix(BATCH_SUFFIX).split('_').getOrNull(2)?.toLongOrNull() ?: 0L
 
     private fun JsonObject.long(key: String): Long? = (this[key] as? JsonPrimitive)?.jsonPrimitive?.longOrNull
 
