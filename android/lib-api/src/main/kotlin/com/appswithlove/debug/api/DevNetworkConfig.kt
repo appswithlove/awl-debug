@@ -13,6 +13,9 @@ package com.appswithlove.debug.api
  * ignores case, `_` and `-`, so `accessToken` also matches `access_token`.
  * @param redactQueryParams Query parameters whose values are redacted (case-insensitive).
  * @param slowRequestThresholdMs Requests that take longer are labelled as slow.
+ * @param streamContentTypes Additional response content types (`type/subtype`, case-insensitive)
+ * that are treated as streams and never read. `text/event-stream` and `application/x-ndjson` are
+ * always skipped.
  */
 data class DevNetworkConfig(
     val captureBodies: Boolean = true,
@@ -21,4 +24,5 @@ data class DevNetworkConfig(
     val redactJsonFields: Set<String> = setOf("password", "accessToken", "refreshToken", "idToken", "clientSecret"),
     val redactQueryParams: Set<String> = setOf("access_token", "token", "api_key"),
     val slowRequestThresholdMs: Long = 1_000,
+    val streamContentTypes: Set<String> = emptySet(),
 )
