@@ -19,6 +19,7 @@ public struct DebugView: View {
     @ObservedObject private var performance = AWLDebugTool.shared.performance
     
     @StateObject private var vm = DebugViewModel()
+    @AppStorage(Constants.UserDefaultsKey.versionOverlayVisible) private var isVersionOverlayVisible = true
 
     private var fcmToken: String?
     private let customView: (() -> any View)?
@@ -33,6 +34,15 @@ public struct DebugView: View {
             Form {
                 AboutView(internetAccesStatusIcon: networkReachabilityManager.connectionStatusIcon.name,
                           internetAccesStatusColor: networkReachabilityManager.connectionStatusIcon.color)
+
+                if VersionOverlayPresenter.shared.isAvailable {
+                    Section {
+                        Toggle(LS.VersionOverlay.toggle, isOn: $isVersionOverlayVisible)
+                            .onChange(of: isVersionOverlayVisible) { _ in
+                                VersionOverlayPresenter.shared.update()
+                            }
+                    }
+                }
                 
                 if customView != nil {
                     AnyView(customView!())
