@@ -23,6 +23,11 @@ struct FeedbackView: View {
             VStack(spacing: 12) {
                 ScreenshotMarkup(session: session, isKeyboardUp: isTextFocused, dismissKeyboard: dismissKeyboard)
                 DescriptionField(session: session, isFocused: $isTextFocused)
+                if session.canAttachLogs {
+                    Toggle("Attach logs", isOn: $session.attachLogs)
+                        .font(.subheadline)
+                        .disabled(session.phase == .sending || session.isFinished)
+                }
                 if case let .failed(message) = session.phase {
                     FailureRow(message: message, retry: send)
                 }

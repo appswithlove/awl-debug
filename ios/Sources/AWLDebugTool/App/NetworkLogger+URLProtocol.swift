@@ -105,7 +105,7 @@ class AWLDebugURLProtocol: URLProtocol {
                     newRequest.httpBodyStream = upload.stream
                     currentRequest?.forwardedUpload = upload
                 case .failed(let error):
-                    currentRequest?.errorDescription = error.localizedDescription
+                    currentRequest?.recordError(error)
                     client?.urlProtocol(self, didFailWithError: error)
                     return
                 }
@@ -223,7 +223,7 @@ extension AWLDebugURLProtocol: URLSessionDataDelegate {
     public func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
         performOnClientThread { [self] in
             if let error = error {
-                currentRequest?.errorDescription = error.localizedDescription
+                currentRequest?.recordError(error)
                 client?.urlProtocol(self, didFailWithError: error)
             } else {
                 client?.urlProtocolDidFinishLoading(self)
@@ -249,7 +249,7 @@ extension AWLDebugURLProtocol: URLSessionDataDelegate {
     public func urlSession(_ session: URLSession, didBecomeInvalidWithError error: Error?) {
         guard let error = error else { return }
         performOnClientThread { [self] in
-            currentRequest?.errorDescription = error.localizedDescription
+            currentRequest?.recordError(error)
             client?.urlProtocol(self, didFailWithError: error)
         }
     }
@@ -347,6 +347,7 @@ extension AWLDebugURLProtocol {
         var stausCode: Int
         var responseHeaders: [NetworkLog.Header] = []
         var errorDescription: String?
+        var errorCode: String?
         var duration: Int?
         
         private let redactor: NetworkRedactor
@@ -373,6 +374,11 @@ extension AWLDebugURLProtocol {
                 return nil
             }
             return redactor.captureLimit(contentType: contentType)
+        }
+        
+        func recordError(_ error: Error) {
+            errorDescription = error.localizedDescription
+            errorCode = NetworkLog.errorCode(for: error)
         }
         
         func setRequestBody(_ data: Data) {
@@ -415,6 +421,7 @@ extension AWLDebugURLProtocol {
             log.requestBytes = forwardedUpload?.totalBytes ?? requestBody?.count ?? 0
             log.responseBytes = responseBytes
             log.errorDescription = errorDescription
+            log.errorCode = errorCode
             
             if redactor.config.captureBodies {
                 let requestContentType = Self.value(of: "Content-Type", in: requestHeaders)

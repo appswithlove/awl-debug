@@ -1,0 +1,19 @@
+# AWL Debug logs
+app: 2.3.0 (1024) · staging · internal
+device: android 16 · Google Pixel 9 · de-CH
+generated: 2026-09-29T10:15:31.000+02:00
+filters: severity=ERROR,WARN search="checkout"
+
+## Logs (2 of 500)
+2026-09-29T10:15:30.123+02:00 | ERROR | Auth | failed
+    java.lang.IllegalStateException: x
+        at com.example.Auth.login(Auth.kt:42)
+2026-09-29T10:15:30.456+02:00 | WARN | - | retrying
+
+## Network (2 of 50)
+2026-09-29T10:15:29.001+02:00 POST 401 342ms https://api.example.ch/v1/login
+    > content-type: application/json
+    > authorization: [REDACTED]
+    < content-type: application/json
+2026-09-29T10:15:29.500+02:00 GET - 30000ms https://cdn.example.ch/img/42.jpg
+    ! timeout

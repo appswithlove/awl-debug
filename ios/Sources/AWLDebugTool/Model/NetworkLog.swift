@@ -22,6 +22,8 @@ struct NetworkLog: Codable, Identifiable {
     var requestBytes: Int = 0
     var responseBytes: Int = 0
     var errorDescription: String?
+    /// Short failure code for exports: `timeout`, `dns`, `tls`, `cancelled` or `connection`.
+    var errorCode: String?
     var redactedCount: Int = 0
     
     struct Header: Codable, Hashable {
