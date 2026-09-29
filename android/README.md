@@ -278,7 +278,7 @@ Values are redacted on the device before anything is stored:
 - JSON fields at any depth, form fields and multipart fields in `redactJsonFields`. Matching ignores case, `_` and `-`.
 - Query parameters in `redactQueryParams`.
 
-Bodies are cut off after `maxBodyBytes` (default 256 KiB), after redaction. Only text bodies are stored; binary content, files in multipart bodies, one-shot and duplex request bodies, event streams and bodies over 1 MiB are replaced with a short placeholder. `captureBodies = false` stores no bodies at all.
+Bodies are cut off after `maxBodyBytes` (default 256 KiB), after redaction. Only text bodies are stored; binary content, files in multipart bodies, one-shot and duplex request bodies, streams (`text/event-stream`, `application/x-ndjson` and `streamContentTypes`) and bodies over 1 MiB are replaced with a short placeholder. `captureBodies = false` stores no bodies at all.
 
 ```kotlin
 DevHttpLogInterceptor(
@@ -298,6 +298,7 @@ DevHttpLogInterceptor(
 | `redactJsonFields` | `password`, `accessToken`, `refreshToken`, `idToken`, `clientSecret` |
 | `redactQueryParams` | `access_token`, `token`, `api_key` |
 | `slowRequestThresholdMs` | `1_000` |
+| `streamContentTypes` | empty (`text/event-stream` and `application/x-ndjson` are always skipped) |
 
 The Network module lists requests with time, method, status (colored by class), duration and host + path, and marks requests above `slowRequestThresholdMs` as "slow". Search matches URL, method and status. Filters by method, status class and host, the sort order, the recording switch and "Number of logs per session" are saved on the device. The detail view shows headers and bodies (JSON indented, "Raw" toggle) and offers "Copy URL", "Copy cURL", "Copy response" and "Share". "Export network logs" shares `awl-debug-network-<timestamp>.txt` with the current search and filters applied.
 

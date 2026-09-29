@@ -190,6 +190,19 @@ class DevHttpLogInterceptorTest {
     }
 
     @Test
+    fun intercept_ndjsonAndConfiguredStreamTypes_areNotPeeked() {
+        server.enqueue(MockResponse().setHeader("Content-Type", "application/x-ndjson").setBody("{\"a\":1}\n"))
+        server.enqueue(MockResponse().setHeader("Content-Type", "Application/Custom-Stream").setBody("chunk"))
+        val config = DevNetworkConfig(streamContentTypes = setOf("application/custom-stream"))
+
+        val ndjson = execute(Request.Builder().url(server.url("/ndjson")).build(), config)
+        val custom = execute(Request.Builder().url(server.url("/custom")).build(), config)
+
+        ndjson.responseBody!!.text shouldBe "(stream, not captured)"
+        custom.responseBody!!.text shouldBe "(stream, not captured)"
+    }
+
+    @Test
     fun intercept_multipart_redactsFieldsAndSummarizesFiles() {
         server.enqueue(MockResponse())
         val multipart = MultipartBody.Builder("boundary")

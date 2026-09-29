@@ -20,6 +20,9 @@ internal class BodyCapture(
     private val redactor: NetworkRedactor,
 ) {
 
+    private val streamContentTypes = (ALWAYS_STREAM_CONTENT_TYPES + config.streamContentTypes)
+        .mapTo(mutableSetOf()) { it.trim().lowercase() }
+
     fun request(body: RequestBody?, counter: NetworkRedactor.Counter): CapturedBody? {
         if (body == null) return null
         val contentType = body.contentType()
@@ -46,7 +49,7 @@ internal class BodyCapture(
             return null
         }
         if (!config.captureBodies) return placeholder(NOT_CAPTURED, contentType)
-        if (response.code == 101 || contentType?.let { "${it.type}/${it.subtype}" } == "text/event-stream") {
+        if (response.code == 101 || contentType?.let { "${it.type}/${it.subtype}" } in streamContentTypes) {
             return placeholder(STREAM, contentType)
         }
         if (contentLength > MAX_READ_BYTES) return placeholder(tooLarge(contentLength), contentType)
@@ -183,6 +186,7 @@ internal class BodyCapture(
         const val STREAM = "(stream, not captured)"
         const val UNPARSABLE_JSON = "(unparsable JSON, not shown)"
 
+        private val ALWAYS_STREAM_CONTENT_TYPES = setOf("text/event-stream", "application/x-ndjson")
         private val TEXT_APPLICATION_SUBTYPES = setOf("json", "xml", "x-www-form-urlencoded", "graphql")
         private val FILE_NAME_REGEX = Regex("""filename="([^"]*)"""")
         private val NAME_REGEX = Regex("""\bname="([^"]*)"""")
