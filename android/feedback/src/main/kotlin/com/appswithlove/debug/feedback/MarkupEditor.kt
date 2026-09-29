@@ -39,6 +39,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
@@ -63,7 +64,8 @@ import kotlin.math.hypot
 
 private val MIN_TOUCH_TARGET = 48.dp
 private val SWATCH_SIZE = 28.dp
-private const val MIN_ARROW_LENGTH_PX = 24f
+private const val MIN_DRAG_LENGTH_PX = 24f
+private const val DISABLED_ALPHA = 0.38f
 
 /** Marks, tool and color of the markup screen; the mark in progress is shown live but only committed on release. */
 @Stable
@@ -78,6 +80,7 @@ internal class MarkupState {
         inProgress = when (tool) {
             MarkupTool.Pen -> Mark.Stroke(listOf(point), color)
             MarkupTool.Arrow -> Mark.Arrow(point, point, color)
+            MarkupTool.Redact -> Mark.Redact(point, point)
         }
     }
 
@@ -85,15 +88,24 @@ internal class MarkupState {
         inProgress = when (val mark = inProgress) {
             is Mark.Stroke -> mark.copy(points = mark.points + point)
             is Mark.Arrow -> mark.copy(end = point)
+            is Mark.Redact -> mark.copy(end = point)
             null -> null
         }
     }
 
-    /** Commits the mark; an arrow shorter than [MIN_ARROW_LENGTH_PX] on a [width] x [height] canvas is dropped as a slip. */
+    /**
+     * Commits the mark; an arrow or redact rectangle whose diagonal is shorter than [MIN_DRAG_LENGTH_PX]
+     * on a [width] x [height] canvas is dropped as a slip.
+     */
     fun end(width: Float, height: Float) {
         val mark = inProgress ?: return
         inProgress = null
-        if (mark is Mark.Arrow && hypot((mark.end.x - mark.start.x) * width, (mark.end.y - mark.start.y) * height) < MIN_ARROW_LENGTH_PX) return
+        val drag = when (mark) {
+            is Mark.Arrow -> mark.start to mark.end
+            is Mark.Redact -> mark.start to mark.end
+            is Mark.Stroke -> null
+        }
+        if (drag != null && hypot((drag.second.x - drag.first.x) * width, (drag.second.y - drag.first.y) * height) < MIN_DRAG_LENGTH_PX) return
         marks.add(mark)
     }
 
@@ -208,6 +220,11 @@ private fun MarkupCanvas(
                 Canvas(modifier = Modifier.fillMaxSize()) {
                     val style = Stroke(width = STROKE_WIDTH_FRACTION * size.width, cap = StrokeCap.Round, join = StrokeJoin.Round)
                     (state.marks + listOfNotNull(state.inProgress)).forEach { mark ->
+                        if (mark is Mark.Redact) {
+                            val area = mark.rect(size.width, size.height)
+                            drawRect(color = Color(mark.color.argb), topLeft = area.topLeft, size = area.size)
+                            return@forEach
+                        }
                         mark.polylines(size.width, size.height).filter { it.isNotEmpty() }.forEach { line ->
                             val path = Path().apply {
                                 moveTo(line.first().x, line.first().y)
@@ -242,7 +259,13 @@ private fun MarkupToolbar(
         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
         Column(modifier = Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             MarkupColor.entries.forEach { color ->
-                ColorSwatch(color = color, selected = state.color == color, enabled = enabled, onSelect = { state.color = color })
+                // Redact is always black; the colors apply to Pen and Arrow only.
+                ColorSwatch(
+                    color = color,
+                    selected = state.color == color,
+                    enabled = enabled && state.tool != MarkupTool.Redact,
+                    onSelect = { state.color = color },
+                )
             }
         }
         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
@@ -265,6 +288,7 @@ private fun ToolToggle(
     val (icon, label) = when (tool) {
         MarkupTool.Pen -> R.drawable.feedback_ic_edit to R.string.feedback_tool_pen
         MarkupTool.Arrow -> R.drawable.feedback_ic_arrow to R.string.feedback_tool_arrow
+        MarkupTool.Redact -> R.drawable.feedback_ic_redact to R.string.feedback_tool_redact
     }
     IconToggleButton(
         checked = selected,
@@ -299,6 +323,7 @@ private fun ColorSwatch(
         Box(
             modifier = Modifier
                 .size(SWATCH_SIZE + 8.dp)
+                .alpha(if (enabled) 1f else DISABLED_ALPHA)
                 .border(
                     width = 3.dp,
                     color = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent,

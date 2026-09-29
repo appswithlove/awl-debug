@@ -33,6 +33,7 @@ internal fun buildMetadataJson(
     device: DeviceInfo,
     extra: Map<String, String>,
     timestamp: Date,
+    reporter: FeedbackReporter? = config.reporter,
 ): String {
     // The service rejects the whole report when a limit is exceeded, so everything is capped here.
     val cappedExtra = extra.entries
@@ -54,12 +55,12 @@ internal fun buildMetadataJson(
         cappedExtra[SCREEN_KEY]?.let { put(SCREEN_KEY, it.capped()) }
         put("timestamp", isoUtc(timestamp))
         put("extra", JSONObject(cappedExtra))
-        config.reporter?.takeIf { it.name.isNotBlank() }?.let { reporter ->
+        reporter?.takeIf { it.name.isNotBlank() }?.let { reporter ->
             put(
                 "reporter",
                 JSONObject().apply {
-                    put("name", reporter.name.capped())
-                    reporter.email?.takeIf { it.isNotBlank() }?.let { put("email", it.capped()) }
+                    put("name", reporter.name.trim().capped())
+                    reporter.email?.trim()?.takeIf { it.isValidEmail() }?.let { put("email", it) }
                 },
             )
         }
@@ -67,6 +68,12 @@ internal fun buildMetadataJson(
 }
 
 private fun String.capped(): String = take(MAX_STRING_LENGTH)
+
+private const val MAX_EMAIL_LENGTH = 254
+private val EMAIL_PATTERN = Regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")
+
+/** Same rule as the service; an address it would reject is left out instead of failing the report. */
+internal fun String.isValidEmail(): Boolean = length <= MAX_EMAIL_LENGTH && EMAIL_PATTERN.matches(this)
 
 private fun isoUtc(date: Date): String = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
     .apply { timeZone = TimeZone.getTimeZone("UTC") }

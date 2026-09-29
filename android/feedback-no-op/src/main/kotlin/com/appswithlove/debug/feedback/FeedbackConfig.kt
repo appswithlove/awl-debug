@@ -10,7 +10,7 @@ import com.appswithlove.debug.api.AwlDistribution
  * @param extraMetadata Called when a report starts; a `screen` entry becomes the report's current screen.
  * @param shakeToReport Shaking the device starts a report while the app is in the foreground.
  * @param distribution Sent as `distribution` when set. Leave `null` for services that do not accept the field yet.
- * @param reporter Sent as `reporter` when set. Leave `null` for services that do not accept the field yet.
+ * @param reporter Prefills who sends the report. Without it the first report asks for a name (email optional); testers can change it and the entry is kept on the device.
  */
 data class FeedbackConfig(
     val endpoint: String,
