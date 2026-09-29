@@ -831,19 +831,19 @@ private fun DevSheetContent(
                             )
                         }
 
-                        if (modulesConfig.showTestCrashesModule) {
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
-                            NavItem(
-                                text = "Test Crashes",
-                                onCLick = { currentPage = DevSheetPage.TestCrashes },
-                            )
-                        }
-
                         if (modulesConfig.showClearAppDataModule) {
                             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                             NavItem(
                                 text = "Clear App Data",
                                 onCLick = { currentPage = DevSheetPage.ClearAppData },
+                            )
+                        }
+
+                        if (modulesConfig.showTestCrashesModule) {
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                            NavItem(
+                                text = "Test Crashes",
+                                onCLick = { currentPage = DevSheetPage.TestCrashes },
                             )
                         }
 
