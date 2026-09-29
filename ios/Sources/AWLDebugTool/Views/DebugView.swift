@@ -36,6 +36,8 @@ public struct DebugView: View {
                 AboutView(internetAccesStatusIcon: networkReachabilityManager.connectionStatusIcon.name,
                           internetAccesStatusColor: networkReachabilityManager.connectionStatusIcon.color)
 
+                RemoteReportingView(state: RemoteReporting.shared.panel)
+
                 if VersionOverlayPresenter.shared.isAvailable {
                     Section {
                         Toggle(LS.VersionOverlay.toggle, isOn: $isVersionOverlayVisible)

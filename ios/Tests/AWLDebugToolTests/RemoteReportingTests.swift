@@ -29,17 +29,35 @@ final class RemoteReportingTests: XCTestCase {
     // MARK: - Helpers
 
     private func makeReporter(config: RemoteReportingConfig? = nil, maxBytes: Int = ReportingBuffer.defaultMaxBytes,
-                              appUserId: String? = nil, samplesMetrics: Bool = false) -> RemoteReporter {
+                              appUserId: String? = nil, samplesMetrics: Bool = false, uploads: Bool = false) -> RemoteReporter {
         let buffer = ReportingBuffer(root: directory, maxBytes: maxBytes) { [unowned self] in now }
         let reporter = RemoteReporter(config: config ?? self.config, buffer: buffer, appUserId: appUserId,
                                       now: { [unowned self] in now }, uptime: { [unowned self] in uptime },
-                                      samplesMetrics: samplesMetrics)
+                                      samplesMetrics: samplesMetrics, uploads: uploads)
         reporter.start()
         return reporter
     }
 
     private func drain(_ reporter: RemoteReporter) {
         reporter.queue.sync {}
+    }
+
+    private func flushAndWait(_ reporter: RemoteReporter, ignoringBackoff: Bool = true) {
+        let done = expectation(description: "flushed")
+        reporter.flush(ignoringBackoff: ignoringBackoff) { done.fulfill() }
+        wait(for: [done], timeout: 15)
+    }
+
+    private func uploadState(_ reporter: RemoteReporter) -> ReportingUploader.State {
+        reporter.queue.sync { reporter.uploader?.state ?? .init() }
+    }
+
+    private func uploadingReporter(to server: LocalHTTPServer) -> RemoteReporter {
+        var config = config
+        config.endpoint = server.url("/")
+        let reporter = makeReporter(config: config, uploads: true)
+        reporter.onForeground()
+        return reporter
     }
 
     /// Sealed batches as JSON objects, oldest first; each is also written for the schema check.
@@ -272,6 +290,124 @@ final class RemoteReportingTests: XCTestCase {
         XCTAssertEqual(reporting.status, .storeBuild)
         XCTAssertNil(reporting.reporter)
         XCTAssertFalse(FileManager.default.fileExists(atPath: directory.path))
+    }
+
+    // MARK: - Transport
+
+    func testUploadRetriesTheSameBatchUntilAccepted() throws {
+        let server = try LocalHTTPServer()
+        defer { server.stop() }
+        let path = "/v1/sessions/batch"
+        server.route(path, .init(status: "503 Service Unavailable"))
+        let reporter = uploadingReporter(to: server)
+        reporter.record(metric(at: now))
+        flushAndWait(reporter)
+
+        XCTAssertEqual(server.hitCount(path), 1)
+        let headers = server.receivedHeaders(path)
+        XCTAssertEqual(headers["x-app-key"], "fbk_test")
+        XCTAssertEqual(headers["content-encoding"], "gzip")
+        XCTAssertEqual(headers["content-type"], "application/json")
+        let first = try XCTUnwrap(server.receivedBody(path))
+        let batch = try XCTUnwrap(JSONSerialization.jsonObject(with: try XCTUnwrap(gunzip(first))) as? [String: Any])
+        XCTAssertEqual((batch["metrics"] as? [Any])?.count, 1)
+        XCTAssertEqual(uploadState(reporter).pendingCount, 1)
+
+        // Within the backoff only an explicit flush sends; a 429 with Retry-After blocks that, too.
+        server.route(path, .init(status: "429 Too Many Requests", headers: [("Retry-After", "120")]))
+        flushAndWait(reporter, ignoringBackoff: false)
+        XCTAssertEqual(server.hitCount(path), 1)
+        flushAndWait(reporter)
+        XCTAssertEqual(server.hitCount(path), 2)
+        flushAndWait(reporter)
+        XCTAssertEqual(server.hitCount(path), 2, "Retry-After is respected")
+
+        uptime += 121
+        server.route(path, .init(body: Data(#"{"status":"accepted"}"#.utf8)))
+        flushAndWait(reporter)
+        XCTAssertEqual(server.hitCount(path), 3)
+        XCTAssertEqual(server.receivedBody(path), first, "a retry sends the same bytes and batchId")
+        XCTAssertTrue(reporter.queue.sync { reporter.buffer.sealedBatches().isEmpty })
+        let state = uploadState(reporter)
+        XCTAssertEqual(state.pendingCount, 0)
+        XCTAssertNotNil(state.lastSentAt)
+        XCTAssertNil(state.problem)
+    }
+
+    func testRejectedBatchIsDroppedAndForbiddenStopsReporting() throws {
+        let server = try LocalHTTPServer()
+        defer { server.stop() }
+        let path = "/v1/sessions/batch"
+        server.route(path, .init(status: "422 Unprocessable Entity", body: Data(#"{"error":"distribution_not_allowed"}"#.utf8)))
+        let reporter = uploadingReporter(to: server)
+        reporter.record(metric(at: now))
+        flushAndWait(reporter)
+        XCTAssertEqual(server.hitCount(path), 1)
+        XCTAssertEqual(uploadState(reporter).problem, .rejected(status: 422))
+        XCTAssertEqual(uploadState(reporter).pendingCount, 0, "a rejected batch is dropped, not retried")
+
+        server.route(path, .init(status: "403 Forbidden", body: Data(#"{"error":"reporting_disabled"}"#.utf8)))
+        reporter.record(metric(at: now + 5_000))
+        flushAndWait(reporter)
+        XCTAssertEqual(server.hitCount(path), 2)
+        XCTAssertEqual(uploadState(reporter).problem, .disabledByServer)
+        XCTAssertTrue(uploadState(reporter).isStopped)
+
+        server.route(path, .init())
+        reporter.record(metric(at: now + 10_000))
+        flushAndWait(reporter)
+        XCTAssertEqual(server.hitCount(path), 2, "nothing is sent until the next app start")
+        XCTAssertEqual(uploadState(reporter).pendingCount, 1, "nothing new is recorded")
+    }
+
+    func testOwnRequestsAreNeverCaptured() throws {
+        URLSessionConfiguration.setupSwizzle()
+        let classes = ReportingUploader.sessionConfiguration().protocolClasses ?? []
+        XCTAssertFalse(classes.contains { ObjectIdentifier($0) == ObjectIdentifier(AWLDebugURLProtocol.self) })
+        let request = NSMutableURLRequest(url: URL(string: "https://feedback.example.ch/v1/sessions/batch")!)
+        URLProtocol.setProperty(true, forKey: AWLDebugURLProtocol.Constants.SkipCaptureKey, in: request)
+        XCTAssertFalse(AWLDebugURLProtocol.canInit(with: request as URLRequest))
+
+        let server = try LocalHTTPServer()
+        defer { server.stop() }
+        let reporter = uploadingReporter(to: server)
+        reporter.record(metric(at: now))
+        flushAndWait(reporter)
+        XCTAssertEqual(server.hitCount("/v1/sessions/batch"), 1)
+        let captured = expectation(description: "main")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { captured.fulfill() }
+        wait(for: [captured], timeout: 2)
+        XCTAssertFalse(AWLDebugTool.shared.networkLogger.networkTraffic.contains { $0.url.contains("/v1/sessions/batch") })
+    }
+
+    func testSendingSwitchOffRecordsAndSendsNothing() throws {
+        let server = try LocalHTTPServer()
+        defer { server.stop() }
+        let reporter = uploadingReporter(to: server)
+        reporter.setEnabled(false)
+        reporter.record(metric(at: now))
+        flushAndWait(reporter)
+        XCTAssertEqual(server.hitCount("/v1/sessions/batch"), 0)
+
+        reporter.setEnabled(true)
+        reporter.record(metric(at: now + 5_000))
+        flushAndWait(reporter)
+        XCTAssertEqual(server.hitCount("/v1/sessions/batch"), 1)
+        let body = try XCTUnwrap(server.receivedBody("/v1/sessions/batch").flatMap(gunzip))
+        let batch = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
+        XCTAssertEqual((batch["metrics"] as? [Any])?.count, 1)
+    }
+
+    func testRetryAfterParsing() {
+        XCTAssertEqual(ReportingUploader.retryAfterSeconds("120"), 120)
+        let date = Date().addingTimeInterval(60)
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(identifier: "GMT")
+        formatter.dateFormat = "EEE, dd MMM yyyy HH:mm:ss 'GMT'"
+        let seconds = ReportingUploader.retryAfterSeconds(formatter.string(from: date))
+        XCTAssertEqual(seconds ?? 0, 60, accuracy: 2)
+        XCTAssertNil(ReportingUploader.retryAfterSeconds("soon"))
     }
 
     func testSamplerMeasuresCPUAndMemory() throws {

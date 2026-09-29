@@ -251,4 +251,29 @@ enum LS {
             count == 0 ? "\(freeze): none" : "\(freeze): \(count)× (longest \(longestMs) ms)"
         }
     }
+
+    struct Reporting {
+        static let title = "Remote reporting"
+        static let on = "On"
+        static let off = "Off"
+        static let toggle = "Send session data"
+        static let flushNow = "Flush now"
+        static let sessionId = "Session ID"
+        static let copied = "Copied"
+        static let disabledByServer = "Reporting is disabled for this app in the dashboard."
+        static let disabledStore = "Reporting is off in store builds."
+        static let unauthorized = "Invalid or disabled app key."
+
+        static func lastFlush(_ time: String) -> String {
+            "Last sent \(time)"
+        }
+
+        static func pending(_ count: Int) -> String {
+            "\(count) pending"
+        }
+
+        static func rejected(_ status: Int) -> String {
+            "The dashboard rejected a batch (\(status))."
+        }
+    }
 }
