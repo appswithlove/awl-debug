@@ -1,0 +1,80 @@
+public final class com/appswithlove/debug/domain/model/DevSettings {
+	public static final field $stable I
+	public static final field INSTANCE Lcom/appswithlove/debug/domain/model/DevSettings;
+	public final fun activateDevTool (Landroid/content/Context;ZLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun isDevToolActivated (Landroid/content/Context;)Lkotlinx/coroutines/flow/Flow;
+}
+
+public final class com/appswithlove/debug/ui/dev/log/DevHttpLogInterceptor : okhttp3/Interceptor {
+	public static final field $stable I
+	public static final field Companion Lcom/appswithlove/debug/ui/dev/log/DevHttpLogInterceptor$Companion;
+	public static final field DEFAULT_MAX_BODY_BYTES J
+	public fun <init> ()V
+	public fun <init> (Lcom/appswithlove/debug/ui/dev/log/DevLogCollector;)V
+	public fun <init> (Lcom/appswithlove/debug/ui/dev/log/DevLogCollector;Ljava/util/Set;)V
+	public fun <init> (Lcom/appswithlove/debug/ui/dev/log/DevLogCollector;Ljava/util/Set;J)V
+	public synthetic fun <init> (Lcom/appswithlove/debug/ui/dev/log/DevLogCollector;Ljava/util/Set;JILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun intercept (Lokhttp3/Interceptor$Chain;)Lokhttp3/Response;
+}
+
+public final class com/appswithlove/debug/ui/dev/log/DevHttpLogInterceptor$Companion {
+}
+
+public abstract interface class com/appswithlove/debug/ui/dev/log/DevLogCollector {
+	public abstract fun log (Lcom/appswithlove/debug/ui/dev/log/Log;)V
+	public abstract fun setMaxSize (I)V
+	public abstract fun setTrackLogs (Z)V
+}
+
+public final class com/appswithlove/debug/ui/dev/log/DevLogSeverity : java/lang/Enum {
+	public static final field DEBUG Lcom/appswithlove/debug/ui/dev/log/DevLogSeverity;
+	public static final field ERROR Lcom/appswithlove/debug/ui/dev/log/DevLogSeverity;
+	public static final field INFO Lcom/appswithlove/debug/ui/dev/log/DevLogSeverity;
+	public static final field WARN Lcom/appswithlove/debug/ui/dev/log/DevLogSeverity;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/appswithlove/debug/ui/dev/log/DevLogSeverity;
+	public static fun values ()[Lcom/appswithlove/debug/ui/dev/log/DevLogSeverity;
+}
+
+public final class com/appswithlove/debug/ui/dev/log/DevLogTree : timber/log/Timber$Tree {
+	public static final field $stable I
+	public fun <init> ()V
+	public fun <init> (Lcom/appswithlove/debug/ui/dev/log/DevLogCollector;)V
+	public synthetic fun <init> (Lcom/appswithlove/debug/ui/dev/log/DevLogCollector;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+}
+
+public final class com/appswithlove/debug/ui/dev/log/Log {
+	public static final field $stable I
+	public fun <init> (Lcom/appswithlove/debug/ui/dev/log/DevLogSeverity;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Throwable;)V
+	public synthetic fun <init> (Lcom/appswithlove/debug/ui/dev/log/DevLogSeverity;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Throwable;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/appswithlove/debug/ui/dev/log/DevLogSeverity;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Ljava/lang/Throwable;
+	public final fun copy (Lcom/appswithlove/debug/ui/dev/log/DevLogSeverity;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Throwable;)Lcom/appswithlove/debug/ui/dev/log/Log;
+	public static synthetic fun copy$default (Lcom/appswithlove/debug/ui/dev/log/Log;Lcom/appswithlove/debug/ui/dev/log/DevLogSeverity;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Throwable;ILjava/lang/Object;)Lcom/appswithlove/debug/ui/dev/log/Log;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getMessage ()Ljava/lang/String;
+	public final fun getSeverity ()Lcom/appswithlove/debug/ui/dev/log/DevLogSeverity;
+	public final fun getTag ()Ljava/lang/String;
+	public final fun getThrowable ()Ljava/lang/Throwable;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/appswithlove/debug/ui/dev/log/LogCollector {
+	public static final field $stable I
+	public static final field INSTANCE Lcom/appswithlove/debug/ui/dev/log/LogCollector;
+	public final fun getDevLogCollector ()Lcom/appswithlove/debug/ui/dev/log/DevLogCollector;
+	public final fun getLogHistory ()Lcom/appswithlove/debug/ui/dev/log/LogHistory;
+}
+
+public final class com/appswithlove/debug/ui/dev/log/LogHistory {
+	public static final field $stable I
+	public fun <init> ()V
+}
+
+public final class com/appswithlove/debug/ui/dev/sheet/DevSheetKt {
+	public static final fun DevSheet (Landroidx/compose/ui/Modifier;Lcom/appswithlove/debug/api/DevConfig;Lcom/appswithlove/debug/api/DevModulesConfig;Lkotlin/jvm/functions/Function3;ZZZLkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;II)V
+}
+
