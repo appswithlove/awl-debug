@@ -1,6 +1,5 @@
 package com.appswithlove.debug.ui.component
 
-import android.content.Context
 import android.content.Intent
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -46,20 +45,18 @@ internal fun ShareLogsButton(
             scope.launch(Dispatchers.IO) {
                 try {
                     val logs = logHistory.logEntries.value
-                    val logFile = File(context.filesDir, filename)
+                    val exportDir = File(context.cacheDir, "awl-debug").apply { mkdirs() }
+                    val logFile = File(exportDir, filename)
 
-                    context.openFileOutput(logFile.name, Context.MODE_PRIVATE)
-                        .use { outputStream ->
-                            outputStream.writer(StandardCharsets.UTF_8).use { writer ->
-                                logs.forEach { logEntry ->
-                                    writer.write(logEntry.toExportString())
-                                    writer.write("\n")
-                                    writer.write("\n")
-                                }
-                            }
+                    logFile.writer(StandardCharsets.UTF_8).use { writer ->
+                        logs.forEach { logEntry ->
+                            writer.write(logEntry.toExportString())
+                            writer.write("\n")
+                            writer.write("\n")
                         }
+                    }
 
-                    val authority = "${context.packageName}.fileprovider"
+                    val authority = "${context.packageName}.awldebug.fileprovider"
                     val logUri = FileProvider.getUriForFile(context, authority, logFile)
 
                     val shareIntent = Intent(Intent.ACTION_SEND).apply {
