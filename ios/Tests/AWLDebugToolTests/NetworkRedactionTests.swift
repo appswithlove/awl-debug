@@ -47,6 +47,20 @@ final class NetworkRedactionTests: XCTestCase {
         XCTAssertEqual(count, 3)
     }
     
+    func testDefaultFieldsInJSONAndQuery() {
+        let keys = ["password", "secret", "token", "access_token", "refresh-token", "ID_TOKEN", "credential", "api_key", "clientSecret"]
+        let json = "{" + keys.map { "\"\($0)\":\"v\"" }.joined(separator: ",") + #","tokenType":"Bearer"}"#
+        let (body, bodyCount) = redact(body: json, contentType: "application/json")
+        XCTAssertEqual(bodyCount, keys.count)
+        XCTAssertTrue(body?.text.contains(#""tokenType":"Bearer""#) == true)
+        
+        var queryCount = 0
+        let url = redactor.redact(url: "https://api.example.com/?" + keys.map { "\($0)=v" }.joined(separator: "&") + "&page=2", count: &queryCount)
+        XCTAssertEqual(queryCount, keys.count)
+        XCTAssertTrue(url.hasSuffix("&page=2"))
+        XCTAssertFalse(url.contains("=v"))
+    }
+    
     func testFormBody() {
         let (body, count) = redact(body: "user=a&password=p%20w&access_token=t", contentType: "application/x-www-form-urlencoded")
         XCTAssertEqual(body?.text, "user=a&password=[REDACTED]&access_token=[REDACTED]")

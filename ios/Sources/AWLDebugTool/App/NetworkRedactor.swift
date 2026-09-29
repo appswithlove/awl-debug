@@ -17,7 +17,7 @@ struct NetworkRedactor {
         self.config = config
         headerNames = Self.alwaysRedactedHeaders.union(config.redactHeaders.map { $0.lowercased() })
         fieldNames = Set(config.redactJsonFields.map(Self.normalizedFieldName))
-        queryNames = Set(config.redactQueryParams.map { $0.lowercased() })
+        queryNames = Set(config.redactQueryParams.map(Self.normalizedFieldName))
         streamMediaTypes = Self.streamContentTypes.union(config.streamContentTypes.map { Self.mediaType(of: $0) })
     }
 
@@ -41,7 +41,7 @@ struct NetworkRedactor {
             count += 1
         }
         if let queryRange = components.rangeOfQuery {
-            let query = redact(pairs: String(url[queryRange]), names: queryNames, normalize: { $0.lowercased() }, count: &count)
+            let query = redact(pairs: String(url[queryRange]), names: queryNames, normalize: Self.normalizedFieldName, count: &count)
             replacements.append((queryRange, query))
         }
 

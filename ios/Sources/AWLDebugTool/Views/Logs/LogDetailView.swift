@@ -65,7 +65,7 @@ struct LogDetailView: View {
 
     private var statusText: String {
         guard log.statusCode > 0 else { return LS.Network.failed }
-        return "\(log.statusCode) \(HTTPURLResponse.localizedString(forStatusCode: log.statusCode))"
+        return "\(log.statusCode)"
     }
 
     private func OverviewRow(title: String, value: String) -> some View {
