@@ -41,7 +41,8 @@ Made by [Apps with love](https://appswithlove.com).
 - Deeplinks: fire ad-hoc or preconfigured deeplinks from the sheet
 - Session: inspect, copy, edit or delete auth tokens per provider
 - FCM push token: display, refresh, revoke (you supply the source, no Firebase dependency)
-- Permissions, performance and accessibility modules
+- Performance: CPU, RAM, battery and UI freezes (frames over 700 ms), with charts and a draggable overlay
+- Permissions and accessibility modules
 - Test crashes
 - App info from your build config plus custom key/value pairs
 - Custom modules: append your own composables to the sheet
@@ -156,7 +157,7 @@ DevSheet(
 |---|---|---|
 | `showLogsModule` | `true` | Logs (Timber + HTTP summaries) |
 | `showNetworkModule` | `true` | [Network](#http-logging), shown once a `DevHttpLogInterceptor` exists |
-| `showPerformanceModule` | `true` | Performance |
+| `showPerformanceModule` | `true` | Performance. Samples every second, but only while its switch or the overlay ("Show performance overlay") is on. Long-press the overlay to open the module. |
 | `showPermissionsModule` | `true` | Permissions |
 | `showAccessibilityModule` | `true` | Accessibility |
 | `showDeeplinksModule` / `deeplinks` | `true` / empty | [Deeplinks](#deeplinks) |
