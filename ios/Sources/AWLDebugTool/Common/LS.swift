@@ -185,6 +185,10 @@ enum LS {
 
     struct Session {
         static let notSetup = "No tokens configured. Pass tokens in AWLDebugTool.start()."
+        static let loggedIn = "Logged in"
+        static let loggedOut = "Logged out"
+        static let reveal = "Reveal token"
+        static let hide = "Hide token"
     }
 
     struct Performance {

@@ -96,6 +96,10 @@ struct DebugPanelView: View {
                 Button("Custom button 2") {
                     print("Custom button 2 Action")
                 }
+                Button("Toggle login") {
+                    let engine = AuthTestEngine.shared
+                    engine.isLoggedIn ? engine.logout() : engine.login()
+                }
                 Button("Close panel") {
                     AWLDebugTool.close()
                 }
