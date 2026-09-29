@@ -54,6 +54,10 @@ class AWLDebugURLProtocol: URLProtocol {
     private var clientRunLoop: CFRunLoop?
     private var clientRunLoopModes: [CFString] = []
     private var isStopped = false
+    /// Client callbacks held back after a redirect until the app's session has decided about it.
+    private var heldCallbacks: [(run: () -> Void, whenStopped: (() -> Void)?)]?
+    /// Following a redirect stops this protocol well within this time; declining it does not signal anything.
+    private static let redirectDecisionGrace: CFTimeInterval = 0.25
     
     override public class func canInit(with request: URLRequest) -> Bool {
         
@@ -122,6 +126,7 @@ class AWLDebugURLProtocol: URLProtocol {
     
     override public func stopLoading() {
         isStopped = true
+        releaseHeldCallbacks()
         resolvePendingChallenge(.cancelAuthenticationChallenge, nil)
         sessionTask?.cancel()
 //        currentRequest?.httpBody = request.httpBodyStream?.readfully()
@@ -161,11 +166,39 @@ class AWLDebugURLProtocol: URLProtocol {
         CFRunLoopPerformBlock(clientRunLoop, clientRunLoopModes as CFArray) { [self] in
             if isStopped {
                 whenStopped?()
+            } else if heldCallbacks != nil {
+                heldCallbacks?.append((block, whenStopped))
             } else {
                 block()
             }
         }
         CFRunLoopWakeUp(clientRunLoop)
+    }
+    
+    /// After `wasRedirectedTo`, the app's session asks its delegate asynchronously. Callbacks that arrive in the
+    /// meantime could end the task before it follows the redirect, so they wait: if the session follows, it stops
+    /// this protocol and they are dropped; if it declines, it expects the redirect response and they are delivered.
+    private func holdCallbacksForRedirectDecision() {
+        guard let clientRunLoop = clientRunLoop else { return }
+        heldCallbacks = []
+        let timer = CFRunLoopTimerCreateWithHandler(nil, CFAbsoluteTimeGetCurrent() + Self.redirectDecisionGrace, 0, 0, 0) { [self] _ in
+            releaseHeldCallbacks()
+        }
+        for mode in clientRunLoopModes {
+            CFRunLoopAddTimer(clientRunLoop, timer, CFRunLoopMode(mode))
+        }
+    }
+    
+    private func releaseHeldCallbacks() {
+        let callbacks = heldCallbacks ?? []
+        heldCallbacks = nil
+        for callback in callbacks {
+            if isStopped {
+                callback.whenStopped?()
+            } else {
+                callback.run()
+            }
+        }
     }
 }
 
@@ -209,6 +242,7 @@ extension AWLDebugURLProtocol: URLSessionDataDelegate {
         performOnClientThread { [self] in
             currentRequest?.initResponse(response: response)
             client?.urlProtocol(self, wasRedirectedTo: redirectRequest as URLRequest, redirectResponse: response)
+            holdCallbacksForRedirectDecision()
         }
     }
     
