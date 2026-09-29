@@ -48,6 +48,9 @@ class AWLDebugURLProtocol: URLProtocol {
     var sessionTask: URLSessionDataTask?
     var currentRequest: RequestInfo?
     
+    private let challengeLock = NSLock()
+    private var pendingChallengeCompletion: ((URLSession.AuthChallengeDisposition, URLCredential?) -> Void)?
+    
     override init(request: URLRequest, cachedResponse: CachedURLResponse?, client: URLProtocolClient?) {
         super.init(request: request, cachedResponse: cachedResponse, client: client)
         
@@ -80,6 +83,7 @@ class AWLDebugURLProtocol: URLProtocol {
     }
     
     override public func stopLoading() {
+        resolvePendingChallenge(.cancelAuthenticationChallenge, nil)
         sessionTask?.cancel()
 //        currentRequest?.httpBody = request.httpBodyStream?.readfully()
         if let startDate = currentRequest?.date {
@@ -143,26 +147,55 @@ extension AWLDebugURLProtocol: URLSessionDataDelegate {
         client?.urlProtocol(self, didFailWithError: error)
     }
     
-    public func urlSession(_ session: URLSession, didReceive challenge: URLAuthenticationChallenge, completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
-        let protectionSpace = challenge.protectionSpace
-        let sender = challenge.sender
-        
-        if protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust {
-            if let serverTrust = protectionSpace.serverTrust {
-                let credential = URLCredential(trust: serverTrust)
-                sender?.use(credential, for: challenge)
-                completionHandler(.useCredential, credential)
-                return
-            }
-        }
-        if protectionSpace.authenticationMethod == NSURLAuthenticationMethodClientCertificate {
-            completionHandler(.performDefaultHandling, nil);
+    public func urlSession(_ session: URLSession, task: URLSessionTask, didReceive challenge: URLAuthenticationChallenge, completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
+        guard let client = client else {
+            completionHandler(.performDefaultHandling, nil)
             return
         }
+        
+        // Forward the challenge to the app's own session delegate so its trust evaluation (e.g. pinning) and credentials apply.
+        challengeLock.lock()
+        pendingChallengeCompletion?(.cancelAuthenticationChallenge, nil)
+        pendingChallengeCompletion = completionHandler
+        challengeLock.unlock()
+        
+        let forwardedChallenge = URLAuthenticationChallenge(authenticationChallenge: challenge, sender: self)
+        client.urlProtocol(self, didReceive: forwardedChallenge)
     }
     
     public func urlSessionDidFinishEvents(forBackgroundURLSession session: URLSession) {
         client?.urlProtocolDidFinishLoading(self)
+    }
+}
+
+extension AWLDebugURLProtocol: URLAuthenticationChallengeSender {
+    
+    func use(_ credential: URLCredential, for challenge: URLAuthenticationChallenge) {
+        resolvePendingChallenge(.useCredential, credential)
+    }
+    
+    func continueWithoutCredential(for challenge: URLAuthenticationChallenge) {
+        resolvePendingChallenge(.useCredential, nil)
+    }
+    
+    func cancel(_ challenge: URLAuthenticationChallenge) {
+        resolvePendingChallenge(.cancelAuthenticationChallenge, nil)
+    }
+    
+    func performDefaultHandling(for challenge: URLAuthenticationChallenge) {
+        resolvePendingChallenge(.performDefaultHandling, nil)
+    }
+    
+    func rejectProtectionSpaceAndContinue(with challenge: URLAuthenticationChallenge) {
+        resolvePendingChallenge(.rejectProtectionSpace, nil)
+    }
+    
+    private func resolvePendingChallenge(_ disposition: URLSession.AuthChallengeDisposition, _ credential: URLCredential?) {
+        challengeLock.lock()
+        let completion = pendingChallengeCompletion
+        pendingChallengeCompletion = nil
+        challengeLock.unlock()
+        completion?(disposition, credential)
     }
 }
 
