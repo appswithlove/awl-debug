@@ -165,6 +165,20 @@ enum LS {
         }
     }
     
+    struct AppLogs {
+        static let title = "Logs"
+        static let search = "Search logs"
+        static let empty = "No logs yet"
+        static let export = "Export logs"
+        static let clear = "Clear logs"
+        static let limit = "Number of logs per session"
+        static let record = "Record logs"
+        static let copied = "Copied"
+        static let allLevels = "all"
+        static let filterLevels = "Levels"
+        static let filterSearch = "Search"
+    }
+
     struct Permissions {
         static let granted = "Granted"
         static let denied = "Denied"

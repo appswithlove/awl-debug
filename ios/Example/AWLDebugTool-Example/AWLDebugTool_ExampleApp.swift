@@ -59,6 +59,8 @@ struct AWLDebugTool_ExampleApp: App {
                 refreshTokenDebugModel
             ]
         )
+        AWLDebugTool.log("Example app started", tag: "App")
+        AWLDebugTool.log("Example warning", level: .warn, tag: "App")
 #endif
     }
 

@@ -3,11 +3,25 @@ import Foundation
 /// Options passed to `AWLDebugTool.start(config:)`.
 public struct AWLDebugConfig {
     public var network: NetworkConfig
+    public var logs: LogsConfig
     /// App-group `UserDefaults` suites that "Clear App Data" also empties.
     public var appGroupIdentifiers: [String] = []
 
-    public init(network: NetworkConfig = NetworkConfig()) {
+    public init(network: NetworkConfig = NetworkConfig(), logs: LogsConfig = LogsConfig()) {
         self.network = network
+        self.logs = logs
+    }
+
+    public struct LogsConfig {
+        /// Shows the app's own unified-log entries (`os_log`, `Logger`, Kermit) in the Logs module.
+        public var readOSLog: Bool
+        /// Subsystems to show. `nil` shows every subsystem of the process except Apple's own (`com.apple.*`).
+        public var subsystems: Set<String>?
+
+        public init(readOSLog: Bool = true, subsystems: Set<String>? = nil) {
+            self.readOSLog = readOSLog
+            self.subsystems = subsystems
+        }
     }
 
     /// Shows "AWL <version> (<build>)" at the top left over the app. Testers can still switch it off in the panel.

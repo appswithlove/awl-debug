@@ -16,6 +16,7 @@ public struct DebugView: View {
     @ObservedObject private var sessionManager = AWLDebugTool.shared.sessionManager
     @ObservedObject private var permissionsManager = PermissionsManager()
     @ObservedObject private var networkReachabilityManager = NetworkReachabilityManager()
+    @ObservedObject private var appLogs = AWLDebugTool.shared.appLogs
     @ObservedObject private var performance = AWLDebugTool.shared.performance
     
     @StateObject private var vm = DebugViewModel()
@@ -87,6 +88,22 @@ public struct DebugView: View {
                     Text(LS.Performance.performanceSectionTitle)
                 }
                 
+                Section {
+                    NavigationLink {
+                        AppLogsView(store: appLogs)
+                    } label: {
+                        HStack {
+                            Text(LS.AppLogs.title)
+                            if appLogs.isRecording {
+                                Circle()
+                                    .fill(.green)
+                                    .frame(width: 8, height: 8)
+                                    .accessibilityHidden(true)
+                            }
+                        }
+                    }
+                }
+
                 LogsView(networkLogger: networkLogger)
                 
                 ScreenRecordingView(isScreenRecordingOn: $screenRecorder.isScreenRecordingOn,
