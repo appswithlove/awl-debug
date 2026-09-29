@@ -36,7 +36,7 @@ Made by [Apps with love](https://appswithlove.com).
 
 ## Features
 
-- Debug sheet opens and closes with a three-finger tap
+- Debug sheet opens with a three-finger tap, triple tap, shake or screenshot (configurable)
 - Logs: Timber and HTTP summary entries, filter by query, export to file
 - Network: every OkHttp request with redacted headers and bodies, filters, search, detail, cURL copy and export
 - Deeplinks: fire ad-hoc or preconfigured deeplinks from the sheet
@@ -95,7 +95,7 @@ awl-debug ships as a real + no-op pair with a shared API, the same pattern [Leak
 | Artifact | Contents | Weight |
 |---|---|---|
 | `debug-api` | Contract types only: `DevConfig`, `DevModulesConfig`, `DevNetworkConfig`, `DeeplinkItem`, `SessionProvider`, `FcmTokenProvider`. Pulled in transitively by both AARs, never referenced directly. | a few KB |
-| `debug` | The real panel: Compose sheet, three-finger gesture, log collector, HTTP interceptor, all modules, charts. | ~430 KB plus its Compose, Material 3 and Vico dependencies |
+| `debug` | The real panel: Compose sheet, trigger gestures, log collector, HTTP interceptor, all modules, charts. | ~430 KB plus its Compose, Material 3 and Vico dependencies |
 | `feedback` / `feedback-no-op` | Optional in-app feedback (see [Feedback](#feedback)) and its stub, same pairing rule. The no-op renders your content only, has no shake detection and no `INTERNET` permission. | |
 | `debug-no-op` | The same public functions and classes with empty bodies. `DevSheet` renders your `content` and nothing else; `DevLogTree`, `DevKermitLogWriter` and `DevHttpLogInterceptor` discard everything. Depends only on `debug-api`. | ~14 KB |
 
@@ -114,7 +114,7 @@ The contract types live under `com.appswithlove.debug.api.*`, for example `com.a
 
 ### DevSheet
 
-Wrap `DevSheet` around your top-level composable. The sheet opens with a three-finger tap while the dev tool is activated (see [Activate and deactivate](#activate-and-deactivate)).
+Wrap `DevSheet` around your top-level composable. The sheet opens with the configured `triggers` while the dev tool is activated (see [Activate and deactivate](#activate-and-deactivate)).
 
 ```kotlin
 DevSheet(
@@ -133,11 +133,27 @@ DevSheet(
 |---|---|---|
 | `devConfig` | `null` | Build info shown in the App Info module: version name and code, flavor, build type, plus optional `customParams: Map<String, String>` |
 | `modulesConfig` | `DevModulesConfig()` | Which built-in modules are shown and their inputs, see [Modules](#modules) |
+| `triggers` | `setOf(DevTrigger.ThreeFingerTap)` | Gestures that open the sheet, see [Triggers](#triggers) |
 | `customModules` | empty | Composable lambda appended at the bottom of the sheet, see [Custom modules](#custom-modules) |
-| `isAlwaysActive` | `false` | When `true`, the three-finger tap works even if the dev tool is deactivated |
+| `isAlwaysActive` | `false` | When `true`, the triggers work even if the dev tool is deactivated |
 | `swipeToDismiss` | `false` | When `true`, the sheet can be dismissed by swiping down |
 | `inheritHostTheme` | `false` | When `true`, the sheet uses the host app's `MaterialTheme` instead of its own |
 | `modifier` | `Modifier` | Applied to the wrapping container |
+
+#### Triggers
+
+| `DevTrigger` | Gesture |
+|---|---|
+| `ThreeFingerTap` | Three fingers at once; two on an emulator |
+| `TripleTap` | Three taps with one finger within 600 ms; the app still receives the taps |
+| `Screenshot` | A system screenshot, Android 14 (API 34) and later. The `debug` artifact declares the `DETECT_SCREEN_CAPTURE` normal permission for it |
+| `Shake` | Shaking the device (accelerometer, 2.7 g, at most once per 1.5 s) |
+
+A trigger only opens the sheet; it never closes an open one. Shake and screenshot listeners only run while the dev tool is activated or `isAlwaysActive = true`.
+
+```kotlin
+DevSheet(triggers = setOf(DevTrigger.ThreeFingerTap, DevTrigger.Shake)) { MyApp() }
+```
 
 ### Modules
 
@@ -158,6 +174,7 @@ DevSheet(
 |---|---|---|
 | `showLogsModule` | `true` | Logs (Timber + HTTP summaries) |
 | `showNetworkModule` | `true` | [Network](#http-logging), shown once a `DevHttpLogInterceptor` exists |
+| `showVersionOverlay` | `true` | Default of the "Show version overlay" switch in App Info: `AWL <versionName> (<versionCode>)` from `devConfig`, top start, touches pass through, visible in screenshots but not in the panel. Testers' choice is saved on the device. |
 | `showPerformanceModule` | `true` | Performance. Samples every second, but only while its switch or the overlay ("Show performance overlay") is on. Long-press the overlay to open the module. |
 | `showPermissionsModule` | `true` | Permissions |
 | `showAccessibilityModule` | `true` | Accessibility: font size (system, preset steps or 50–200 %) and appearance (System, Light, Dark) for the app content, saved on the device. On Android 12+ the appearance is applied app-wide through `UiModeManager.setApplicationNightMode`; the system keeps that per app, also after restarts. Choosing "System" sets it back to `MODE_NIGHT_AUTO` (follow the device), which also replaces a night mode your app set itself. |
@@ -169,7 +186,7 @@ DevSheet(
 
 ### Deeplinks
 
-Fire deeplinks straight from the sheet to test navigation. Enter a URL and tap **Shoot**, or preconfigure a list for one-tap access:
+Fire deeplinks straight from the sheet to test navigation. Enter a URL and tap **Fire now** or **Save** it to the testers' list on the device, or preconfigure a list (shown as "Predefined"). Tapping an entry opens its detail with **Fire now** and a cold start test: **Schedule & close app** posts a notification after 5, 10 or 30 seconds that opens the deeplink.
 
 ```kotlin
 DevSheet(
@@ -183,6 +200,25 @@ DevSheet(
     MyApp()
 }
 ```
+
+By default a deeplink starts an `ACTION_VIEW` intent limited to your app's package. To route it through your own navigation instead, set `deeplinkHandler` and pass launch intents to `AwlDebug.handleDeeplinkIntent`, so delayed deeplinks from the notification reach the handler too, also on a cold start:
+
+```kotlin
+DevSheet(modulesConfig = DevModulesConfig(deeplinkHandler = { url -> navigator.open(url) })) { MyApp() }
+
+// In the launcher activity
+override fun onCreate(savedInstanceState: Bundle?) {
+    super.onCreate(savedInstanceState)
+    AwlDebug.handleDeeplinkIntent(intent)
+}
+
+override fun onNewIntent(intent: Intent) {
+    super.onNewIntent(intent)
+    AwlDebug.handleDeeplinkIntent(intent)
+}
+```
+
+The delayed deeplink needs the notification permission (`POST_NOTIFICATIONS` on Android 13+). The SDK neither declares nor requests it; without it the module explains why scheduling is not possible.
 
 ### Session
 
@@ -319,7 +355,7 @@ DevHttpLogInterceptor(
 
 The Network module lists requests with time, method, status (colored by class), duration and host + path, and marks requests above `slowRequestThresholdMs` as "slow". Search matches URL, method and status. Filters by method, status class and host, the sort order, the recording switch and "Number of logs per session" are saved on the device. The detail view shows headers and bodies (JSON indented, "Raw" toggle) and offers "Copy URL", "Copy cURL", "Copy response" and "Share". "Export network logs" shares `awl-debug-network-<timestamp>.txt` with the current search and filters applied.
 
-Log messages from any source are also redacted: `Bearer <token>` and `Basic <credentials>` become `Bearer [REDACTED]` and `Basic [REDACTED]`.
+Log messages from any source are also redacted: `Bearer <token>` and `Basic <credentials>` become `Bearer [REDACTED]` and `Basic [REDACTED]`, and JSON fields from the default `redactJsonFields` list (`password`, `secret`, `token`, `accessToken`, `refreshToken`, `idToken`, `credential`, `apiKey`, `clientSecret`) get the value `"[REDACTED]"`, also in stringified or truncated JSON.
 
 Log exports are shared through the library's own `FileProvider` (authority `${applicationId}.awldebug.fileprovider`, limited to `cacheDir/awl-debug/`), so it does not conflict with a `FileProvider` in your app.
 
@@ -363,11 +399,11 @@ fun installDebugLogWriter() {
 }
 ```
 
-Like Timber entries, Kermit messages are redacted before they are stored (`Bearer <token>`, `Basic <credentials>`).
+Like Timber entries, Kermit messages are redacted before they are stored (`Bearer <token>`, `Basic <credentials>`, sensitive JSON fields).
 
 ### Activate and deactivate
 
-The three-finger tap only opens the sheet while the dev tool is activated, unless `isAlwaysActive = true`. The flag is persisted on the device. Toggle it from your own UI, for example a hidden switch in settings:
+The triggers only open the sheet while the dev tool is activated, unless `isAlwaysActive = true`. The activation is persisted on the device (DataStore `dev_settings`); `isAlwaysActive` does not change it. Toggle it from your own UI, for example a hidden switch in settings:
 
 ```kotlin
 val context = LocalContext.current
