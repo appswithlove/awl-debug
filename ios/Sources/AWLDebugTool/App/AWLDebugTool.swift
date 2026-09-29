@@ -10,6 +10,7 @@ public class AWLDebugTool: ObservableObject {
     let mainThreadMonitor = MainThreadMonitor()
     let deeplinksManager = DeeplinksManager()
     let sessionManager = SessionManager()
+    @MainActor lazy var appLogs = AppLogsStore()
 
     /// Main initializer.
     ///
@@ -27,6 +28,9 @@ public class AWLDebugTool: ObservableObject {
         shared.mainThreadMonitor.start()
         
         shared.networkLogger.start(config: config.network)
+        Task { @MainActor in
+            shared.appLogs.config = config.logs
+        }
         shared.screenRecorder.initialise(isScreenRecordingOn: isScreenRecordingOn)
         
         if let deeplinks {
@@ -37,3 +41,15 @@ public class AWLDebugTool: ObservableObject {
     }
 }
 
+// MARK: - Logs
+
+public extension AWLDebugTool {
+    /// Adds an entry to the Logs module. Safe to call from any thread; `Bearer`/`Basic` credentials are redacted.
+    static func log(_ message: String, level: AWLDebugLogLevel = .info, tag: String? = nil, error: Error? = nil) {
+        let entry = AppLogEntry(date: Date(), level: level, tag: tag, message: message.redactingCredentials(),
+                                errorDescription: error.map { "\(String(reflecting: type(of: $0))): \(String(describing: $0))".redactingCredentials() })
+        Task { @MainActor in
+            shared.appLogs.append(entry)
+        }
+    }
+}

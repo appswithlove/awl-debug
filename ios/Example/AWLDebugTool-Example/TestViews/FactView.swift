@@ -5,6 +5,7 @@
 //  Created by Yanis Plumit on 30.06.2026.
 //
 
+import OSLog
 import SwiftUI
 
 struct FactView: View {
@@ -44,6 +45,9 @@ struct FactView: View {
         let decoder = JSONDecoder()
         let fact = try? decoder.decode(Fact.self, from: data)
         self.fact = fact?.fact ?? "No fact found"
+        // Shows up in the debug panel's Logs module without any SDK call.
+        Logger(subsystem: Bundle.main.bundleIdentifier ?? "", category: "Fact")
+            .info("Loaded fact with \(data.count) bytes, Authorization: Bearer example-token")
     }
 }
 

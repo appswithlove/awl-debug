@@ -81,6 +81,9 @@ func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive respo
 - user can see network logs in real time and filter them.
 - user can export network logs.
 
+#### App logs
+The Logs module shows the app's own unified-log entries (`os_log`, `Logger`, Kermit's `OSLogWriter`) without any code in the app, plus entries added with `AWLDebugTool.log("message", level: .warn, tag: "Auth", error: error)`. Apple's own subsystems (`com.apple.*`) are left out; `AWLDebugConfig(logs: .init(subsystems: ["com.example.app"]))` shows only the listed ones. `Bearer` and `Basic` credentials are redacted before an entry is stored. Search and level filters also apply to "Export logs".
+
 ### 3. UserDefaults
 - user can clear UserDefaults for underlying app.
 
