@@ -1,3 +1,9 @@
+public final class com/appswithlove/debug/AwlDebug {
+	public static final field $stable I
+	public static final field INSTANCE Lcom/appswithlove/debug/AwlDebug;
+	public final fun handleDeeplinkIntent (Landroid/content/Intent;)Z
+}
+
 public final class com/appswithlove/debug/domain/model/DevSettings {
 	public static final field $stable I
 	public static final field INSTANCE Lcom/appswithlove/debug/domain/model/DevSettings;

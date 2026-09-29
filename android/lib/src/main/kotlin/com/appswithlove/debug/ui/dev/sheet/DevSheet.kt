@@ -85,7 +85,15 @@ import com.appswithlove.debug.ui.dev.sheet.modules.performance.PerformanceModule
 import com.appswithlove.debug.ui.dev.sheet.modules.permissions.PermissionsModule
 import com.appswithlove.debug.ui.dev.sheet.modules.accessibility.AccessibilityModule
 import com.appswithlove.debug.ui.dev.sheet.modules.TestCrashesModule
+import com.appswithlove.debug.ui.dev.sheet.modules.deeplinks.DeeplinkDetailModule
+import com.appswithlove.debug.ui.dev.sheet.modules.deeplinks.DeeplinkDispatcher
+import com.appswithlove.debug.ui.dev.sheet.modules.deeplinks.DeeplinkScheduler
 import com.appswithlove.debug.ui.dev.sheet.modules.deeplinks.DeeplinksModule
+import com.appswithlove.debug.api.DeeplinkItem
+import android.content.Context
+import android.content.ContextWrapper
+import androidx.compose.runtime.DisposableEffect
+import kotlinx.coroutines.delay
 import com.appswithlove.debug.ui.dev.sheet.modules.session.SessionDetailModule
 import com.appswithlove.debug.ui.dev.sheet.modules.session.SessionManager
 import com.appswithlove.debug.ui.dev.sheet.modules.session.SessionModule
@@ -180,6 +188,11 @@ internal fun DevSheet(
         viewModel.setIsAlwaysActive(isAlwaysActive)
     }
 
+    DisposableEffect(modulesConfig.deeplinkHandler) {
+        DeeplinkDispatcher.setHandler(modulesConfig.deeplinkHandler)
+        onDispose { DeeplinkDispatcher.setHandler(null) }
+    }
+
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -257,6 +270,9 @@ private fun DevSheetContent(
     val hasNetworkInterceptor by NetworkCollector.store.hasInterceptor.collectAsStateWithLifecycle()
     val showNetworkModule = modulesConfig.showNetworkModule && hasNetworkInterceptor
     var selectedNetworkEntryId by rememberSaveable { mutableStateOf<Long?>(null) }
+    val devStore = remember { DevStore(context.applicationContext) }
+    val savedDeeplinks by devStore.savedDeeplinks.collectAsStateWithLifecycle(initialValue = emptyList())
+    var selectedDeeplink by rememberSaveable { mutableStateOf<Pair<String, String>?>(null) }
 
     fun copyToClipboard(text: String) {
         coroutineScope.launch {
@@ -282,6 +298,12 @@ private fun DevSheetContent(
                 actioner(DevAction.ShowDevSheet(show = false))
             }
         }
+    }
+
+    fun fireDeeplink(url: String): Boolean {
+        val fired = DeeplinkDispatcher.fire(context, url)
+        if (fired) hideBottomSheet()
+        return fired
     }
 
     LaunchedEffect(state.isShown) {
@@ -530,8 +552,55 @@ private fun DevSheetContent(
 
                         DeeplinksModule(
                             modifier = Modifier.weight(1f),
-                            deeplinks = modulesConfig.deeplinks,
+                            predefined = modulesConfig.deeplinks,
+                            saved = savedDeeplinks,
+                            onFire = ::fireDeeplink,
+                            onSave = { item ->
+                                coroutineScope.launch {
+                                    devStore.setSavedDeeplinks(savedDeeplinks.filterNot { it.url == item.url } + item)
+                                }
+                            },
+                            onDelete = { item ->
+                                coroutineScope.launch { devStore.setSavedDeeplinks(savedDeeplinks - item) }
+                            },
+                            onOpen = { item ->
+                                selectedDeeplink = item.label to item.url
+                                currentPage = DevSheetPage.DeeplinkDetail
+                            },
                         )
+                    }
+                }
+
+                    DevSheetPage.DeeplinkDetail -> {
+                    val item = selectedDeeplink?.let { (label, url) -> DeeplinkItem(label, url) }
+                    ModuleDetail(swipeToDismiss = swipeToDismiss) {
+                        ModuleDetailNavBar(
+                            title = "Deeplinks",
+                            onBack = { currentPage = DevSheetPage.Deeplinks },
+                            onClose = { hideBottomSheet() },
+                        )
+                        if (item != null) {
+                            DeeplinkDetailModule(
+                                modifier = Modifier.weight(1f),
+                                item = item,
+                                onFire = { fireDeeplink(item.url) },
+                                onSchedule = { delay ->
+                                    DeeplinkScheduler.schedule(
+                                        context = context,
+                                        item = item,
+                                        delaySeconds = delay,
+                                        usesHandler = modulesConfig.deeplinkHandler != null,
+                                    )
+                                },
+                                onScheduled = {
+                                    coroutineScope.launch {
+                                        // Leave time to read the confirmation, then send the app to the background.
+                                        delay(1_500)
+                                        context.findActivity()?.moveTaskToBack(true)
+                                    }
+                                },
+                            )
+                        }
                     }
                 }
 
@@ -883,11 +952,18 @@ private fun DevSheetDarkPreview() {
 }
 
 private enum class DevSheetPage {
-    Home, Logs, Network, NetworkFilters, NetworkDetail, Performance, Permissions, Accessibility, Deeplinks, Session, TestCrashes;
+    Home, Logs, Network, NetworkFilters, NetworkDetail, Performance, Permissions, Accessibility, Deeplinks, DeeplinkDetail, Session, TestCrashes;
 
     val parent: DevSheetPage
         get() = when (this) {
             NetworkFilters, NetworkDetail -> Network
+            DeeplinkDetail -> Deeplinks
             else -> Home
         }
+}
+
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
 }

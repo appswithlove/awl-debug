@@ -1,54 +1,60 @@
 package com.appswithlove.debug.ui.dev.sheet.modules.deeplinks
 
-import android.content.Intent
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.core.net.toUri
 import com.appswithlove.debug.api.DeeplinkItem
+import com.appswithlove.debug.ui.component.DevOutlinedButton
 import com.appswithlove.debug.ui.component.DevOutlinedTextField
+import com.appswithlove.debug.ui.component.icons.TablerIcons
+import com.appswithlove.debug.ui.theme.AppTheme
 import com.appswithlove.debug.ui.theme.DevTheme
 
+/**
+ * Quick field plus the app's predefined and the testers' saved deeplinks. [onFire] returns `false`
+ * when no screen of the app handles the link.
+ */
 @Composable
 internal fun DeeplinksModule(
+    predefined: List<DeeplinkItem>,
+    saved: List<DeeplinkItem>,
+    onFire: (String) -> Boolean,
+    onSave: (DeeplinkItem) -> Unit,
+    onDelete: (DeeplinkItem) -> Unit,
+    onOpen: (DeeplinkItem) -> Unit,
     modifier: Modifier = Modifier,
-    deeplinks: List<DeeplinkItem> = emptyList(),
 ) {
-    val context = LocalContext.current
-    var deeplinkText by remember { mutableStateOf("") }
+    var deeplinkText by rememberSaveable { mutableStateOf("") }
     var deeplinkError by remember { mutableStateOf<String?>(null) }
 
-    fun shootDeeplink(url: String) {
-        try {
-            context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
-            deeplinkError = null
-        } catch (_: Exception) {
-            deeplinkError = "Invalid deeplink"
-        }
+    fun validated(): String? = deeplinkText.trim().takeIf(::isValidDeeplink).also {
+        if (it == null) deeplinkError = "Invalid deeplink"
     }
 
     Column(
@@ -57,51 +63,69 @@ internal fun DeeplinksModule(
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Row(
+        DevOutlinedTextField(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.Top,
-        ) {
-            DevOutlinedTextField(
+            value = deeplinkText,
+            placeholder = "Enter deeplink",
+            onValueChange = {
+                deeplinkText = it
+                deeplinkError = null
+            },
+            onClear = {
+                deeplinkText = ""
+                deeplinkError = null
+            },
+            isError = deeplinkError != null,
+            errorText = deeplinkError,
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            val enabled = deeplinkText.isNotBlank() && deeplinkError == null
+            DevOutlinedButton(
                 modifier = Modifier.weight(1f),
-                value = deeplinkText,
-                placeholder = "Enter deeplink",
-                onValueChange = {
-                    deeplinkText = it
-                    deeplinkError = null
+                text = "Fire now",
+                enabled = enabled,
+                contentColor = MaterialTheme.colorScheme.onSurface,
+                onClick = {
+                    validated()?.let { url -> if (!onFire(url)) deeplinkError = "Invalid deeplink" }
                 },
-                onClear = {
-                    deeplinkText = ""
-                    deeplinkError = null
-                },
-                isError = deeplinkError != null,
-                errorText = deeplinkError,
             )
-            Box(
-                modifier = Modifier.height(56.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                OutlinedIconButton(
-                    modifier = Modifier.size(48.dp),
-                    onClick = { shootDeeplink(deeplinkText) },
-                    enabled = deeplinkText.isNotBlank() && deeplinkError == null,
-                ) {
-                    Text(text = "🚀", fontSize = 20.sp)
-                }
+            DevOutlinedButton(
+                modifier = Modifier.weight(1f),
+                text = "Save",
+                enabled = enabled,
+                contentColor = MaterialTheme.colorScheme.onSurface,
+                onClick = {
+                    validated()?.let { url ->
+                        onSave(DeeplinkItem(label = url, url = url))
+                        deeplinkText = ""
+                    }
+                },
+            )
+        }
+
+        if (predefined.isEmpty() && saved.isEmpty()) {
+            Text(
+                modifier = Modifier.padding(vertical = 8.dp),
+                text = "No deeplinks configured",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+            )
+        }
+
+        if (predefined.isNotEmpty()) {
+            SectionLabel("Predefined")
+            predefined.forEach { item ->
+                DeeplinkRow(item = item, icon = TablerIcons.Lock, onClick = { onOpen(item) })
+                HorizontalDivider()
             }
         }
 
-        if (deeplinks.isNotEmpty()) {
-            Text(
-                text = "Predefined",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-            )
-            deeplinks.forEach { item ->
-                DeeplinkRow(
-                    item = item,
-                    onClick = { shootDeeplink(item.url) },
-                )
+        if (saved.isNotEmpty()) {
+            SectionLabel("Saved")
+            saved.forEach { item ->
+                SwipeToDelete(onDelete = { onDelete(item) }) {
+                    DeeplinkRow(item = item, icon = TablerIcons.User, onClick = { onOpen(item) })
+                }
                 HorizontalDivider()
             }
         }
@@ -109,27 +133,72 @@ internal fun DeeplinksModule(
 }
 
 @Composable
-private fun DeeplinkRow(
-    item: DeeplinkItem,
-    onClick: () -> Unit,
-) {
-    Column(
+private fun SectionLabel(text: String) {
+    Text(
+        modifier = Modifier.padding(top = 8.dp),
+        text = text,
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+    )
+}
+
+@Composable
+private fun SwipeToDelete(onDelete: () -> Unit, content: @Composable () -> Unit) {
+    val state = rememberSwipeToDismissBoxState(
+        confirmValueChange = { value ->
+            if (value == SwipeToDismissBoxValue.EndToStart) onDelete()
+            value == SwipeToDismissBoxValue.EndToStart
+        },
+    )
+    SwipeToDismissBox(
+        state = state,
+        enableDismissFromStartToEnd = false,
+        backgroundContent = {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(AppTheme.colors.error)
+                    .padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(imageVector = TablerIcons.Trash, contentDescription = "Delete", tint = MaterialTheme.colorScheme.onError)
+            }
+        },
+    ) {
+        content()
+    }
+}
+
+@Composable
+private fun DeeplinkRow(item: DeeplinkItem, icon: ImageVector, onClick: () -> Unit) {
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() }
+            .background(AppTheme.colors.background)
+            .clickable(onClick = onClick)
             .padding(vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(2.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            text = item.label,
-            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-            color = MaterialTheme.colorScheme.onSurface,
+        Icon(
+            modifier = Modifier.size(18.dp),
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
         )
-        Text(
-            text = item.url,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-        )
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                text = item.label,
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = item.url,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+            )
+        }
     }
 }
 
@@ -138,16 +207,12 @@ private fun DeeplinkRow(
 private fun DeeplinksModulePreview() {
     DevTheme {
         DeeplinksModule(
-            deeplinks = listOf(
-                DeeplinkItem(
-                    label = "Home",
-                    url = "myapp://home",
-                ),
-                DeeplinkItem(
-                    label = "Profile",
-                    url = "myapp://profile/123",
-                ),
-            ),
+            predefined = listOf(DeeplinkItem(label = "Home", url = "myapp://home")),
+            saved = listOf(DeeplinkItem(label = "myapp://profile/123", url = "myapp://profile/123")),
+            onFire = { true },
+            onSave = {},
+            onDelete = {},
+            onOpen = {},
         )
     }
 }

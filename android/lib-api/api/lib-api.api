@@ -48,12 +48,13 @@ public final class com/appswithlove/debug/api/DevConfig$Companion {
 
 public final class com/appswithlove/debug/api/DevModulesConfig {
 	public fun <init> ()V
-	public fun <init> (ZZZZZLjava/util/List;ZLcom/appswithlove/debug/api/FcmTokenProvider;ZZLjava/util/List;Z)V
-	public synthetic fun <init> (ZZZZZLjava/util/List;ZLcom/appswithlove/debug/api/FcmTokenProvider;ZZLjava/util/List;ZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (ZZZZZLjava/util/List;ZLcom/appswithlove/debug/api/FcmTokenProvider;ZZLjava/util/List;ZLkotlin/jvm/functions/Function1;)V
+	public synthetic fun <init> (ZZZZZLjava/util/List;ZLcom/appswithlove/debug/api/FcmTokenProvider;ZZLjava/util/List;ZLkotlin/jvm/functions/Function1;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1 ()Z
 	public final fun component10 ()Z
 	public final fun component11 ()Ljava/util/List;
 	public final fun component12 ()Z
+	public final fun component13 ()Lkotlin/jvm/functions/Function1;
 	public final fun component2 ()Z
 	public final fun component3 ()Z
 	public final fun component4 ()Z
@@ -62,9 +63,10 @@ public final class com/appswithlove/debug/api/DevModulesConfig {
 	public final fun component7 ()Z
 	public final fun component8 ()Lcom/appswithlove/debug/api/FcmTokenProvider;
 	public final fun component9 ()Z
-	public final fun copy (ZZZZZLjava/util/List;ZLcom/appswithlove/debug/api/FcmTokenProvider;ZZLjava/util/List;Z)Lcom/appswithlove/debug/api/DevModulesConfig;
-	public static synthetic fun copy$default (Lcom/appswithlove/debug/api/DevModulesConfig;ZZZZZLjava/util/List;ZLcom/appswithlove/debug/api/FcmTokenProvider;ZZLjava/util/List;ZILjava/lang/Object;)Lcom/appswithlove/debug/api/DevModulesConfig;
+	public final fun copy (ZZZZZLjava/util/List;ZLcom/appswithlove/debug/api/FcmTokenProvider;ZZLjava/util/List;ZLkotlin/jvm/functions/Function1;)Lcom/appswithlove/debug/api/DevModulesConfig;
+	public static synthetic fun copy$default (Lcom/appswithlove/debug/api/DevModulesConfig;ZZZZZLjava/util/List;ZLcom/appswithlove/debug/api/FcmTokenProvider;ZZLjava/util/List;ZLkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lcom/appswithlove/debug/api/DevModulesConfig;
 	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDeeplinkHandler ()Lkotlin/jvm/functions/Function1;
 	public final fun getDeeplinks ()Ljava/util/List;
 	public final fun getFcmTokenProvider ()Lcom/appswithlove/debug/api/FcmTokenProvider;
 	public final fun getHasAnyModuleEnabled ()Z
