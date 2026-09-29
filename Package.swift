@@ -8,11 +8,14 @@ let package = Package(
         .iOS(.v16),
     ],
     products: [
+        // Dynamic, so store builds can drop the SDK completely (see "Store builds" in ios/README.md).
         .library(
             name: "AWLDebugTool",
+            type: .dynamic,
             targets: ["AWLDebugTool"]),
         .library(
             name: "AWLDebugFeedback",
+            type: .dynamic,
             targets: ["AWLDebugFeedback"]),
     ],
     targets: [

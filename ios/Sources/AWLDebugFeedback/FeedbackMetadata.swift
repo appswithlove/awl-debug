@@ -59,6 +59,11 @@ struct FeedbackMetadata: Encodable, Equatable {
         self.reporter = reporter.flatMap(Self.reporter)
     }
 
+    /// BCP 47 (`de-CH`), the format every platform sends.
+    static func localeIdentifier(_ locale: Locale) -> String {
+        locale.identifier(.bcp47)
+    }
+
     func jsonString() throws -> String {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
