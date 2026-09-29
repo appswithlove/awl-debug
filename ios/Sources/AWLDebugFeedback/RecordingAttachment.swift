@@ -4,6 +4,7 @@
 //
 
 import Foundation
+import ObjectiveC
 
 /// The screen recording as parts `video`, `frames` and `timeline`, encoded by `AWLDebugTool` through its bridge.
 struct RecordingAttachment: Equatable {
@@ -18,11 +19,11 @@ struct RecordingAttachment: Equatable {
     /// `nil` without `AWLDebugTool` in the app, before `AWLDebugTool.start` or without a recording.
     static var toolSource: Source? {
         guard let bridge = NSClassFromString("AWLDebugToolBridge"),
-              let isAvailable = LogsAttachment.classMethod(of: bridge, "isAvailable", as: Flag.self),
+              let isAvailable = classMethod(of: bridge, "isAvailable", as: Flag.self),
               isAvailable(bridge, NSSelectorFromString("isAvailable")),
-              let hasRecording = LogsAttachment.classMethod(of: bridge, "hasRecording", as: Flag.self),
+              let hasRecording = classMethod(of: bridge, "hasRecording", as: Flag.self),
               hasRecording(bridge, NSSelectorFromString("hasRecording")),
-              let recording = LogsAttachment.classMethod(of: bridge, "feedbackRecording:", as: FeedbackRecording.self) else {
+              let recording = classMethod(of: bridge, "feedbackRecording:", as: FeedbackRecording.self) else {
             return nil
         }
         return {
@@ -48,6 +49,13 @@ struct RecordingAttachment: Equatable {
             return RecordingAttachment(video: video)
         }
         return RecordingAttachment(isTooLarge: true)
+    }
+
+    private static func classMethod<Function>(of type: AnyClass, _ selector: String, as _: Function.Type) -> Function? {
+        guard let method = class_getClassMethod(type, NSSelectorFromString(selector)) else {
+            return nil
+        }
+        return unsafeBitCast(method_getImplementation(method), to: Function.self)
     }
 
     private typealias Flag = @convention(c) (AnyClass, Selector) -> Bool
