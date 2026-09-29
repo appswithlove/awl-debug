@@ -1,6 +1,13 @@
 package com.appswithlove.debug.ui.dev.sheet.modules.session
 
 import android.content.ClipData
+import kotlinx.coroutines.CancellationException
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.Color
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.Canvas
+import android.os.PersistableBundle
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -56,6 +63,27 @@ internal fun SessionDetailModule(
 
     val editTarget = remember { mutableStateOf<SessionManager.ProviderState?>(null) }
     val deleteTarget = remember { mutableStateOf<SessionManager.ProviderState?>(null) }
+    // Per provider label: the action that is running, and the last error.
+    val runningActions = remember { mutableStateMapOf<String, SessionAction>() }
+    val actionErrors = remember { mutableStateMapOf<String, String>() }
+
+    fun runAction(state: SessionManager.ProviderState, action: SessionAction, block: suspend () -> Unit) {
+        val label = state.provider.label
+        if (label in runningActions) return
+        runningActions[label] = action
+        actionErrors.remove(label)
+        scope.launch {
+            try {
+                block()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                actionErrors[label] = "Action failed: ${e.message ?: e::class.simpleName}"
+            } finally {
+                runningActions.remove(label)
+            }
+        }
+    }
 
     Column(
         modifier = modifier
@@ -71,24 +99,27 @@ internal fun SessionDetailModule(
                     revealedTokens[state.provider.label] =
                         revealedTokens[state.provider.label] != true
                 },
+                runningAction = runningActions[state.provider.label],
+                error = actionErrors[state.provider.label],
                 onCopy = {
                     val token = state.token ?: return@ProviderCard
-                    scope.launch {
-                        clipboard.setClipEntry(
-                            ClipEntry(ClipData.newPlainText(token, token))
-                        )
-                    }
+                    scope.launch { clipboard.setClipEntry(ClipEntry(sensitiveClip(token))) }
                 },
                 onEdit = state.provider.onSetToken?.let { { editTarget.value = state } },
                 onDelete = state.provider.onSetToken?.let { { deleteTarget.value = state } },
+                onInvalidate = if (sessionManager.canInvalidate(state.provider)) {
+                    { runAction(state, SessionAction.Invalidate) { sessionManager.invalidate(state) } }
+                } else {
+                    null
+                },
                 onLogin = state.provider.onLogin?.let { action ->
-                    { scope.launch { action() } }
+                    { runAction(state, SessionAction.Login) { action() } }
                 },
                 onRefresh = state.provider.onRefresh?.let { action ->
-                    { scope.launch { action() } }
+                    { runAction(state, SessionAction.Refresh) { action() } }
                 },
                 onLogout = state.provider.onLogout?.let { action ->
-                    { scope.launch { action() } }
+                    { runAction(state, SessionAction.Logout) { action() } }
                 },
             )
             if (index < states.lastIndex) {
@@ -102,7 +133,7 @@ internal fun SessionDetailModule(
             providerLabel = target.provider.label,
             currentToken = target.token.orEmpty(),
             onConfirm = { newToken ->
-                scope.launch {
+                runAction(target, SessionAction.Edit) {
                     sessionManager.setToken(target.provider, newToken.ifBlank { null })
                 }
                 editTarget.value = null
@@ -115,9 +146,7 @@ internal fun SessionDetailModule(
         DeleteTokenDialog(
             providerLabel = target.provider.label,
             onConfirm = {
-                scope.launch {
-                    sessionManager.setToken(target.provider, null)
-                }
+                runAction(target, SessionAction.Delete) { sessionManager.setToken(target.provider, null) }
                 deleteTarget.value = null
             },
             onDismiss = { deleteTarget.value = null },
@@ -130,14 +159,37 @@ private fun ProviderCard(
     state: SessionManager.ProviderState,
     isRevealed: Boolean,
     onRevealToggle: () -> Unit,
+    runningAction: SessionAction?,
+    error: String?,
     onCopy: () -> Unit,
     onEdit: (() -> Unit)?,
     onDelete: (() -> Unit)?,
+    onInvalidate: (() -> Unit)?,
     onLogin: (() -> Unit)?,
     onRefresh: (() -> Unit)?,
     onLogout: (() -> Unit)?,
 ) {
     val isLoggedIn = state.token != null
+    val idle = runningAction == null
+
+    @Composable
+    fun ActionButton(action: SessionAction, contentColor: Color, onClick: () -> Unit, icon: ImageVector? = null) {
+        DevOutlinedButton(
+            text = if (runningAction == action) action.runningLabel else action.label,
+            enabled = idle,
+            leadingIcon = when {
+                runningAction == action -> {
+                    { CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = contentColor) }
+                }
+                icon != null -> {
+                    { Icon(imageVector = icon, contentDescription = null, tint = contentColor) }
+                }
+                else -> null
+            },
+            contentColor = contentColor,
+            onClick = onClick,
+        )
+    }
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -155,7 +207,7 @@ private fun ProviderCard(
             )
         }
 
-        ProviderStatusRow(state = state)
+        LoginStatus(isLoggedIn = isLoggedIn)
 
         if (isLoggedIn) {
             Spacer(modifier = Modifier.height(4.dp))
@@ -171,11 +223,7 @@ private fun ProviderCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = if (isRevealed) {
-                        state.token.take(60).let { if (state.token.length > 60) "$it…" else it }
-                    } else {
-                        "••••••••••••••••"
-                    },
+                    text = if (isRevealed) state.token else maskToken(state.token),
                     style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
                     modifier = Modifier.weight(1f),
@@ -192,79 +240,55 @@ private fun ProviderCard(
 
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            if (isLoggedIn) {
-                DevOutlinedButton(
-                    text = "Copy",
-                    leadingIcon = {
-                        Icon(
-                            imageVector = TablerIcons.Copy,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurface,
-                        )
-                    },
-                    contentColor = MaterialTheme.colorScheme.onSurface,
-                    onClick = onCopy,
-                )
-            }
-            if (onEdit != null) {
-                DevOutlinedButton(
-                    text = "Edit",
-                    leadingIcon = {
-                        Icon(
-                            imageVector = TablerIcons.Pencil,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurface,
-                        )
-                    },
-                    contentColor = MaterialTheme.colorScheme.onSurface,
-                    onClick = onEdit,
-                )
-            }
-            if (isLoggedIn && onDelete != null) {
-                DevOutlinedButton(
-                    text = "Delete",
-                    leadingIcon = {
-                        Icon(
-                            imageVector = TablerIcons.Trash,
-                            contentDescription = null,
-                            tint = AppTheme.colors.error,
-                        )
-                    },
-                    contentColor = AppTheme.colors.error,
-                    onClick = onDelete,
-                )
-            }
-            if (onLogin != null) {
-                DevOutlinedButton(
-                    text = "Login",
-                    contentColor = MaterialTheme.colorScheme.onSurface,
-                    onClick = onLogin,
-                )
-            }
-            if (isLoggedIn && onRefresh != null) {
-                DevOutlinedButton(
-                    text = "Refresh",
-                    leadingIcon = {
-                        Icon(
-                            imageVector = TablerIcons.Refresh,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurface,
-                        )
-                    },
-                    contentColor = MaterialTheme.colorScheme.onSurface,
-                    onClick = onRefresh,
-                )
-            }
-            if (isLoggedIn && onLogout != null) {
-                DevOutlinedButton(
-                    text = "Logout",
-                    contentColor = AppTheme.colors.error,
-                    onClick = onLogout,
-                )
-            }
+            val onSurface = MaterialTheme.colorScheme.onSurface
+            val errorColor = AppTheme.colors.error
+            if (isLoggedIn) ActionButton(SessionAction.Copy, onSurface, onCopy, TablerIcons.Copy)
+            if (onEdit != null) ActionButton(SessionAction.Edit, onSurface, onEdit, TablerIcons.Pencil)
+            if (isLoggedIn && onDelete != null) ActionButton(SessionAction.Delete, errorColor, onDelete, TablerIcons.Trash)
+            if (isLoggedIn && onInvalidate != null) ActionButton(SessionAction.Invalidate, errorColor, onInvalidate)
+            if (!isLoggedIn && onLogin != null) ActionButton(SessionAction.Login, onSurface, onLogin)
+            if (isLoggedIn && onRefresh != null) ActionButton(SessionAction.Refresh, onSurface, onRefresh, TablerIcons.Refresh)
+            if (isLoggedIn && onLogout != null) ActionButton(SessionAction.Logout, errorColor, onLogout)
+        }
+
+        error?.let {
+            Text(text = it, style = MaterialTheme.typography.bodySmall, color = AppTheme.colors.error)
         }
     }
+}
+
+@Composable
+private fun LoginStatus(isLoggedIn: Boolean) {
+    val color = if (isLoggedIn) AppTheme.colors.positive else Color.Gray.copy(alpha = 0.5f)
+    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+        Canvas(modifier = Modifier.size(8.dp)) { drawCircle(color = color) }
+        Text(
+            text = if (isLoggedIn) "Logged in" else "Logged out",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+        )
+    }
+}
+
+internal enum class SessionAction(val label: String, val runningLabel: String) {
+    Copy("Copy", "Copy"),
+    Edit("Edit", "Edit"),
+    Delete("Delete", "Delete"),
+    Invalidate("Invalidate", "Invalidating…"),
+    Login("Login", "Login"),
+    Refresh("Refresh", "Refresh"),
+    Logout("Logout", "Logout"),
+}
+
+/** First 6 and last 4 characters; shorter tokens are fully masked. */
+internal fun maskToken(token: String): String =
+    if (token.length <= 10) "•".repeat(token.length) else "${token.take(6)}…${token.takeLast(4)}"
+
+/** Marks the clip as sensitive so Android 13+ hides it from the clipboard preview. */
+private fun sensitiveClip(token: String): ClipData = ClipData.newPlainText("Token", token).apply {
+    description.extras = PersistableBundle().apply { putBoolean("android.content.extra.IS_SENSITIVE", true) }
 }
 
 @Composable

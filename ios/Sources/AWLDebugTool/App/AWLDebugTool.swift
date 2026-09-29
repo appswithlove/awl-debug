@@ -8,8 +8,12 @@ public class AWLDebugTool: ObservableObject {
     let cpuMonitor = CPUMonitor()
     let ramMonitor = RAMMonitor()
     let mainThreadMonitor = MainThreadMonitor()
+    let batteryMonitor = BatteryMonitor()
+    @MainActor lazy var performance = PerformanceController(monitors: self)
     let deeplinksManager = DeeplinksManager()
     let sessionManager = SessionManager()
+    @MainActor lazy var appLogs = AppLogsStore()
+    private(set) var appGroupIdentifiers: [String] = []
 
     /// Main initializer.
     ///
@@ -22,11 +26,19 @@ public class AWLDebugTool: ObservableObject {
     ///   - deeplinks: help to test deeplinks
     ///   - config: Network capture and redaction options.
     public static func start(isScreenRecordingOn: Bool = false, deeplinks: DeepLinkStartModel? = nil, tokens: [AWLDebugTool.TokenDebugModel] = [], config: AWLDebugConfig = AWLDebugConfig()) {
-        shared.cpuMonitor.start()
-        shared.ramMonitor.start()
-        shared.mainThreadMonitor.start()
+        Task { @MainActor in
+            shared.performance.updateSampling()
+        }
         
         shared.networkLogger.start(config: config.network)
+        Task { @MainActor in
+            shared.appLogs.config = config.logs
+        }
+        shared.appGroupIdentifiers = config.appGroupIdentifiers
+        Task { @MainActor in
+            VersionOverlayPresenter.shared.isAvailable = config.showVersionOverlay
+            VersionOverlayPresenter.shared.update()
+        }
         shared.screenRecorder.initialise(isScreenRecordingOn: isScreenRecordingOn)
         
         if let deeplinks {
@@ -37,3 +49,52 @@ public class AWLDebugTool: ObservableObject {
     }
 }
 
+// MARK: - Logs
+
+public extension AWLDebugTool {
+    /// Adds an entry to the Logs module. Safe to call from any thread; `Bearer`/`Basic` credentials are redacted.
+    static func log(_ message: String, level: AWLDebugLogLevel = .info, tag: String? = nil, error: Error? = nil) {
+        let entry = AppLogEntry(date: Date(), level: level, tag: tag, message: message.redactingCredentials(),
+                                errorDescription: error.map { "\(String(reflecting: type(of: $0))): \(String(describing: $0))".redactingCredentials() })
+        Task { @MainActor in
+            shared.appLogs.append(entry)
+        }
+    }
+}
+
+// MARK: - Panel
+
+public extension AWLDebugTool {
+    /// Whether the debug panel is shown.
+    @MainActor static var isOpen: Bool {
+        DebugPanelPresenter.shared.isOpen
+    }
+
+    /// Opens the debug panel above everything the app shows, including sheets and full-screen covers.
+    /// Does nothing while it is open.
+    @MainActor static func open() {
+        DebugPanelPresenter.shared.open()
+    }
+
+    /// Closes the debug panel. Does nothing while it is closed.
+    @MainActor static func close() {
+        DebugPanelPresenter.shared.close()
+    }
+
+    @MainActor static func toggle() {
+        isOpen ? close() : open()
+    }
+
+    /// Entry point for UIKit apps, instead of `includeDebugTool()`: opens the panel on the given events in all
+    /// windows of `scene`. Call it after the scene's window is visible.
+    @MainActor static func install(in scene: UIWindowScene,
+                                   fcmToken: String? = nil,
+                                   showDebugToolEvents: [DebugToolViewModifier.ShowDebugToolEvents] = [.threeTaps]) {
+        let presenter = DebugPanelPresenter.shared
+        presenter.events = showDebugToolEvents
+        presenter.content.fcmToken = fcmToken
+        presenter.install(in: scene)
+        VersionOverlayPresenter.shared.update(in: scene)
+        presenter.applyAppearance(DebugView.AppColorScheme.stored)
+    }
+}

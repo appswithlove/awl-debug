@@ -69,4 +69,36 @@ class SessionManagerTest {
         provider.setTokenCalled shouldBe true
         provider.lastSetValue shouldBe "new-token"
     }
+
+    @Test
+    fun invalidate_withoutOnInvalidate_writesInvalidTokenThroughSetToken() = runTest {
+        val provider = FakeSessionProvider("A")
+        val manager = SessionManager(listOf(provider))
+
+        manager.invalidate(SessionManager.ProviderState(provider, "abc"))
+
+        provider.lastSetValue shouldBe "abc.invalid"
+    }
+
+    @Test
+    fun invalidate_withOnInvalidate_usesTheAppAction() = runTest {
+        var invalidated = false
+        val provider = object : SessionProvider {
+            override val label = "B"
+            override val token = MutableStateFlow<String?>("abc")
+            override val onInvalidate: suspend () -> Unit = { invalidated = true }
+        }
+        val manager = SessionManager(listOf(provider))
+
+        manager.canInvalidate(provider) shouldBe true
+        manager.invalidate(SessionManager.ProviderState(provider, "abc"))
+
+        invalidated shouldBe true
+    }
+
+    @Test
+    fun maskToken_showsFirstSixAndLastFour() {
+        maskToken("eyJhbGciOiJIUzI1NiJ9.payload.signature") shouldBe "eyJhbG…ture"
+        maskToken("short") shouldBe "•••••"
+    }
 }

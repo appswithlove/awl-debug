@@ -17,4 +17,10 @@ interface SessionProvider {
 
     /** When non-null, a "Logout" button is shown (while logged in) that invokes this. */
     val onLogout: (suspend () -> Unit)? get() = null
+
+    /**
+     * Makes the current token invalid so the next request fails with 401, for example for opaque
+     * tokens the server looks up. When `null`, "Invalidate" writes `<token>.invalid` via [onSetToken].
+     */
+    val onInvalidate: (suspend () -> Unit)? get() = null
 }

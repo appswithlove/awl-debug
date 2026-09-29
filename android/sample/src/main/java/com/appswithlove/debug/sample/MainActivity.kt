@@ -30,6 +30,9 @@ import com.appswithlove.debug.sample.ui.theme.AwlDebugTheme
 import com.appswithlove.debug.ui.dev.sheet.DevSheet
 import kotlinx.coroutines.launch
 import com.appswithlove.debug.ui.dev.log.DevLogTree
+import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.Button
+import kotlinx.coroutines.Dispatchers
 import timber.log.Timber
 
 class MainActivity : ComponentActivity() {
@@ -94,7 +97,14 @@ private fun App(openedDeeplink: String? = null) {
                         val context = LocalContext.current
                         val checked = DevSettings.isDevToolActivated(context).collectAsState(false)
                         val scope = rememberCoroutineScope()
-                        Text(text = openedDeeplink?.let { "Opened $it" } ?: "Hello, World!")
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(text = openedDeeplink?.let { "Opened $it" } ?: "Hello, World!")
+                            // Load generators for the Performance module and overlay.
+                            Button(onClick = { Thread.sleep(1_500) }) { Text("Block main thread 1.5 s") }
+                            Button(onClick = { scope.launch(Dispatchers.Default) { busyLoop(5_000) } }) {
+                                Text("CPU load 5 s")
+                            }
+                        }
                         Switch(
                             modifier = Modifier.align(Alignment.BottomCenter),
                             onCheckedChange = {
@@ -109,6 +119,13 @@ private fun App(openedDeeplink: String? = null) {
             }
         )
     }
+}
+
+private fun busyLoop(durationMs: Long) {
+    val end = System.currentTimeMillis() + durationMs
+    var value = 0L
+    while (System.currentTimeMillis() < end) value += value xor end
+    Timber.d("Busy loop done ($value)")
 }
 
 @Preview(showBackground = true)

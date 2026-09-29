@@ -43,6 +43,7 @@ dependencies {
     implementation(libs.androidx.foundation)
     implementation(libs.okhttp)
     compileOnly(libs.timber)
+    compileOnly(libs.kermit)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotest.assertions.core)

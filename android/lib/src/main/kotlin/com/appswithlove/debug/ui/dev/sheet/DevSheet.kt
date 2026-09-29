@@ -46,6 +46,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -78,6 +79,7 @@ import com.appswithlove.debug.api.DevModulesConfig
 import com.appswithlove.debug.domain.storage.DevStore
 import com.appswithlove.debug.ui.component.DevSwitch
 import com.appswithlove.debug.ui.dev.sheet.modules.performance.PerformanceMonitor
+import com.appswithlove.debug.ui.dev.sheet.modules.performance.PerformanceOverlayHost
 import com.appswithlove.debug.ui.dev.sheet.modules.AppInfoModule
 import com.appswithlove.debug.ui.dev.sheet.modules.FcmPushTokenModule
 import com.appswithlove.debug.ui.dev.sheet.modules.LogsModule
@@ -88,6 +90,8 @@ import com.appswithlove.debug.ui.dev.sheet.modules.TestCrashesModule
 import com.appswithlove.debug.ui.dev.sheet.modules.deeplinks.DeeplinkDetailModule
 import com.appswithlove.debug.ui.dev.sheet.modules.deeplinks.DeeplinkDispatcher
 import com.appswithlove.debug.ui.dev.sheet.modules.deeplinks.DeeplinkScheduler
+import com.appswithlove.debug.ui.dev.sheet.modules.ClearAppDataModule
+import com.appswithlove.debug.ui.dev.sheet.modules.clearAppData
 import com.appswithlove.debug.ui.dev.sheet.modules.deeplinks.DeeplinksModule
 import com.appswithlove.debug.api.DeeplinkItem
 import android.content.Context
@@ -183,6 +187,14 @@ internal fun DevSheet(
     var fontScale by rememberSaveable { mutableFloatStateOf(1f) }
 
     val density = LocalDensity.current
+    val context = LocalContext.current
+    // Shared by the Performance page and the overlay, which lives outside the sheet.
+    val performanceMonitor = remember {
+        if (modulesConfig.showPerformanceModule) PerformanceMonitor(context.applicationContext) else null
+    }
+    val devStore = remember { DevStore(context.applicationContext) }
+    val overlayScope = rememberCoroutineScope()
+    var openPerformanceRequests by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(isAlwaysActive) {
         viewModel.setIsAlwaysActive(isAlwaysActive)
@@ -209,9 +221,24 @@ internal fun DevSheet(
         DevTheme(
             colorScheme = if (inheritHostTheme) hostColorScheme else null,
         ) {
+            performanceMonitor?.let { monitor ->
+                PerformanceOverlayHost(
+                    monitor = monitor,
+                    devStore = devStore,
+                    onLongPress = {
+                        viewModel.submitAction(DevAction.ShowDevSheet(show = true))
+                        openPerformanceRequests++
+                    },
+                )
+            }
             DevSheetContent(
                 modifier = modifier,
                 state = state.value,
+                performanceMonitor = performanceMonitor,
+                openPerformanceRequests = openPerformanceRequests,
+                onPerformanceOverlayChanged = { visible ->
+                    overlayScope.launch { devStore.setPerformanceOverlayVisible(visible) }
+                },
                 modulesConfig = modulesConfig,
                 devConfig = devConfig,
                 logHistory = logHistory,
@@ -237,6 +264,9 @@ internal fun DevSheet(
 private fun DevSheetContent(
     modifier: Modifier = Modifier,
     state: DevSheetState,
+    performanceMonitor: PerformanceMonitor? = null,
+    openPerformanceRequests: Int = 0,
+    onPerformanceOverlayChanged: (Boolean) -> Unit = {},
     logHistory: LogHistory,
     devConfig: DevConfig? = null,
     modulesConfig: DevModulesConfig = DevModulesConfig(),
@@ -255,9 +285,6 @@ private fun DevSheetContent(
     val coroutineScope = rememberCoroutineScope()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val clipboard = LocalClipboard.current
-    val performanceMonitor = remember {
-        if (modulesConfig.showPerformanceModule) PerformanceMonitor(context) else null
-    }
     val sessionManager = remember {
         if (modulesConfig.showSessionModule && modulesConfig.sessionProviders.isNotEmpty()) {
             SessionManager(modulesConfig.sessionProviders)
@@ -266,6 +293,9 @@ private fun DevSheetContent(
         }
     }
     var currentPage by rememberSaveable { mutableStateOf(DevSheetPage.Home) }
+    LaunchedEffect(openPerformanceRequests) {
+        if (openPerformanceRequests > 0 && performanceMonitor != null) currentPage = DevSheetPage.Performance
+    }
     val networkViewModel = rememberNetworkViewModel()
     val hasNetworkInterceptor by NetworkCollector.store.hasInterceptor.collectAsStateWithLifecycle()
     val showNetworkModule = modulesConfig.showNetworkModule && hasNetworkInterceptor
@@ -508,6 +538,7 @@ private fun DevSheetContent(
                         PerformanceModule(
                             modifier = Modifier.weight(1f),
                             performanceMonitor = monitor,
+                            onOverlayVisibleChanged = onPerformanceOverlayChanged,
                         )
                     }
                 }
@@ -616,6 +647,18 @@ private fun DevSheetContent(
                             modifier = Modifier.weight(1f),
                             sessionManager = manager,
                         )
+                    }
+                }
+
+                    DevSheetPage.ClearAppData -> {
+                    ModuleDetail(swipeToDismiss = swipeToDismiss) {
+                        ModuleDetailNavBar(
+                            title = "Clear App Data",
+                            onBack = { currentPage = DevSheetPage.Home },
+                            onClose = { hideBottomSheet() },
+                        )
+
+                        ClearAppDataModule(onClear = { clearAppData(context) })
                     }
                 }
 
@@ -766,6 +809,14 @@ private fun DevSheetContent(
                             NavItem(
                                 text = "Test Crashes",
                                 onCLick = { currentPage = DevSheetPage.TestCrashes },
+                            )
+                        }
+
+                        if (modulesConfig.showClearAppDataModule) {
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                            NavItem(
+                                text = "Clear App Data",
+                                onCLick = { currentPage = DevSheetPage.ClearAppData },
                             )
                         }
 
@@ -952,7 +1003,7 @@ private fun DevSheetDarkPreview() {
 }
 
 private enum class DevSheetPage {
-    Home, Logs, Network, NetworkFilters, NetworkDetail, Performance, Permissions, Accessibility, Deeplinks, DeeplinkDetail, Session, TestCrashes;
+    Home, Logs, Network, NetworkFilters, NetworkDetail, Performance, Permissions, Accessibility, Deeplinks, DeeplinkDetail, Session, TestCrashes, ClearAppData;
 
     val parent: DevSheetPage
         get() = when (this) {

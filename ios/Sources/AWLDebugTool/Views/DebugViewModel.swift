@@ -19,16 +19,24 @@ extension DebugView {
         case light
         case dark
         
-        var colorScheme: ColorScheme? {
+        var userInterfaceStyle: UIUserInterfaceStyle {
             switch self {
             case .light: return .light
             case .dark: return .dark
-            case .auto: return nil
+            case .auto: return .unspecified
             }
         }
-        
+
+        static var stored: AppColorScheme {
+            UserDefaults.standard.string(forKey: Keys.preferredColorScheme).flatMap(AppColorScheme.init(rawValue:)) ?? .auto
+        }
+
         var ls: String {
-            return rawValue
+            switch self {
+            case .auto: return LS.Settings.appearanceSystem
+            case .light: return LS.Settings.appearanceLight
+            case .dark: return LS.Settings.appearanceDark
+            }
         }
     }
     enum AppFontSize: String, CaseIterable {
@@ -94,9 +102,4 @@ class DebugViewModel: ObservableObject {
     @AppStorage(DebugView.Keys.preferredFontSize)
     var preferredFontSize: DebugView.AppFontSize = .system
 
-    @Published var isShowingDeleteUserDefaults = false
-
-    func showDeleteUserDefaultsAlert() {
-        isShowingDeleteUserDefaults = true
-    }
 }

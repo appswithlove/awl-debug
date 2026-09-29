@@ -19,6 +19,14 @@ public final class com/appswithlove/debug/ui/dev/log/DevHttpLogInterceptor : okh
 	public fun intercept (Lokhttp3/Interceptor$Chain;)Lokhttp3/Response;
 }
 
+public final class com/appswithlove/debug/ui/dev/log/DevKermitLogWriter : co/touchlab/kermit/LogWriter {
+	public static final field $stable I
+	public fun <init> ()V
+	public fun <init> (Lcom/appswithlove/debug/ui/dev/log/DevLogCollector;)V
+	public synthetic fun <init> (Lcom/appswithlove/debug/ui/dev/log/DevLogCollector;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun log (Lco/touchlab/kermit/Severity;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Throwable;)V
+}
+
 public abstract interface class com/appswithlove/debug/ui/dev/log/DevLogCollector {
 	public abstract fun log (Lcom/appswithlove/debug/ui/dev/log/Log;)V
 	public abstract fun setMaxSize (I)V
