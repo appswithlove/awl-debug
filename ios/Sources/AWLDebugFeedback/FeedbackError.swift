@@ -29,11 +29,26 @@ enum FeedbackError: Error, Equatable {
         case 415:
             self = .unsupportedMediaType
         case 429:
-            self = .rateLimited(retryAfterSeconds: retryAfter.flatMap { Int($0.trimmingCharacters(in: .whitespaces)) })
+            self = .rateLimited(retryAfterSeconds: Self.seconds(retryAfter: retryAfter))
         case 500 ... 599:
             self = .serviceUnavailable
         default:
             self = .unexpectedStatus(statusCode)
+        }
+    }
+
+    /// `Retry-After` in seconds; the HTTP-date form is not supported.
+    static func seconds(retryAfter: String?) -> Int? {
+        retryAfter.flatMap { Int($0.trimmingCharacters(in: .whitespaces)) }.map { max($0, 0) }
+    }
+
+    /// Network errors, timeouts, 5xx and 429 may pass; the report is kept and sent again later.
+    var isRetryable: Bool {
+        switch self {
+        case .offline, .network, .serviceUnavailable, .rateLimited:
+            true
+        case .invalidRequest, .unauthorized, .tooLarge, .unsupportedMediaType, .unexpectedStatus, .encodingFailed:
+            false
         }
     }
 

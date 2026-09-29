@@ -26,6 +26,7 @@ private struct FeedbackToolModifier: ViewModifier {
         if let config {
             content
                 .onAppear {
+                    FeedbackQueueRunner.shared.start()
                     if config.shakeToReport {
                         ShakeDetector.install()
                     }

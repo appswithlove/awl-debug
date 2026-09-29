@@ -13,6 +13,8 @@ final class FeedbackSession: ObservableObject {
         case editing
         case sending
         case sent
+        /// Kept on the device and sent later.
+        case queued
         case failed(String)
     }
 
@@ -29,19 +31,38 @@ final class FeedbackSession: ObservableObject {
     @Published var color = MarkupColor.red
     @Published var text = ""
     @Published private(set) var phase = Phase.editing
+    /// Adds `logs.txt` with the debug tool's logs and requests.
+    @Published var attachLogs: Bool
     let dictation = Dictation()
 
     private var dictationPrefix = ""
     private let config: FeedbackConfig
+    private let queue: FeedbackQueueRunner
+    private let logsSource: LogsAttachment.Source?
+    /// The same for every attempt of this report, so the service can drop duplicates.
+    private let idempotencyKey = UUID()
     private var dictationChanges: AnyCancellable?
 
-    init(screenshot: UIImage, config: FeedbackConfig) {
+    init(
+        screenshot: UIImage,
+        config: FeedbackConfig,
+        queue: FeedbackQueueRunner = .shared,
+        logsSource: LogsAttachment.Source? = LogsAttachment.toolSource
+    ) {
         self.screenshot = screenshot
         self.config = config
+        self.queue = queue
+        self.logsSource = logsSource
+        attachLogs = config.attachLogsByDefault
         // Views observe the session only, so dictation state changes are passed on.
         dictationChanges = dictation.objectWillChange.sink { [weak self] _ in
             self?.objectWillChange.send()
         }
+    }
+
+    /// Only with the debug tool in the app.
+    var canAttachLogs: Bool {
+        logsSource != nil
     }
 
     var trimmedText: String {
@@ -49,7 +70,12 @@ final class FeedbackSession: ObservableObject {
     }
 
     var canSend: Bool {
-        !trimmedText.isEmpty && text.count <= Self.maxTextLength && phase != .sending && phase != .sent
+        !trimmedText.isEmpty && text.count <= Self.maxTextLength && !isFinished && phase != .sending
+    }
+
+    /// Sent or queued: nothing left to do in the form.
+    var isFinished: Bool {
+        phase == .sent || phase == .queued
     }
 
     var canUndo: Bool {
@@ -113,6 +139,7 @@ final class FeedbackSession: ObservableObject {
         dictation.stop()
         phase = .sending
 
+        let now = Date.now
         let metadata = FeedbackMetadata(
             osVersion: DeviceInfo.osVersion,
             deviceModel: DeviceInfo.modelIdentifier,
@@ -121,10 +148,19 @@ final class FeedbackSession: ObservableObject {
             environment: config.environment,
             locale: FeedbackMetadata.localeIdentifier(.current),
             extraMetadata: config.extraMetadata(),
-            date: .now,
+            date: now,
             distribution: config.distribution,
             reporter: config.reporter
         )
+        let logs = attachLogs ? await LogsAttachment.capture(
+            header: LogsAttachment.header(
+                config: config,
+                device: ["\(metadata.platform) \(metadata.osVersion)", metadata.deviceModel, metadata.locale],
+                generatedAt: now,
+                timeZone: .current
+            ),
+            source: logsSource
+        ) : nil
         let marked = ScreenshotRenderer.flatten(screenshot: screenshot, marks: marks)
         guard let jpeg = ScreenshotRenderer.jpegData(from: marked) else {
             phase = .failed(FeedbackError.encodingFailed.message)
@@ -132,10 +168,25 @@ final class FeedbackSession: ObservableObject {
         }
 
         let client = FeedbackClient(endpoint: config.endpoint, appKey: config.appKey)
+        let request: URLRequest
         do {
-            _ = try await client.send(text: trimmedText, metadata: metadata, screenshotJPEG: jpeg)
-            phase = .sent
+            request = try client.makeRequest(
+                text: trimmedText,
+                metadata: metadata,
+                screenshotJPEG: jpeg,
+                logs: logs,
+                idempotencyKey: idempotencyKey
+            )
         } catch {
+            phase = .failed(FeedbackError.encodingFailed.message)
+            return
+        }
+        switch await queue.submit(request) {
+        case .sent:
+            phase = .sent
+        case .queued:
+            phase = .queued
+        case let .failed(error):
             phase = .failed(error.message)
         }
     }
