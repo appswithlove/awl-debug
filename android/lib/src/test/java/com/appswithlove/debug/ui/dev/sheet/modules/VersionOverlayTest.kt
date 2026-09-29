@@ -6,6 +6,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.performTouchInput
 import androidx.test.core.app.ApplicationProvider
@@ -43,6 +48,16 @@ class VersionOverlayTest {
         composeTestRule.onNodeWithText("AWL 2.0.0 (42)").performTouchInput { click(center) }
 
         clicks shouldBe 1
+    }
+
+    @Test
+    fun overlay_showsRedDotOnlyWhileRecording() {
+        var isRecording by mutableStateOf(false)
+        composeTestRule.setContent { VersionOverlay(devConfig = devConfig, isRecording = isRecording) }
+
+        composeTestRule.onNodeWithContentDescription("Screen recording on").assertDoesNotExist()
+        isRecording = true
+        composeTestRule.onNodeWithContentDescription("Screen recording on").assertIsDisplayed()
     }
 
     @Test

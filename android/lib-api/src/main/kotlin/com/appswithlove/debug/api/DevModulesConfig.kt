@@ -26,9 +26,13 @@ data class DevModulesConfig(
      * `AwlDebug.handleDeeplinkIntent` so delayed deeplinks from notifications reach it too.
      */
     val deeplinkHandler: ((String) -> Unit)? = null,
+    /** Records the app's own screen while testers use it, see [DevScreenRecordingConfig]. */
+    val showScreenRecordingModule: Boolean = true,
+    val screenRecording: DevScreenRecordingConfig = DevScreenRecordingConfig(),
 ) {
     val hasAnyModuleEnabled = showLogsModule || showPerformanceModule ||
             showPermissionsModule || showAccessibilityModule || showDeeplinksModule ||
             (showFcmPushTokenModule && fcmTokenProvider != null) || showTestCrashesModule ||
-            (showSessionModule && sessionProviders.isNotEmpty()) || showNetworkModule || showClearAppDataModule
+            (showSessionModule && sessionProviders.isNotEmpty()) || showNetworkModule || showClearAppDataModule ||
+            showScreenRecordingModule
 }

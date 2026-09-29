@@ -123,6 +123,9 @@ import com.appswithlove.debug.ui.dev.sheet.modules.network.NetworkFiltersModule
 import com.appswithlove.debug.ui.dev.sheet.modules.network.NetworkModule
 import com.appswithlove.debug.ui.component.shareTextFile
 import com.appswithlove.debug.ui.dev.log.LogHistory
+import com.appswithlove.debug.ui.dev.recording.ScreenRecorder
+import com.appswithlove.debug.ui.dev.recording.ScreenRecordingEffect
+import com.appswithlove.debug.ui.dev.recording.ScreenRecordingModule
 import com.appswithlove.debug.ui.theme.AppTheme
 import com.appswithlove.debug.ui.theme.DevTheme
 import kotlinx.coroutines.CancellationException
@@ -216,6 +219,11 @@ internal fun DevSheet(
 
     val savedVersionOverlay by devStore.versionOverlayVisible.collectAsStateWithLifecycle(initialValue = null)
     val showVersionOverlay = savedVersionOverlay ?: modulesConfig.showVersionOverlay
+    if (modulesConfig.showScreenRecordingModule) {
+        ScreenRecordingEffect(config = modulesConfig.screenRecording, isPanelOpen = state.value.isShown)
+    }
+    val isRecording = modulesConfig.showScreenRecordingModule &&
+        ScreenRecorder.isOn.collectAsStateWithLifecycle().value
 
     DisposableEffect(modulesConfig.deeplinkHandler) {
         DeeplinkDispatcher.setHandler(modulesConfig.deeplinkHandler)
@@ -240,8 +248,8 @@ internal fun DevSheet(
     ) {
         AccessibilityOverride(settings = accessibility, content = content)
 
-        if (showVersionOverlay && devConfig != null) {
-            VersionOverlay(devConfig = devConfig)
+        if ((showVersionOverlay && devConfig != null) || isRecording) {
+            VersionOverlay(devConfig = devConfig.takeIf { showVersionOverlay }, isRecording = isRecording)
         }
 
         DevTheme(
@@ -683,6 +691,18 @@ private fun DevSheetContent(
                     }
                 }
 
+                    DevSheetPage.ScreenRecording -> {
+                    ModuleDetail(swipeToDismiss = swipeToDismiss) {
+                        ModuleDetailNavBar(
+                            title = "Screen Recording",
+                            onBack = { currentPage = DevSheetPage.Home },
+                            onClose = { hideBottomSheet() },
+                        )
+
+                        ScreenRecordingModule(modifier = Modifier.weight(1f))
+                    }
+                }
+
                     DevSheetPage.ClearAppData -> {
                     ModuleDetail(swipeToDismiss = swipeToDismiss) {
                         ModuleDetailNavBar(
@@ -851,6 +871,16 @@ private fun DevSheetContent(
                                 onRevoke = fcmProvider.onRevoke?.let { revoke ->
                                     { coroutineScope.launch { revoke() } }
                                 },
+                            )
+                        }
+
+                        if (modulesConfig.showScreenRecordingModule) {
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                            val recordingActive by ScreenRecorder.isOn.collectAsStateWithLifecycle()
+                            NavItem(
+                                text = "Screen Recording",
+                                onCLick = { currentPage = DevSheetPage.ScreenRecording },
+                                active = recordingActive,
                             )
                         }
 
@@ -1092,7 +1122,7 @@ private fun DevSheetDarkPreview() {
 }
 
 private enum class DevSheetPage {
-    Home, Logs, Network, NetworkFilters, NetworkDetail, Performance, Permissions, Accessibility, Deeplinks, DeeplinkDetail, Session, TestCrashes, ClearAppData;
+    Home, Logs, Network, NetworkFilters, NetworkDetail, Performance, Permissions, Accessibility, Deeplinks, DeeplinkDetail, Session, ScreenRecording, TestCrashes, ClearAppData;
 
     val parent: DevSheetPage
         get() = when (this) {

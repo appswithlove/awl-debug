@@ -12,7 +12,7 @@ import com.appswithlove.debug.api.DevTrigger
  * @param triggers Gestures that start a report while the app is in the foreground. [DevTrigger.Screenshot] needs
  * Android 14 (API 34). A trigger listed here and in the `DevSheet` starts feedback only.
  * @param distribution Sent as `distribution` when set. Leave `null` for services that do not accept the field yet.
- * @param reporter Sent as `reporter` when set. Leave `null` for services that do not accept the field yet.
+ * @param reporter Prefills who sends the report. Without it the first report asks for a name (email optional); testers can change it and the entry is kept on the device.
  * @param attachLogsByDefault Initial state of "Attach logs": recent logs and requests of the debug panel go along as `logs.txt`.
  */
 data class FeedbackConfig(

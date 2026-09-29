@@ -23,11 +23,13 @@ struct MarkupLayer: View {
                     lineJoin: .round
                 )
                 for mark in marks {
-                    context.stroke(
-                        Path(MarkupGeometry.path(for: mark, in: size)),
-                        with: .color(Color(uiColor: mark.color.uiColor)),
-                        style: style
-                    )
+                    let path = Path(MarkupGeometry.path(for: mark, in: size))
+                    let shading = GraphicsContext.Shading.color(Color(uiColor: mark.color.uiColor))
+                    if mark.isFilled {
+                        context.fill(path, with: shading)
+                    } else {
+                        context.stroke(path, with: shading, style: style)
+                    }
                 }
             }
             .contentShape(Rectangle())
@@ -81,9 +83,11 @@ struct MarkupToolbar: View {
             }
             Divider().frame(width: 32).padding(.vertical, 4)
             ForEach(MarkupColor.allCases, id: \.self) { color in
+                // Redact is always black; the colours apply to Pen and Arrow only.
                 ColorSwatch(color: color, isSelected: session.color == color) {
                     session.color = color
                 }
+                .disabled(session.tool == .redact)
             }
             Divider().frame(width: 32).padding(.vertical, 4)
             IconButton(title: "Undo", systemImage: "arrow.uturn.backward", action: session.undoLastMark)
@@ -103,7 +107,7 @@ private struct ToolButton: View {
 
     var body: some View {
         Button(action: action) {
-            Image(systemName: tool == .pen ? "scribble" : "arrow.up.right")
+            Image(systemName: tool.systemImage)
                 .font(.title3)
                 .frame(width: 44, height: 44)
                 .background(
@@ -111,8 +115,18 @@ private struct ToolButton: View {
                     in: RoundedRectangle(cornerRadius: 10)
                 )
         }
-        .accessibilityLabel(tool == .pen ? "Pen" : "Arrow")
+        .accessibilityLabel(tool.name)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+}
+
+private extension MarkupTool {
+    var systemImage: String {
+        switch self {
+        case .pen: "scribble"
+        case .arrow: "arrow.up.right"
+        case .redact: "rectangle.fill"
+        }
     }
 }
 
@@ -120,6 +134,7 @@ private struct ColorSwatch: View {
     let color: MarkupColor
     let isSelected: Bool
     let action: () -> Void
+    @Environment(\.isEnabled) private var isEnabled
 
     var body: some View {
         Button(action: action) {
@@ -137,6 +152,7 @@ private struct ColorSwatch: View {
                 }
                 .frame(width: 44, height: 44)
                 .contentShape(Rectangle())
+                .opacity(isEnabled ? 1 : 0.38)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(color.name)

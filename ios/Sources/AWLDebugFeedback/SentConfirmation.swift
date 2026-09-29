@@ -6,18 +6,18 @@
 import SwiftUI
 import UIKit
 
-/// The "Feedback sent" card, shown over the app after the feedback UI has closed. It lives in a
+/// The "Feedback sent" (or "Saved…") card, shown over the app after the feedback UI has closed. It lives in a
 /// window that lets every touch through, so the app stays usable while it fades out.
 @MainActor
 final class SentConfirmationPresenter {
-    private static let message = "Feedback sent"
     private var window: UIWindow?
 
-    func show(in scene: UIWindowScene) {
+    func show(in scene: UIWindowScene, message: String, systemImage: String) {
         window?.isHidden = true
         let window = PassthroughWindow(windowScene: scene)
+        window.accessibilityIdentifier = "AWLDebugWindow" // Not in screen recordings.
         window.windowLevel = .alert + 1
-        let host = UIHostingController(rootView: SentConfirmation(message: Self.message) { [weak self, weak window] in
+        let host = UIHostingController(rootView: SentConfirmation(message: message, systemImage: systemImage) { [weak self, weak window] in
             window?.isHidden = true
             if self?.window === window {
                 self?.window = nil
@@ -27,7 +27,7 @@ final class SentConfirmationPresenter {
         window.rootViewController = host
         window.isHidden = false
         self.window = window
-        UIAccessibility.post(notification: .announcement, argument: Self.message)
+        UIAccessibility.post(notification: .announcement, argument: message)
     }
 }
 
@@ -39,6 +39,7 @@ private final class PassthroughWindow: UIWindow {
 
 private struct SentConfirmation: View {
     let message: String
+    let systemImage: String
     let onFinished: () -> Void
     @State private var isVisible = false
 
@@ -46,11 +47,12 @@ private struct SentConfirmation: View {
         ZStack {
             if isVisible {
                 VStack(spacing: 12) {
-                    Image(systemName: "checkmark.circle.fill")
+                    Image(systemName: systemImage)
                         .font(.system(size: 56))
                         .foregroundStyle(.green)
                     Text(message)
                         .font(.headline)
+                        .multilineTextAlignment(.center)
                 }
                 .padding(32)
                 .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20))

@@ -7,6 +7,7 @@ import android.graphics.Paint
 import android.graphics.Path
 import androidx.annotation.StringRes
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import java.io.ByteArrayOutputStream
 import kotlin.math.PI
 import kotlin.math.atan2
@@ -22,7 +23,7 @@ private const val MAX_UPLOAD_BYTES = 5 * 1024 * 1024
 private const val JPEG_QUALITY = 85
 private const val DOWNSCALE_STEP = 0.75f
 
-internal enum class MarkupTool { Pen, Arrow }
+internal enum class MarkupTool { Pen, Arrow, Redact }
 
 internal enum class MarkupColor(val argb: Int, @param:StringRes val label: Int) {
     Red(0xFFE53935.toInt(), R.string.feedback_color_red),
@@ -38,7 +39,20 @@ internal sealed interface Mark {
 
     data class Stroke(val points: List<Offset>, override val color: MarkupColor) : Mark
     data class Arrow(val start: Offset, val end: Offset, override val color: MarkupColor) : Mark
+
+    /** A rectangle between two corners, filled black so the area never leaves the device. */
+    data class Redact(val start: Offset, val end: Offset) : Mark {
+        override val color: MarkupColor get() = MarkupColor.Black
+    }
 }
+
+/** The redacted area in pixels of a [width] x [height] image. */
+internal fun Mark.Redact.rect(width: Float, height: Float): Rect = Rect(
+    left = minOf(start.x, end.x) * width,
+    top = minOf(start.y, end.y) * height,
+    right = maxOf(start.x, end.x) * width,
+    bottom = maxOf(start.y, end.y) * height,
+)
 
 /** The mark as open polylines in pixels of a [width] x [height] image; shared by the screen and the burn-in. */
 internal fun Mark.polylines(width: Float, height: Float): List<List<Offset>> {
@@ -50,6 +64,7 @@ internal fun Mark.polylines(width: Float, height: Float): List<List<Offset>> {
             val (left, right) = arrowHead(start.scaled(), tip, headLength = ARROW_HEAD_FRACTION * width)
             listOf(listOf(start.scaled(), tip), listOf(left, tip, right))
         }
+        is Mark.Redact -> emptyList()
     }
 }
 
@@ -94,7 +109,16 @@ internal fun burnMarks(screenshot: Bitmap, marks: List<Mark>): Bitmap {
         strokeCap = Paint.Cap.ROUND
         strokeJoin = Paint.Join.ROUND
     }
+    val fill = Paint().apply {
+        style = Paint.Style.FILL
+        color = MarkupColor.Black.argb
+    }
     marks.forEach { mark ->
+        if (mark is Mark.Redact) {
+            val area = mark.rect(width, height)
+            canvas.drawRect(area.left, area.top, area.right, area.bottom, fill)
+            return@forEach
+        }
         paint.color = mark.color.argb
         mark.polylines(width, height).filter { it.isNotEmpty() }.forEach { line ->
             val path = Path()

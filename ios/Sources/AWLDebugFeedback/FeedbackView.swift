@@ -5,24 +5,44 @@
 
 import SwiftUI
 
+enum FeedbackField: Hashable {
+    case description
+    case reporterName
+    case reporterEmail
+}
+
 enum FeedbackOutcome {
     case cancelled
     case sent
+    case queued
 }
 
 /// Mark up the screenshot, describe the finding, send.
 struct FeedbackView: View {
     @ObservedObject var session: FeedbackSession
+    @ObservedObject var queue = FeedbackQueueRunner.shared
     let onClose: (FeedbackOutcome) -> Void
-    @FocusState private var isTextFocused: Bool
+    @FocusState private var focusedField: FeedbackField?
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 12) {
-                ScreenshotMarkup(session: session, isKeyboardUp: isTextFocused, dismissKeyboard: dismissKeyboard)
-                DescriptionField(session: session, isFocused: $isTextFocused)
+                ScreenshotMarkup(session: session, isKeyboardUp: focusedField != nil, dismissKeyboard: dismissKeyboard)
+                DescriptionField(session: session, focusedField: $focusedField)
+                ReporterRow(session: session, focusedField: $focusedField)
+                if session.canAttachLogs {
+                    Toggle("Attach logs", isOn: $session.attachLogs)
+                        .font(.subheadline)
+                        .disabled(session.phase == .sending || session.isFinished)
+                }
                 if case let .failed(message) = session.phase {
                     FailureRow(message: message, retry: send)
+                }
+                if queue.pendingCount > 0 {
+                    Text("\(queue.pendingCount) pending")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
             .padding()
@@ -38,8 +58,13 @@ struct FeedbackView: View {
         }
         .interactiveDismissDisabled()
         .onChange(of: session.phase) { phase in
-            if phase == .sent {
+            switch phase {
+            case .sent:
                 onClose(.sent)
+            case .queued:
+                onClose(.queued)
+            case .editing, .sending, .failed:
+                break
             }
         }
     }
@@ -47,7 +72,7 @@ struct FeedbackView: View {
     @ToolbarContentBuilder private var toolbar: some ToolbarContent {
         ToolbarItem(placement: .cancellationAction) {
             Button("Cancel", action: cancel)
-                .disabled(session.phase == .sending || session.phase == .sent)
+                .disabled(session.phase == .sending || session.isFinished)
         }
         ToolbarItem(placement: .confirmationAction) {
             if session.phase == .sending {
@@ -70,7 +95,7 @@ struct FeedbackView: View {
     }
 
     private func dismissKeyboard() {
-        isTextFocused = false
+        focusedField = nil
     }
 }
 
@@ -104,13 +129,13 @@ private struct ScreenshotMarkup: View {
 
 private struct DescriptionField: View {
     @ObservedObject var session: FeedbackSession
-    let isFocused: FocusState<Bool>.Binding
+    let focusedField: FocusState<FeedbackField?>.Binding
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(alignment: .top, spacing: 8) {
                 TextEditor(text: $session.text)
-                    .focused(isFocused)
+                    .focused(focusedField, equals: .description)
                     .frame(height: 96)
                     .scrollContentBackground(.hidden)
                     .padding(4)
@@ -147,6 +172,48 @@ private struct DescriptionField: View {
     }
 }
 
+/// Asks for name (required) and email (optional) until a first report is sent, then "Sent as {name}".
+private struct ReporterRow: View {
+    @ObservedObject var session: FeedbackSession
+    let focusedField: FocusState<FeedbackField?>.Binding
+
+    var body: some View {
+        Group {
+            if session.isEditingReporter {
+                HStack(spacing: 8) {
+                    TextField("Your name", text: $session.reporterName)
+                        .textContentType(.name)
+                        .textInputAutocapitalization(.words)
+                        .autocorrectionDisabled()
+                        .submitLabel(.next)
+                        .focused(focusedField, equals: .reporterName)
+                        .onSubmit { focusedField.wrappedValue = .reporterEmail }
+                    TextField("Email (optional)", text: $session.reporterEmail)
+                        .textContentType(.emailAddress)
+                        .keyboardType(.emailAddress)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .submitLabel(.done)
+                        .focused(focusedField, equals: .reporterEmail)
+                        .foregroundStyle(session.isReporterEmailValid ? Color.primary : Color.red)
+                }
+                .textFieldStyle(.roundedBorder)
+                .font(.subheadline)
+            } else {
+                HStack(alignment: .firstTextBaseline) {
+                    Text("Sent as \(session.reporterName.trimmed)")
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                    Spacer()
+                    Button("Change", action: session.changeReporter)
+                }
+                .font(.subheadline)
+            }
+        }
+        .disabled(session.phase == .sending || session.isFinished)
+    }
+}
+
 private struct MicButton: View {
     @ObservedObject var session: FeedbackSession
 
@@ -160,7 +227,7 @@ private struct MicButton: View {
                 .foregroundStyle(session.dictation.isRecording ? .red : .accentColor)
                 .frame(minWidth: 44, minHeight: 44)
         }
-        .disabled(session.phase == .sending || session.phase == .sent)
+        .disabled(session.phase == .sending || session.isFinished)
         .accessibilityLabel(session.dictation.isRecording ? "Stop dictation" : "Dictate")
     }
 }

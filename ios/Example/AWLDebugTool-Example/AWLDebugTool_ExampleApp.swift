@@ -44,7 +44,6 @@ struct AWLDebugTool_ExampleApp: App {
         UNUserNotificationCenter.current().delegate = NotificationDelegate.shared
 #if DEBUG || STAGING
         AWLDebugTool.start(
-            isScreenRecordingOn: true,
             deeplinks: .init(
                 deeplinks: [
                     .init(title: "test1", url: "myapp://test1"),
@@ -58,6 +57,7 @@ struct AWLDebugTool_ExampleApp: App {
                 var config = AWLDebugConfig()
                 config.sessionProviders = [accessTokenProvider, refreshTokenProvider]
                 config.triggers = [.threeFingerTap, .tripleTap, .shake]
+                config.screenRecording = .init(isOnByDefault: true, maxDuration: .seconds(60))
                 return config
             }()
         )
