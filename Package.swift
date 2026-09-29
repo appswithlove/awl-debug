@@ -11,11 +11,15 @@ let package = Package(
         .library(
             name: "AWLDebugTool",
             targets: ["AWLDebugTool"]),
+        .library(
+            name: "AWLDebugFeedback",
+            targets: ["AWLDebugFeedback"]),
     ],
     targets: [
         .target(
             name: "AWLDebugTool",
             path: "ios/Sources",
+            exclude: ["AWLDebugFeedback"],
             resources: [
                 .process("Resources/Assets.xcassets"),
             ]
@@ -23,6 +27,14 @@ let package = Package(
         .testTarget(
             name: "AWLDebugToolTests",
             dependencies: ["AWLDebugTool"],
-            path: "ios/Tests"),
+            path: "ios/Tests",
+            exclude: ["AWLDebugFeedbackTests"]),
+        .target(
+            name: "AWLDebugFeedback",
+            path: "ios/Sources/AWLDebugFeedback"),
+        .testTarget(
+            name: "AWLDebugFeedbackTests",
+            dependencies: ["AWLDebugFeedback"],
+            path: "ios/Tests/AWLDebugFeedbackTests"),
     ]
 )
