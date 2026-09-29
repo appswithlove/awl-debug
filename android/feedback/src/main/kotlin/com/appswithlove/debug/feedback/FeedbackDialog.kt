@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -26,6 +27,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.darkColorScheme
@@ -53,12 +55,14 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
 import androidx.core.view.WindowCompat
+import com.appswithlove.debug.feedback.attachments.logsPart
 import com.appswithlove.debug.feedback.queue.FeedbackQueue
 import com.appswithlove.debug.feedback.queue.SubmitResult
 import kotlinx.coroutines.Dispatchers
@@ -95,6 +99,7 @@ internal fun FeedbackDialog(
     var text by remember(draft) { mutableStateOf("") }
     var sendState by remember(draft) { mutableStateOf<SendState>(SendState.Idle) }
     var speechHint by remember(draft) { mutableStateOf<Int?>(null) }
+    var attachLogs by remember(draft) { mutableStateOf(config.attachLogsByDefault) }
     val isSending = sendState == SendState.Sending
     val keyboard = remember(draft) { KeyboardDismissal() }
 
@@ -133,7 +138,10 @@ internal fun FeedbackDialog(
                 appKey = config.appKey,
                 text = text.trim(),
                 metadataJson = draft.metadataJson,
-                parts = listOf(FeedbackPart("screenshot", image.fileName, image.mimeType, image.bytes)),
+                parts = listOfNotNull(
+                    FeedbackPart("screenshot", image.fileName, image.mimeType, image.bytes),
+                    draft.logs?.takeIf { attachLogs }?.let(::logsPart),
+                ),
             )
             when (val result = queue.submit(report)) {
                 SubmitResult.Sent -> onSent()
@@ -217,6 +225,14 @@ internal fun FeedbackDialog(
                             .onFocusChanged { keyboard.fieldFocused = it.isFocused }
                             .onGloballyPositioned { keyboard.fieldBounds = it.boundsInRoot() },
                     )
+                    if (draft.logs != null) {
+                        AttachmentSwitch(
+                            label = stringResource(R.string.feedback_attach_logs),
+                            checked = attachLogs,
+                            enabled = !isSending,
+                            onCheckedChange = { attachLogs = it },
+                        )
+                    }
                     speechHint?.let { hint ->
                         Text(text = stringResource(hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
@@ -256,6 +272,19 @@ private fun Header(
                 Text(stringResource(if (isRetry) R.string.feedback_retry else R.string.feedback_send))
             }
         }
+    }
+}
+
+@Composable
+private fun AttachmentSwitch(label: String, checked: Boolean, enabled: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .toggleable(value = checked, enabled = enabled, role = Role.Switch, onValueChange = onCheckedChange),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(text = label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+        Switch(checked = checked, onCheckedChange = null, enabled = enabled)
     }
 }
 

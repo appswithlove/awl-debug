@@ -10,6 +10,8 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import com.appswithlove.debug.feedback.queue.FeedbackQueue
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
+import io.kotest.matchers.string.shouldNotContain
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.After
@@ -82,7 +84,39 @@ class FeedbackDialogTest {
         queued shouldBe false
     }
 
-    private fun openDialog() {
+    @Test
+    fun attachesLogsByDefault() {
+        server.enqueue(MockResponse().setResponseCode(201))
+        openDialog(draft = FeedbackDraft(ImageBitmap(40, 80), "{}", logs = "# AWL Debug logs\n".toByteArray()))
+
+        sendReport()
+
+        compose.waitUntil(timeoutMillis = 5_000) { sent }
+        val body = server.takeRequest().body.readUtf8()
+        body shouldContain "name=\"logs\"; filename=\"logs.txt\""
+        body shouldContain "# AWL Debug logs"
+    }
+
+    @Test
+    fun leavesLogsOutWhenSwitchedOff() {
+        server.enqueue(MockResponse().setResponseCode(201))
+        openDialog(draft = FeedbackDraft(ImageBitmap(40, 80), "{}", logs = "# AWL Debug logs\n".toByteArray()))
+
+        compose.onNodeWithText(compose.activity.getString(R.string.feedback_attach_logs)).performClick()
+        sendReport()
+
+        compose.waitUntil(timeoutMillis = 5_000) { sent }
+        server.takeRequest().body.readUtf8() shouldNotContain "name=\"logs\""
+    }
+
+    @Test
+    fun noLogsSwitchWithoutDebugPanel() {
+        openDialog()
+
+        compose.onAllNodes(hasText(compose.activity.getString(R.string.feedback_attach_logs))).fetchSemanticsNodes().size shouldBe 0
+    }
+
+    private fun openDialog(draft: FeedbackDraft = this.draft) {
         val config = FeedbackConfig(
             endpoint = server.url("/").toString(),
             appKey = "app-key",

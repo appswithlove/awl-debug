@@ -18,6 +18,7 @@
     <string name="feedback_markup_canvas">Screenshot. Draw to mark the problem.</string>
     <string name="feedback_text_label">What happened?</string>
     <string name="feedback_dictate">Dictate</string>
+    <string name="feedback_attach_logs">Attach logs</string>
     <string name="feedback_sent">Feedback sent</string>
     <string name="feedback_queued">Saved. It will be sent when you are online.</string>
     <string name="feedback_pending">%1$d pending</string>

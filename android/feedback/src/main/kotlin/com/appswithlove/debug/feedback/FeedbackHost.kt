@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.appswithlove.debug.feedback.attachments.captureLogsAttachment
 import com.appswithlove.debug.feedback.queue.FeedbackQueue
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -49,6 +50,8 @@ internal class FeedbackDraft(
     val screenshot: ImageBitmap,
     val metadataJson: String,
     val idempotencyKey: String = UUID.randomUUID().toString(),
+    /** `logs.txt`, `null` without the debug panel. */
+    val logs: ByteArray? = null,
 )
 
 internal class FeedbackController(
@@ -70,9 +73,12 @@ internal class FeedbackController(
                 Log.w(LOG_TAG, "Nothing recorded yet, cannot take a screenshot")
                 return@launch
             }
+            val device = DeviceInfo.current()
+            val screenshot = layer.toImageBitmap()
             draft = FeedbackDraft(
-                screenshot = layer.toImageBitmap(),
-                metadataJson = buildMetadataJson(currentConfig, DeviceInfo.current(), extra, timestamp),
+                screenshot = screenshot,
+                metadataJson = buildMetadataJson(currentConfig, device, extra, timestamp),
+                logs = captureLogsAttachment(currentConfig, device, timestamp),
             )
         }
     }
