@@ -169,7 +169,7 @@ DevSheet(
 
 ### Deeplinks
 
-Fire deeplinks straight from the sheet to test navigation. Enter a URL and tap **Shoot**, or preconfigure a list for one-tap access:
+Fire deeplinks straight from the sheet to test navigation. Enter a URL and tap **Fire now** or **Save** it to the testers' list on the device, or preconfigure a list (shown as "Predefined"). Tapping an entry opens its detail with **Fire now** and a cold start test: **Schedule & close app** posts a notification after 5, 10 or 30 seconds that opens the deeplink.
 
 ```kotlin
 DevSheet(
@@ -183,6 +183,25 @@ DevSheet(
     MyApp()
 }
 ```
+
+By default a deeplink starts an `ACTION_VIEW` intent limited to your app's package. To route it through your own navigation instead, set `deeplinkHandler` and pass launch intents to `AwlDebug.handleDeeplinkIntent`, so delayed deeplinks from the notification reach the handler too, also on a cold start:
+
+```kotlin
+DevSheet(modulesConfig = DevModulesConfig(deeplinkHandler = { url -> navigator.open(url) })) { MyApp() }
+
+// In the launcher activity
+override fun onCreate(savedInstanceState: Bundle?) {
+    super.onCreate(savedInstanceState)
+    AwlDebug.handleDeeplinkIntent(intent)
+}
+
+override fun onNewIntent(intent: Intent) {
+    super.onNewIntent(intent)
+    AwlDebug.handleDeeplinkIntent(intent)
+}
+```
+
+The delayed deeplink needs the notification permission (`POST_NOTIFICATIONS` on Android 13+). The SDK neither declares nor requests it; without it the module explains why scheduling is not possible.
 
 ### Session
 

@@ -12,5 +12,8 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/awl_debug_file_paths" />
         </provider>
+        <receiver
+            android:name="com.appswithlove.debug.ui.dev.sheet.modules.deeplinks.DeeplinkNotificationReceiver"
+            android:exported="false" />
     </application>
 </manifest>

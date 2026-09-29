@@ -10,9 +10,17 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.appswithlove.debug.api.DeeplinkItem
 import com.appswithlove.debug.ui.dev.sheet.modules.accessibility.AccessibilitySettings
 import com.appswithlove.debug.ui.dev.sheet.modules.accessibility.Appearance
 import kotlinx.coroutines.flow.Flow
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.coroutines.flow.map
 
 //needs to be outside of the class!!
@@ -45,6 +53,7 @@ internal class DevStore(context: Context) {
         private val PERFORMANCE_OVERLAY_X_KEY = floatPreferencesKey("PERFORMANCE_OVERLAY_X_KEY")
         private val PERFORMANCE_OVERLAY_Y_KEY = floatPreferencesKey("PERFORMANCE_OVERLAY_Y_KEY")
 
+        private val SAVED_DEEPLINKS_KEY = stringPreferencesKey("SAVED_DEEPLINKS_KEY")
         private val A11Y_USE_SYSTEM_FONT_SCALE_KEY = booleanPreferencesKey("A11Y_USE_SYSTEM_FONT_SCALE_KEY")
         private val A11Y_FONT_SCALE_KEY = floatPreferencesKey("A11Y_FONT_SCALE_KEY")
         private val A11Y_APPEARANCE_KEY = stringPreferencesKey("A11Y_APPEARANCE_KEY")
@@ -68,6 +77,31 @@ internal class DevStore(context: Context) {
         dataStore.edit { preferences ->
             preferences[PERFORMANCE_OVERLAY_X_KEY] = xDp
             preferences[PERFORMANCE_OVERLAY_Y_KEY] = yDp
+        }
+    }
+
+    /** Deeplinks testers saved on this device, in the order they were added. */
+    val savedDeeplinks: Flow<List<DeeplinkItem>> = dataStore.data
+        .map { preferences -> decodeDeeplinks(preferences[SAVED_DEEPLINKS_KEY]) }
+
+    suspend fun setSavedDeeplinks(deeplinks: List<DeeplinkItem>) {
+        dataStore.edit { preferences -> preferences[SAVED_DEEPLINKS_KEY] = encodeDeeplinks(deeplinks) }
+    }
+
+    private fun encodeDeeplinks(deeplinks: List<DeeplinkItem>): String = JsonArray(
+        deeplinks.map { JsonObject(mapOf("label" to JsonPrimitive(it.label), "url" to JsonPrimitive(it.url))) }
+    ).toString()
+
+    private fun decodeDeeplinks(json: String?): List<DeeplinkItem> {
+        if (json.isNullOrEmpty()) return emptyList()
+        return try {
+            Json.parseToJsonElement(json).jsonArray.mapNotNull { element ->
+                val item = element.jsonObject
+                val url = item["url"]?.jsonPrimitive?.content ?: return@mapNotNull null
+                DeeplinkItem(label = item["label"]?.jsonPrimitive?.content ?: url, url = url)
+            }
+        } catch (_: IllegalArgumentException) {
+            emptyList()
         }
     }
 

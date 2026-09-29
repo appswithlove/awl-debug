@@ -101,6 +101,19 @@ internal object TablerIcons {
         "M21 15l-4 4l-4 -4m4 4v-14",
     )
 
+    val Lock: ImageVector by lazyIcon(
+        "TablerLock",
+        "M5 13a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v6a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2v-6z",
+        "M11 16a1 1 0 1 0 2 0a1 1 0 0 0 -2 0",
+        "M8 11v-4a4 4 0 1 1 8 0v4",
+    )
+
+    val User: ImageVector by lazyIcon(
+        "TablerUser",
+        "M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0",
+        "M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2",
+    )
+
     val Eye: ImageVector by lazyIcon(
         "TablerEye",
         "M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0",
