@@ -93,6 +93,7 @@ final class DebugPanelPresenter: NSObject {
         let root = UIViewController()
         root.view.backgroundColor = .clear
         let window = UIWindow(windowScene: scene)
+        window.accessibilityIdentifier = RecordingFrameRenderer.sdkWindowIdentifier
         window.windowLevel = .alert + 1
         window.rootViewController = root
         window.makeKeyAndVisible()

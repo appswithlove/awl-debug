@@ -87,9 +87,12 @@ enum LS {
         
         // MARK: - Screen Recording
         static let screenRecorderToole = "Screen recording"
-        static let screenRecorderExportCurrent = "Export current video"
-        static let screenRecorderExportLast = "Export last video"
+        static let screenRecorderExportCurrent = "Export current recording"
+        static let screenRecorderExportLast = "Export last recording"
         static let screenRecorderMaxVideoDuration = "Max duration"
+        static let screenRecorderLastAvailable = "Last recording available (%@)"
+        static let screenRecorderEmpty = "No recording yet"
+        static let screenRecorderWarning = "Recordings can contain personal data. Secure text fields are masked."
         
         // MARK: - Firebase Action
         static let simulateCrash = "Simulate crash"
