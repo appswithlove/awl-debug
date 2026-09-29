@@ -80,10 +80,44 @@ class AWLDebugURLProtocol: URLProtocol {
             clientRunLoopModes.append(currentMode.rawValue as CFString)
         }
         
+        let requestInfo = RequestInfo(request: newRequest, config: AWLDebugTool.shared.networkLogger.config)
+        currentRequest = requestInfo
+        // URLSession hands `httpBody` to URL protocols as `httpBodyStream`.
+        guard let bodyStream = newRequest.httpBodyStream, let limit = requestInfo.requestBodyReadLimit else {
+            startTask(with: newRequest)
+            return
+        }
+        RequestBodyReader.read(bodyStream, limit: limit, onFailure: { [self] _ in
+            performOnClientThread { [self] in
+                sessionTask?.cancel()
+            }
+        }, completion: { [self] result in
+            performOnClientThread({ [self] in
+                switch result {
+                case .complete(let data):
+                    newRequest.httpBody = data
+                    currentRequest?.setRequestBody(data)
+                case .forwarded(let upload):
+                    newRequest.httpBodyStream = upload.stream
+                    currentRequest?.forwardedUpload = upload
+                case .failed(let error):
+                    currentRequest?.errorDescription = error.localizedDescription
+                    client?.urlProtocol(self, didFailWithError: error)
+                    return
+                }
+                startTask(with: newRequest)
+            }, whenStopped: {
+                if case .forwarded(let upload) = result {
+                    upload.cancel()
+                }
+            })
+        })
+    }
+    
+    private func startTask(with request: NSMutableURLRequest) {
         session = URLSession(configuration: makeSessionConfiguration(), delegate: self, delegateQueue: nil)
-        sessionTask = session?.dataTask(with: newRequest as URLRequest)
+        sessionTask = session?.dataTask(with: request as URLRequest)
         sessionTask?.resume()
-        currentRequest = RequestInfo(request: newRequest, config: AWLDebugTool.shared.networkLogger.config)
     }
     
     override public func stopLoading() {
@@ -272,8 +306,10 @@ extension AWLDebugURLProtocol {
         let date: Date
         let method: String?
         let requestHeaders: [NetworkLog.Header]
-        let requestBody: Data?
-        let isRequestBodyStream: Bool
+        private(set) var requestBody: Data?
+        private(set) var isRequestBodyStream: Bool
+        /// Set when the body was longer than the read limit and is uploaded from a replaying stream.
+        var forwardedUpload: RequestBodyReader.ForwardedUpload?
         var stausCode: Int
         var responseHeaders: [NetworkLog.Header] = []
         var errorDescription: String?
@@ -291,10 +327,23 @@ extension AWLDebugURLProtocol {
             method = request.httpMethod
             requestHeaders = Self.sortedHeaders(request.allHTTPHeaderFields ?? [:])
             requestBody = request.httpBody
-            // Streams are forwarded untouched: reading one here would consume the body the server needs.
             isRequestBodyStream = request.httpBody == nil && request.httpBodyStream != nil
             stausCode = 0
             redactor = NetworkRedactor(config: config)
+        }
+        
+        /// `nil` when the body stream is forwarded unread.
+        var requestBodyReadLimit: Int? {
+            let contentType = Self.value(of: "Content-Type", in: requestHeaders)
+            guard isRequestBodyStream, redactor.config.captureBodies, !redactor.isStream(contentType: contentType) else {
+                return nil
+            }
+            return redactor.captureLimit(contentType: contentType)
+        }
+        
+        func setRequestBody(_ data: Data) {
+            requestBody = data
+            isRequestBodyStream = false
         }
         
         func initResponse(response: URLResponse) {
@@ -303,16 +352,11 @@ extension AWLDebugURLProtocol {
             responseHeaders = Self.sortedHeaders(Dictionary(uniqueKeysWithValues: responseHttp.allHeaderFields.map { ("\($0.key)", "\($0.value)") }))
             
             let contentType = responseHttp.value(forHTTPHeaderField: "Content-Type")
-            let mediaType = NetworkRedactor.mediaType(of: contentType)
             isResponseStream = redactor.isStreamResponse(statusCode: responseHttp.statusCode, contentType: contentType)
-            let config = redactor.config
-            if !config.captureBodies || isResponseStream {
+            if !redactor.config.captureBodies || isResponseStream {
                 responseCaptureLimit = 0
-            } else if NetworkRedactor.isJSON(mediaType) || mediaType == "application/x-www-form-urlencoded" {
-                // Redaction needs the whole document; larger ones are reported as too large to redact.
-                responseCaptureLimit = max(config.maxBodyBytes, NetworkRedactor.maxRedactableBytes)
             } else {
-                responseCaptureLimit = config.maxBodyBytes
+                responseCaptureLimit = redactor.captureLimit(contentType: contentType)
             }
         }
         
@@ -334,14 +378,16 @@ extension AWLDebugURLProtocol {
                                  statusCode: stausCode)
             log.requestHeaders = redactor.redact(headers: requestHeaders, count: &redactedCount)
             log.responseHeaders = redactor.redact(headers: responseHeaders, count: &redactedCount)
-            log.requestBytes = requestBody?.count ?? 0
+            log.requestBytes = forwardedUpload?.totalBytes ?? requestBody?.count ?? 0
             log.responseBytes = responseBytes
             log.errorDescription = errorDescription
             
             if redactor.config.captureBodies {
                 let requestContentType = Self.value(of: "Content-Type", in: requestHeaders)
                 let responseContentType = Self.value(of: "Content-Type", in: responseHeaders)
-                if isRequestBodyStream {
+                if let upload = forwardedUpload {
+                    log.requestBody = redactor.redact(body: upload.prefix, totalBytes: upload.totalBytes, contentType: requestContentType, count: &redactedCount)
+                } else if isRequestBodyStream {
                     log.requestBody = NetworkRedactor.placeholderBody(LS.Network.streamNotCaptured, contentType: requestContentType, totalBytes: 0)
                 } else if let requestBody = requestBody {
                     log.requestBody = redactor.redact(body: requestBody, totalBytes: requestBody.count, contentType: requestContentType, count: &redactedCount)

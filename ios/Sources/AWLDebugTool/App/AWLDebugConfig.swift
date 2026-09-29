@@ -21,8 +21,8 @@ public struct AWLDebugConfig {
         public var redactJsonFields: Set<String>
         /// Query parameter names whose values are redacted.
         public var redactQueryParams: Set<String>
-        /// Response content types whose bodies are never read, in addition to
-        /// `text/event-stream` and `application/x-ndjson`. Status 101 and request body streams are never read either.
+        /// Request and response content types whose bodies are never read, in addition to
+        /// `text/event-stream` and `application/x-ndjson`. Responses with status 101 are never read either.
         public var streamContentTypes: Set<String>
         /// Requests slower than this are labelled "slow" in the list.
         public var slowRequestThresholdMs: Int
