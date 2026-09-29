@@ -6,6 +6,7 @@ import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
@@ -13,6 +14,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -33,9 +35,12 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.appswithlove.debug.feedback.queue.FeedbackQueue
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import java.util.Date
+import java.util.UUID
 
 private const val LOG_TAG = "Feedback"
 
@@ -43,6 +48,7 @@ private const val LOG_TAG = "Feedback"
 internal class FeedbackDraft(
     val screenshot: ImageBitmap,
     val metadataJson: String,
+    val idempotencyKey: String = UUID.randomUUID().toString(),
 )
 
 internal class FeedbackController(
@@ -103,6 +109,9 @@ fun FeedbackHost(config: FeedbackConfig?, content: @Composable () -> Unit) {
     if (config?.shakeToReport == true) {
         ShakeToReport(onShake = controller::start)
     }
+    if (config != null) {
+        RetryQueuedReports()
+    }
     CompositionLocalProvider(LocalFeedbackController provides controller) {
         Box(modifier = recording, propagateMinConstraints = true) {
             content()
@@ -111,6 +120,7 @@ fun FeedbackHost(config: FeedbackConfig?, content: @Composable () -> Unit) {
         if (config != null && draft != null) {
             val appContext = LocalContext.current.applicationContext
             val sentMessage = stringResource(R.string.feedback_sent)
+            val queuedMessage = stringResource(R.string.feedback_queued)
             FeedbackDialog(
                 config = config,
                 draft = draft,
@@ -120,8 +130,27 @@ fun FeedbackHost(config: FeedbackConfig?, content: @Composable () -> Unit) {
                     controller.finish()
                     Toast.makeText(appContext, sentMessage, Toast.LENGTH_SHORT).show()
                 },
+                onQueued = {
+                    controller.finish()
+                    Toast.makeText(appContext, queuedMessage, Toast.LENGTH_LONG).show()
+                },
             )
         }
+    }
+}
+
+/** Retries queued reports on app start (first use of the queue) and whenever the host returns to the foreground. */
+@Composable
+private fun RetryQueuedReports() {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(context, lifecycleOwner) {
+        val queue = FeedbackQueue.shared(context)
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_START) queue.retryInBackground(ignoreBackoff = false)
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 }
 
@@ -157,13 +186,27 @@ private fun ShakeToReport(onShake: () -> Unit) {
 fun FeedbackLauncher(modifier: Modifier = Modifier) {
     val controller = LocalFeedbackController.current
     val enabled = controller?.isConfigured == true
-    Text(
-        text = stringResource(if (enabled) R.string.feedback_entry else R.string.feedback_not_configured),
-        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.ExtraBold),
-        color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+    val context = LocalContext.current
+    val pending by remember(enabled) {
+        if (enabled) FeedbackQueue.shared(context).pendingCount else MutableStateFlow(0)
+    }.collectAsState()
+    Column(
         modifier = modifier
             .fillMaxWidth()
             .clickable(enabled = enabled) { controller?.start() }
             .padding(vertical = 6.dp),
-    )
+    ) {
+        Text(
+            text = stringResource(if (enabled) R.string.feedback_entry else R.string.feedback_not_configured),
+            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.ExtraBold),
+            color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        if (pending > 0) {
+            Text(
+                text = stringResource(R.string.feedback_pending, pending),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
 }
