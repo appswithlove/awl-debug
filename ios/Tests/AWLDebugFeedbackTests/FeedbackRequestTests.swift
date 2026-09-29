@@ -137,11 +137,19 @@ struct FeedbackRequestTests {
         )
         let jpeg = Data([0xff, 0xd8, 0xff, 0xd9])
 
-        let request = try client.makeRequest(text: "Button is cut off", metadata: metadata(), screenshotJPEG: jpeg)
+        let key = try #require(UUID(uuidString: "5F1C7B0E-3A52-4C1D-9B8E-2D6F4A1E7C90"))
+
+        let request = try client.makeRequest(
+            text: "Button is cut off",
+            metadata: metadata(),
+            screenshotJPEG: jpeg,
+            idempotencyKey: key
+        )
 
         #expect(request.url?.absoluteString == "https://feedback.example.com/v1/feedback")
         #expect(request.httpMethod == "POST")
         #expect(request.value(forHTTPHeaderField: "X-App-Key") == "key-123")
+        #expect(request.value(forHTTPHeaderField: "Idempotency-Key") == "5f1c7b0e-3a52-4c1d-9b8e-2d6f4a1e7c90")
         let contentType = try #require(request.value(forHTTPHeaderField: "Content-Type"))
         #expect(contentType.hasPrefix("multipart/form-data; boundary="))
 
