@@ -118,8 +118,21 @@ public final class com/appswithlove/debug/api/FcmTokenProvider$DefaultImpls {
 	public static fun getOnRevoke (Lcom/appswithlove/debug/api/FcmTokenProvider;)Lkotlin/jvm/functions/Function1;
 }
 
+public final class com/appswithlove/debug/api/session/PollingSessionProvider : com/appswithlove/debug/api/session/SessionProvider {
+	public fun <init> (Ljava/lang/String;JLkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;)V
+	public synthetic fun <init> (Ljava/lang/String;JLkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun getLabel ()Ljava/lang/String;
+	public fun getOnInvalidate ()Lkotlin/jvm/functions/Function1;
+	public fun getOnLogin ()Lkotlin/jvm/functions/Function1;
+	public fun getOnLogout ()Lkotlin/jvm/functions/Function1;
+	public fun getOnRefresh ()Lkotlin/jvm/functions/Function1;
+	public fun getOnSetToken ()Lkotlin/jvm/functions/Function2;
+	public fun getToken ()Lkotlinx/coroutines/flow/Flow;
+}
+
 public abstract interface class com/appswithlove/debug/api/session/SessionProvider {
 	public abstract fun getLabel ()Ljava/lang/String;
+	public fun getOnInvalidate ()Lkotlin/jvm/functions/Function1;
 	public fun getOnLogin ()Lkotlin/jvm/functions/Function1;
 	public fun getOnLogout ()Lkotlin/jvm/functions/Function1;
 	public fun getOnRefresh ()Lkotlin/jvm/functions/Function1;
@@ -128,6 +141,7 @@ public abstract interface class com/appswithlove/debug/api/session/SessionProvid
 }
 
 public final class com/appswithlove/debug/api/session/SessionProvider$DefaultImpls {
+	public static fun getOnInvalidate (Lcom/appswithlove/debug/api/session/SessionProvider;)Lkotlin/jvm/functions/Function1;
 	public static fun getOnLogin (Lcom/appswithlove/debug/api/session/SessionProvider;)Lkotlin/jvm/functions/Function1;
 	public static fun getOnLogout (Lcom/appswithlove/debug/api/session/SessionProvider;)Lkotlin/jvm/functions/Function1;
 	public static fun getOnRefresh (Lcom/appswithlove/debug/api/session/SessionProvider;)Lkotlin/jvm/functions/Function1;
