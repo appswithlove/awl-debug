@@ -15,12 +15,16 @@ struct FeedbackClient {
         text: String,
         metadata: FeedbackMetadata,
         screenshotJPEG: Data,
+        logs: Data? = nil,
         idempotencyKey: UUID
     ) throws -> URLRequest {
         var form = MultipartFormData()
         form.addField(name: "text", value: text)
         try form.addField(name: "metadata", value: metadata.jsonString())
         form.addFile(name: "screenshot", filename: "screenshot.jpg", mimeType: "image/jpeg", data: screenshotJPEG)
+        if let logs {
+            form.addFile(name: "logs", filename: "logs.txt", mimeType: "text/plain; charset=utf-8", data: logs)
+        }
 
         var request = URLRequest(url: endpoint.appending(path: "v1/feedback"))
         request.httpMethod = "POST"
