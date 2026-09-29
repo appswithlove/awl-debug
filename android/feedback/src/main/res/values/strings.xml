@@ -10,6 +10,7 @@
     <string name="feedback_clear">Clear</string>
     <string name="feedback_tool_pen">Pen</string>
     <string name="feedback_tool_arrow">Arrow</string>
+    <string name="feedback_tool_redact">Redact</string>
     <string name="feedback_color_red">Red</string>
     <string name="feedback_color_yellow">Yellow</string>
     <string name="feedback_color_green">Green</string>
@@ -18,6 +19,10 @@
     <string name="feedback_markup_canvas">Screenshot. Draw to mark the problem.</string>
     <string name="feedback_text_label">What happened?</string>
     <string name="feedback_dictate">Dictate</string>
+    <string name="feedback_reporter_prompt">Your name</string>
+    <string name="feedback_reporter_email">Email (optional)</string>
+    <string name="feedback_reporter_sent_as">Sent as %1$s</string>
+    <string name="feedback_reporter_change">Change</string>
     <string name="feedback_sent">Feedback sent</string>
     <string name="feedback_queued">Saved. It will be sent when you are online.</string>
     <string name="feedback_pending">%1$d pending</string>
