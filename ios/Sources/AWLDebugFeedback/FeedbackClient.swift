@@ -5,13 +5,18 @@
 
 import Foundation
 
-/// Posts a report to the feedback service.
+/// Builds and posts reports to the feedback service.
 struct FeedbackClient {
     let endpoint: URL
     let appKey: String
-    var session: URLSession = .shared
 
-    func makeRequest(text: String, metadata: FeedbackMetadata, screenshotJPEG: Data) throws -> URLRequest {
+    /// `idempotencyKey` identifies the report on the service, so every attempt of one report must use the same key.
+    func makeRequest(
+        text: String,
+        metadata: FeedbackMetadata,
+        screenshotJPEG: Data,
+        idempotencyKey: UUID
+    ) throws -> URLRequest {
         var form = MultipartFormData()
         form.addField(name: "text", value: text)
         try form.addField(name: "metadata", value: metadata.jsonString())
@@ -21,40 +26,40 @@ struct FeedbackClient {
         request.httpMethod = "POST"
         request.timeoutInterval = 30
         request.setValue(appKey, forHTTPHeaderField: "X-App-Key")
+        request.setValue(idempotencyKey.uuidString.lowercased(), forHTTPHeaderField: FeedbackClient.idempotencyHeader)
         request.setValue(form.contentType, forHTTPHeaderField: "Content-Type")
         request.httpBody = form.finalized()
         return request
     }
 
-    /// Returns the id of the created task.
-    func send(text: String, metadata: FeedbackMetadata, screenshotJPEG: Data) async throws(FeedbackError) -> String? {
-        let request: URLRequest
-        do {
-            request = try makeRequest(text: text, metadata: metadata, screenshotJPEG: screenshotJPEG)
-        } catch {
-            throw .encodingFailed
-        }
+    static let idempotencyHeader = "Idempotency-Key"
 
-        let data: Data
+    /// Sends one attempt of a report built by `makeRequest`.
+    static func send(_ request: URLRequest, session: URLSession) async throws(FeedbackFailure) {
         let response: URLResponse
         do {
-            (data, response) = try await session.data(for: request)
+            (_, response) = try await session.data(for: request)
         } catch let error as URLError {
-            throw FeedbackError(urlError: error)
+            throw FeedbackFailure(error: FeedbackError(urlError: error))
         } catch {
-            throw .network
+            throw FeedbackFailure(error: .network)
         }
 
         guard let http = response as? HTTPURLResponse else {
-            throw .network
+            throw FeedbackFailure(error: .network)
         }
         guard (200 ... 299).contains(http.statusCode) else {
-            throw FeedbackError(statusCode: http.statusCode, retryAfter: http.value(forHTTPHeaderField: "Retry-After"))
+            let retryAfter = http.value(forHTTPHeaderField: "Retry-After")
+            throw FeedbackFailure(
+                error: FeedbackError(statusCode: http.statusCode, retryAfter: retryAfter),
+                retryAfterSeconds: FeedbackError.seconds(retryAfter: retryAfter)
+            )
         }
-        return (try? JSONDecoder().decode(CreatedResponse.self, from: data))?.taskId
     }
+}
 
-    private struct CreatedResponse: Decodable {
-        let taskId: String
-    }
+/// A failed attempt, with the service's `Retry-After` if it sent one.
+struct FeedbackFailure: Error, Equatable {
+    let error: FeedbackError
+    var retryAfterSeconds: Int?
 }
