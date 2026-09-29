@@ -35,9 +35,18 @@ struct MyApp: App {
                 deeplinks: [AWLDeeplink(title: "Home", url: "myapp://home")],
                 handler: .uiApplicationSharedOpen // or .custom { url in ... } if you don't use URL schemes
             ),
-            tokens: [                      // optional, exposes session tokens for viewing/invalidation
-                AWLDebugTool.TokenDebugModel(label: "Access Token", getToken: { authEngine.accessToken })
-            ]
+            config: {
+                var config = AWLDebugConfig()
+                // optional, shows session tokens and lets testers edit, invalidate, log in and out
+                config.sessionProviders = [
+                    AWLTokenProvider(label: "Access Token",
+                                     token: { await authEngine.accessToken },
+                                     setToken: { await authEngine.setAccessToken($0) },
+                                     refresh: { try await authEngine.refresh() },
+                                     logout: { await authEngine.logout() })
+                ]
+                return config
+            }()
         )
 #endif
     }
@@ -98,9 +107,10 @@ The Logs module shows the app's own unified-log entries (`os_log`, `Logger`, Ker
 - user can simulate crash to check if firebase integration works.
 
 ### 6. Session / Tokens
-- developer can expose session tokens (e.g. access/refresh token) via `AWLDebugTool.start(tokens:)`, by passing an `AWLDebugTool.TokenDebugModel` per token with a label and a closure returning its current value
-- user can view and copy each token's current value from the debug panel
-- user can trigger token invalidation to test the app's refresh/re-authentication flow
+- developer passes one provider per token source in `AWLDebugConfig.sessionProviders`: `AWLTokenProvider(label:token:…)` reads the token on demand (a KMP `suspend` getter works too), or the app conforms its own type to `AWLSessionProvider` and streams changes through `token: AsyncStream<String?>`
+- the panel shows each token masked (first 6, last 4 characters) with "Reveal token" and "Copy" (the pasteboard forgets it after 60 s), and follows login, refresh and logout live
+- actions appear only when the app offers them: "Edit" and "Delete" with `setToken` (empty value deletes), "Invalidate" writes `<token>.invalid` via `setToken` or calls `invalidate`, "Login", "Refresh", "Logout"; all are `async throws`, failures show "Action failed: …"
+- the module is hidden without providers; `AWLDebugTool.start(tokens:)` with `TokenDebugModel` still works but is deprecated
 
 ### 7. Display FCM push token
 - user can see currently used FCM pushed token. It's useful during testing to send pushes directly to the device.
