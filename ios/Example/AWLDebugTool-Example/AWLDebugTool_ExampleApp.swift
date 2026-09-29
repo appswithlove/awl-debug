@@ -54,10 +54,11 @@ struct AWLDebugTool_ExampleApp: App {
                     print("The App will open: \(url)")
                 })
             ),
-            tokens: [
-                accessTokenDebugModel,
-                refreshTokenDebugModel
-            ]
+            config: {
+                var config = AWLDebugConfig()
+                config.sessionProviders = [accessTokenProvider, refreshTokenProvider]
+                return config
+            }()
         )
         AWLDebugTool.log("Example app started", tag: "App")
         AWLDebugTool.log("Example warning", level: .warn, tag: "App")

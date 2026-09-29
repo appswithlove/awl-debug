@@ -11,7 +11,7 @@ public class AWLDebugTool: ObservableObject {
     let batteryMonitor = BatteryMonitor()
     @MainActor lazy var performance = PerformanceController(monitors: self)
     let deeplinksManager = DeeplinksManager()
-    let sessionManager = SessionManager()
+    @MainActor lazy var sessionManager = SessionManager()
     @MainActor lazy var appLogs = AppLogsStore()
     private(set) var appGroupIdentifiers: [String] = []
 
@@ -24,10 +24,21 @@ public class AWLDebugTool: ObservableObject {
     ///   - isScreenRecordingOn: Initial value for screen recording.
     ///     Can be changed later from the debug panel.
     ///   - deeplinks: help to test deeplinks
-    ///   - config: Network capture and redaction options.
-    public static func start(isScreenRecordingOn: Bool = false, deeplinks: DeepLinkStartModel? = nil, tokens: [AWLDebugTool.TokenDebugModel] = [], config: AWLDebugConfig = AWLDebugConfig()) {
+    ///   - config: Network capture, redaction and session provider options.
+    public static func start(isScreenRecordingOn: Bool = false, deeplinks: DeepLinkStartModel? = nil, config: AWLDebugConfig = AWLDebugConfig()) {
+        start(isScreenRecordingOn: isScreenRecordingOn, deeplinks: deeplinks, sessionProviders: config.sessionProviders, config: config)
+    }
+
+    @available(*, deprecated, message: "Pass AWLTokenProvider in AWLDebugConfig.sessionProviders")
+    public static func start(isScreenRecordingOn: Bool = false, deeplinks: DeepLinkStartModel? = nil, tokens: [AWLDebugTool.TokenDebugModel], config: AWLDebugConfig = AWLDebugConfig()) {
+        start(isScreenRecordingOn: isScreenRecordingOn, deeplinks: deeplinks,
+              sessionProviders: tokens.map(\.provider) + config.sessionProviders, config: config)
+    }
+
+    private static func start(isScreenRecordingOn: Bool, deeplinks: DeepLinkStartModel?, sessionProviders: [any AWLSessionProvider], config: AWLDebugConfig) {
         Task { @MainActor in
             shared.performance.updateSampling()
+            shared.sessionManager.providers = sessionProviders
         }
         
         shared.networkLogger.start(config: config.network)
@@ -44,8 +55,6 @@ public class AWLDebugTool: ObservableObject {
         if let deeplinks {
             shared.deeplinksManager.start(with: deeplinks)
         }
-
-        shared.sessionManager.tokens = tokens
     }
 }
 

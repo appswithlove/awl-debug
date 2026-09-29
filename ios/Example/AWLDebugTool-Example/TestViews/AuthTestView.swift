@@ -11,14 +11,19 @@ import AWLDebugTool
 import SwiftUI
 
 #if DEBUG || STAGING
-let accessTokenDebugModel = AWLDebugTool.TokenDebugModel(
+let accessTokenProvider = AWLTokenProvider(
     label: "Access Token",
-    getToken: { AuthTestEngine.shared.accessToken }
+    token: { await AuthTestEngine.shared.accessToken },
+    setToken: { token in await MainActor.run { AuthTestEngine.shared.accessToken = token } },
+    login: { await AuthTestEngine.shared.login() },
+    refresh: { _ = await AuthTestEngine.shared.refreshAccessToken() },
+    logout: { await AuthTestEngine.shared.logout() }
 )
 
-let refreshTokenDebugModel = AWLDebugTool.TokenDebugModel(
+let refreshTokenProvider = AWLTokenProvider(
     label: "Refresh Token",
-    getToken: { AuthTestEngine.shared.refreshToken }
+    token: { await AuthTestEngine.shared.refreshToken },
+    setToken: { token in await MainActor.run { AuthTestEngine.shared.refreshToken = token } }
 )
 #endif
 
@@ -42,8 +47,8 @@ class AuthTestEngine: ObservableObject {
     
     @Published var isInternetOn = true
     @Published private(set) var resultPath: String?
-    @Published private(set) var accessToken: String?
-    @Published private(set) var refreshToken: String?
+    @Published var accessToken: String?
+    @Published var refreshToken: String?
     private var fakeToken: String {
         Date.now.formatted(.dateTime.hour().minute().second().secondFraction(.fractional(3)))
     }
@@ -96,7 +101,7 @@ class AuthTestEngine: ObservableObject {
         return isAccessTokenValid() && isInternetOn ? .success : .error401
     }
     
-    private func refreshAccessToken() -> ApiResponse {
+    func refreshAccessToken() -> ApiResponse {
         print(logPrefix + "refreshAccessToken")
         guard isInternetOn else {
             return .errorNoInternet
@@ -111,26 +116,13 @@ class AuthTestEngine: ObservableObject {
         }
     }
     
+    /// The debug panel's "Invalidate" writes `<token>.invalid`, which this fake backend rejects.
     private func isAccessTokenValid() -> Bool {
-        var accessToken = accessToken
-#if DEBUG || STAGING
-        accessToken = accessTokenDebugModel.invalidatedIfNeeded(
-            token: accessToken,
-            invalidate: { "invalid_" + $0 }
-        )
-#endif
-        return self.accessToken != nil && accessToken == self.accessToken
+        accessToken.map { !$0.hasSuffix(".invalid") } ?? false
     }
     
     private func isRefreshTokenValid() -> Bool {
-        var refreshToken = refreshToken
-#if DEBUG || STAGING
-        refreshToken = refreshTokenDebugModel.invalidatedIfNeeded(
-            token: refreshToken,
-            invalidate: { "invalid_" + $0 }
-        )
-#endif
-        return self.refreshToken != nil && refreshToken == self.refreshToken
+        refreshToken.map { !$0.hasSuffix(".invalid") } ?? false
     }
 }
 
