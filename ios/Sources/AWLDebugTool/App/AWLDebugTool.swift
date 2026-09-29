@@ -1,0 +1,38 @@
+import Foundation
+import SwiftUI
+
+public class AWLDebugTool: ObservableObject {
+    public static let shared = AWLDebugTool()
+    let networkLogger = NetworkLogger()
+    let screenRecorder = ScreenRecorderModel()
+    let cpuMonitor = CPUMonitor()
+    let ramMonitor = RAMMonitor()
+    let mainThreadMonitor = MainThreadMonitor()
+    let deeplinksManager = DeeplinksManager()
+    let sessionManager = SessionManager()
+
+    /// Main initializer.
+    ///
+    /// If your app uses deep links, see also
+    /// `AWLDebugTool.processDeeplinkNotificationIfNeeded()`.
+    ///
+    /// - Parameters:
+    ///   - isScreenRecordingOn: Initial value for screen recording.
+    ///     Can be changed later from the debug panel.
+    ///   - deeplinks: help to test deeplinks
+    public static func start(isScreenRecordingOn: Bool = false, deeplinks: DeepLinkStartModel? = nil, tokens: [AWLDebugTool.TokenDebugModel] = []) {
+        shared.cpuMonitor.start()
+        shared.ramMonitor.start()
+        shared.mainThreadMonitor.start()
+        
+        shared.networkLogger.start()
+        shared.screenRecorder.initialise(isScreenRecordingOn: isScreenRecordingOn)
+        
+        if let deeplinks {
+            shared.deeplinksManager.start(with: deeplinks)
+        }
+
+        shared.sessionManager.tokens = tokens
+    }
+}
+
