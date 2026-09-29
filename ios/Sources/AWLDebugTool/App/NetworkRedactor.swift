@@ -199,7 +199,20 @@ struct NetworkRedactor {
 
     /// Stream bodies are never read: buffering them would hold back or never finish the response.
     func isStreamResponse(statusCode: Int, contentType: String?) -> Bool {
-        statusCode == 101 || streamMediaTypes.contains(Self.mediaType(of: contentType))
+        statusCode == 101 || isStream(contentType: contentType)
+    }
+
+    func isStream(contentType: String?) -> Bool {
+        streamMediaTypes.contains(Self.mediaType(of: contentType))
+    }
+
+    /// Bytes to keep of a body before redaction. Redaction needs the whole document; larger ones are reported as too large to redact.
+    func captureLimit(contentType: String?) -> Int {
+        let mediaType = Self.mediaType(of: contentType)
+        guard Self.isJSON(mediaType) || mediaType == "application/x-www-form-urlencoded" || mediaType.hasPrefix("multipart/") else {
+            return config.maxBodyBytes
+        }
+        return max(config.maxBodyBytes, Self.maxRedactableBytes)
     }
 
     private static func parameter(_ name: String, of headerValue: String?) -> String? {
