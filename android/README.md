@@ -24,6 +24,7 @@ Made by [Apps with love](https://appswithlove.com).
   - [Deeplinks](#deeplinks)
   - [Session](#session)
   - [FCM push token](#fcm-push-token)
+  - [Screen recording](#screen-recording)
   - [Custom modules](#custom-modules)
   - [HTTP logging](#http-logging)
   - [Timber integration](#timber-integration)
@@ -44,6 +45,7 @@ Made by [Apps with love](https://appswithlove.com).
 - FCM push token: display, refresh, revoke (you supply the source, no Firebase dependency)
 - Performance: CPU, RAM, battery and UI freezes (frames over 700 ms), with charts and a draggable overlay
 - Permissions and accessibility modules
+- Screen recording: the app's own window at 3 fps while testers interact, password fields masked, kept after a crash
 - Test crashes
 - App info from your build config plus custom key/value pairs
 - Custom modules: append your own composables to the sheet
@@ -181,6 +183,7 @@ DevSheet(
 | `showDeeplinksModule` / `deeplinks` | `true` / empty | [Deeplinks](#deeplinks) |
 | `showSessionModule` / `sessionProviders` | `true` / empty | [Session](#session), hidden when the list is empty |
 | `showFcmPushTokenModule` / `fcmTokenProvider` | `true` / `null` | [FCM push token](#fcm-push-token), hidden when `null` |
+| `showScreenRecordingModule` / `screenRecording` | `true` / off, 5 min | [Screen recording](#screen-recording) |
 | `showTestCrashesModule` | `true` | Test crashes |
 | `showClearAppDataModule` | `true` | Clear App Data: after a confirmation, `ActivityManager.clearApplicationUserData()` deletes all app data (including AWL Debug settings and runtime permissions) and ends the process |
 
@@ -297,6 +300,28 @@ DevSheet(
 ```
 
 `token` must emit whenever it changes so the displayed value stays current. Each button only appears when its action is provided. The module is hidden when `fcmTokenProvider` is `null`.
+
+### Screen recording
+
+The Screen Recording module records the activity window as JPEG frames while testers use the app. No system screen capture is involved, so there is no permission prompt. Recording is off until a tester turns it on (or `isOnByDefault = true`). While it is on, the version overlay shows a red dot.
+
+```kotlin
+DevModulesConfig(
+    screenRecording = DevScreenRecordingConfig(isOnByDefault = false, maxDurationSeconds = 300),
+)
+```
+
+- 3 frames per second, only while testers touch the screen or the keyboard is open, for one second after that plus two frames. An idle app records nothing.
+- Frames go to `cache/awl-debug/recording/current` as a ring buffer of the chosen length (30 s, 1 min, 5 min, 10 min of active frames). On the next start they move to `last`, so the recording survives a crash; the module then shows "Last recording available".
+- Nothing is recorded while the panel is open or the app is in the background. Dialog windows (`AlertDialog`, `ModalBottomSheet`) are not part of the activity window and are missing. Windows with `FLAG_SECURE` are recorded black.
+- Password fields are black: `EditText`/`TextView` with a password `inputType` and Compose fields with password semantics (`PasswordVisualTransformation`, `BasicSecureTextField`). Mark anything else:
+
+```kotlin
+Text(text = iban, modifier = Modifier.awlDebugMasked())   // Compose
+cardView.awlDebugMasked = true                             // View, covers its children too
+```
+
+Both markers are in `debug` and `debug-no-op` (`com.appswithlove.debug.ui.dev.recording`), so release code compiles unchanged; in `debug-no-op` they have no effect.
 
 ### Custom modules
 
