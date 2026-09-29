@@ -1,8 +1,11 @@
+@file:OptIn(AwlDebugInternalApi::class)
+
 package com.appswithlove.debug.ui.dev.sheet
 
 import android.app.Activity
 import android.content.ClipData
 import android.content.res.Configuration
+import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.animation.AnimatedContent
@@ -43,6 +46,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -101,6 +105,9 @@ import com.appswithlove.debug.ui.dev.sheet.modules.session.SessionDetailModule
 import com.appswithlove.debug.ui.dev.sheet.modules.session.SessionManager
 import com.appswithlove.debug.ui.dev.sheet.modules.session.SessionModule
 import com.appswithlove.debug.api.DevTrigger
+import com.appswithlove.debug.api.bridge.AwlDebugInternalApi
+import com.appswithlove.debug.api.bridge.DevBridge
+import com.appswithlove.debug.api.bridge.FeedbackEntry
 import com.appswithlove.debug.ui.component.ScreenshotTrigger
 import com.appswithlove.debug.ui.component.ShakeTrigger
 import com.appswithlove.debug.ui.component.devTriggerGestures
@@ -132,7 +139,7 @@ import kotlinx.coroutines.launch
  * @param modulesConfig A [com.appswithlove.debug.api.DevModulesConfig] that controls which built-in modules are shown in the
  * `DevSheet`. All modules are enabled by default.
  * @param triggers The gestures that open the `DevSheet`. Defaults to [DevTrigger.ThreeFingerTap].
- * A trigger never closes an open sheet.
+ * A trigger never closes an open sheet. Triggers that a `FeedbackHost` uses start feedback instead.
  * @param customModules A composable lambda that allows you to add your own custom modules to the
  * `DevSheet`.
  * @param isAlwaysActive If set to `true`, the [triggers] work even while the dev tool is
@@ -215,17 +222,19 @@ internal fun DevSheet(
         onDispose { DeeplinkDispatcher.setHandler(null) }
     }
 
+    val feedbackEntry by feedbackEntryState()
+    val panelTriggers = remember(triggers, feedbackEntry) { panelTriggers(triggers, feedbackEntry) }
     val canTrigger = state.value.isActive || state.value.isAlwaysActive
     val openFromTrigger = { viewModel.submitAction(DevAction.ShowDevSheet(show = true)) }
-    if (canTrigger && DevTrigger.Shake in triggers) ShakeTrigger(onShake = openFromTrigger)
-    if (canTrigger && DevTrigger.Screenshot in triggers) ScreenshotTrigger(onScreenshot = openFromTrigger)
+    if (canTrigger && DevTrigger.Shake in panelTriggers) ShakeTrigger(onShake = openFromTrigger)
+    if (canTrigger && DevTrigger.Screenshot in panelTriggers) ScreenshotTrigger(onScreenshot = openFromTrigger)
 
     Box(
         modifier = modifier
             .fillMaxSize()
             .devTriggerGestures(
-                threeFingerTap = canTrigger && DevTrigger.ThreeFingerTap in triggers,
-                tripleTap = canTrigger && DevTrigger.TripleTap in triggers,
+                threeFingerTap = canTrigger && DevTrigger.ThreeFingerTap in panelTriggers,
+                tripleTap = canTrigger && DevTrigger.TripleTap in panelTriggers,
                 onTrigger = openFromTrigger,
             )
     ) {
@@ -265,6 +274,7 @@ internal fun DevSheet(
                 logHistory = logHistory,
                 actioner = { action -> viewModel.submitAction(action) },
                 customModules = customModules,
+                feedbackEntry = feedbackEntry,
                 swipeToDismiss = swipeToDismiss,
                 onTrackLogsChanged = { viewModel.setTrackLogs(it) },
                 onMaxLogsChanged = { viewModel.setMaxLogSize(it) },
@@ -297,6 +307,7 @@ private fun DevSheetContent(
     modulesConfig: DevModulesConfig = DevModulesConfig(),
     actioner: (DevAction) -> Unit,
     customModules: @Composable ColumnScope.() -> Unit = {},
+    feedbackEntry: FeedbackEntry? = null,
     swipeToDismiss: Boolean = false,
     onTrackLogsChanged: (Boolean) -> Unit,
     onMaxLogsChanged: (Int) -> Unit,
@@ -742,6 +753,18 @@ private fun DevSheetContent(
                             onShowVersionOverlayChanged = onShowVersionOverlayChanged,
                         )
 
+                        feedbackEntry?.let { entry ->
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                            FeedbackNavItem(
+                                entry = entry,
+                                onClick = {
+                                    // Close first: the report opens over the app, not over the panel.
+                                    hideBottomSheet()
+                                    entry.start()
+                                },
+                            )
+                        }
+
                         if (modulesConfig.showLogsModule) {
                             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                             val logsActive by logHistory.trackLogs.collectAsStateWithLifecycle()
@@ -847,7 +870,7 @@ private fun DevSheetContent(
                             )
                         }
 
-                        if (modulesConfig.hasAnyModuleEnabled) {
+                        if (modulesConfig.hasAnyModuleEnabled || feedbackEntry != null) {
                             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                         }
                         customModules()
@@ -920,6 +943,45 @@ private fun ModuleDetailNavBar(
             contentDescription = "Close",
             tint = MaterialTheme.colorScheme.onSurface,
         )
+    }
+}
+
+/** The feedback flow a `FeedbackHost` offers, or `null` without one. */
+@Composable
+private fun feedbackEntryState(): State<FeedbackEntry?> = DevBridge.feedbackLauncher.collectAsStateWithLifecycle()
+
+/** [triggers] without those that start feedback; a trigger configured for both starts feedback only. */
+internal fun panelTriggers(triggers: Set<DevTrigger>, feedbackEntry: FeedbackEntry?): Set<DevTrigger> {
+    val shared = triggers intersect feedbackEntry?.triggers.orEmpty()
+    if (shared.isEmpty()) return triggers
+    Log.w("AwlDebug", "Triggers $shared start feedback, not the DevSheet")
+    return triggers - shared
+}
+
+@Composable
+private fun FeedbackNavItem(entry: FeedbackEntry, onClick: () -> Unit) {
+    val pending by entry.pendingCount.collectAsStateWithLifecycle()
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "Send feedback",
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight(800)),
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            if (pending > 0) {
+                Text(
+                    text = "$pending pending",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
     }
 }
 
