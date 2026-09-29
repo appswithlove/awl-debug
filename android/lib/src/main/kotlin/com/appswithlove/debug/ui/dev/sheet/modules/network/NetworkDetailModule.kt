@@ -67,7 +67,7 @@ internal fun NetworkDetailModule(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 modifier = Modifier.weight(1f),
-                text = if (entry.redactedCount > 0) "${entry.redactedCount} values redacted" else "",
+                text = redactedCountText(entry.redactedCount),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
             )
@@ -175,4 +175,10 @@ private fun MonospaceText(text: String) {
         style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
         color = MaterialTheme.colorScheme.onSurface,
     )
+}
+
+internal fun redactedCountText(count: Int): String = when (count) {
+    0 -> ""
+    1 -> "1 value redacted"
+    else -> "$count values redacted"
 }
