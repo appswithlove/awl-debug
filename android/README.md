@@ -27,6 +27,7 @@ Made by [Apps with love](https://appswithlove.com).
   - [Custom modules](#custom-modules)
   - [HTTP logging](#http-logging)
   - [Timber integration](#timber-integration)
+  - [Kermit integration](#kermit-integration)
   - [Activate and deactivate](#activate-and-deactivate)
   - [Feedback](#feedback)
 - [Local development](#local-development)
@@ -95,7 +96,7 @@ awl-debug ships as a real + no-op pair with a shared API, the same pattern [Leak
 | `debug-api` | Contract types only: `DevConfig`, `DevModulesConfig`, `DevNetworkConfig`, `DeeplinkItem`, `SessionProvider`, `FcmTokenProvider`. Pulled in transitively by both AARs, never referenced directly. | a few KB |
 | `debug` | The real panel: Compose sheet, three-finger gesture, log collector, HTTP interceptor, all modules, charts. | ~430 KB plus its Compose, Material 3 and Vico dependencies |
 | `feedback` / `feedback-no-op` | Optional in-app feedback (see [Feedback](#feedback)) and its stub, same pairing rule. The no-op renders your content only, has no shake detection and no `INTERNET` permission. | |
-| `debug-no-op` | The same public functions and classes with empty bodies. `DevSheet` renders your `content` and nothing else; `DevLogTree` and `DevHttpLogInterceptor` discard everything. Depends only on `debug-api`. | ~14 KB |
+| `debug-no-op` | The same public functions and classes with empty bodies. `DevSheet` renders your `content` and nothing else; `DevLogTree`, `DevKermitLogWriter` and `DevHttpLogInterceptor` discard everything. Depends only on `debug-api`. | ~14 KB |
 
 Both AARs expose identical signatures under identical package names, so the same call sites compile against either. The build enforces this: `apiCheck` compares each module's public API with its dump in `api/`, and `apiParityCheck` fails when `lib` and `lib-no-op` (or `feedback` and `feedback-no-op`) differ. The shared types live in `debug-api` exactly once, so the two AARs can never collide on the classpath.
 
@@ -322,6 +323,33 @@ class MyApp : Application() {
 ```
 
 `DevLogTree` only logs to the panel and keeps the Timber tag and throwable of each entry. Keep `Timber.DebugTree()` alongside it if you also want logcat output.
+
+### Kermit integration
+
+Kotlin Multiplatform projects that log with [Kermit](https://github.com/touchlab/Kermit) add `DevKermitLogWriter` on Android. Entries keep the Kermit tag and throwable. Kermit is a `compileOnly` dependency, so your app's Kermit version is used.
+
+Register the writer from Android code that already depends on `debug` / `debug-no-op`, for example the app's `Application`, so shared code needs no debug dependency:
+
+```kotlin
+// androidApp/src/main/kotlin/.../MyApp.kt
+class MyApp : Application() {
+    override fun onCreate() {
+        super.onCreate()
+        Logger.addLogWriter(DevKermitLogWriter())
+    }
+}
+```
+
+If the writer has to be set up in the shared module, keep it in `androidMain` and give the Android target of the shared module the same `debug` / `debug-no-op` split as the app:
+
+```kotlin
+// shared/src/androidMain/kotlin/.../DebugLogging.android.kt
+fun installDebugLogWriter() {
+    Logger.addLogWriter(DevKermitLogWriter())
+}
+```
+
+Like Timber entries, Kermit messages are redacted before they are stored (`Bearer <token>`, `Basic <credentials>`).
 
 ### Activate and deactivate
 
