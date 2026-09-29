@@ -95,7 +95,7 @@ awl-debug ships as a real + no-op pair with a shared API, the same pattern [Leak
 | `debug` | The real panel: Compose sheet, three-finger gesture, log collector, HTTP interceptor, all modules, charts. | ~430 KB plus its Compose, Material 3 and Vico dependencies |
 | `debug-no-op` | The same public functions and classes with empty bodies. `DevSheet` renders your `content` and nothing else; `DevLogTree` and `DevHttpLogInterceptor` discard everything. Depends only on `debug-api`. | ~14 KB |
 
-Both AARs expose identical signatures under identical package names, so the same call sites compile against either. The build enforces this: `apiCheck` compares each module's public API with its dump in `api/`, and fails when `lib` and `lib-no-op` differ. The shared types live in `debug-api` exactly once, so the two AARs can never collide on the classpath.
+Both AARs expose identical signatures under identical package names, so the same call sites compile against either. The shared types live in `debug-api` exactly once, so the two AARs can never collide on the classpath.
 
 What this buys you:
 
@@ -307,8 +307,6 @@ Build and test:
 ```
 ./gradlew build
 ```
-
-`build` includes `apiCheck`. After an intended public API change, run `./gradlew apiDump` and commit the updated `api/*.api` files. Change `lib` and `lib-no-op` together, their dumps must stay identical.
 
 Run the sample app from `sample/` to try the panel. It plants `DevLogTree`, fires an HTTP request and exposes a switch that activates the dev tool.
 
