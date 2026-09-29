@@ -181,6 +181,7 @@ extension AWLDebugURLProtocol: URLSessionDataDelegate {
         }
         AWLDebugURLProtocol.removeProperty(forKey: Constants.RequestHandledKey, in: redirectRequest)
         performOnClientThread { [self] in
+            currentRequest?.initResponse(response: response)
             client?.urlProtocol(self, wasRedirectedTo: redirectRequest as URLRequest, redirectResponse: response)
         }
     }

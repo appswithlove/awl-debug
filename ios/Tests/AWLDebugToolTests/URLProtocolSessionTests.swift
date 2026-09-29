@@ -83,6 +83,16 @@ final class URLProtocolSessionTests: XCTestCase {
         XCTAssertEqual(data, Data("ok".utf8))
         XCTAssertEqual(server.hitCount("/redirect"), 1)
         XCTAssertEqual(server.hitCount("/ok"), 1)
+        
+        let logged = expectation(description: "logged")
+        DispatchQueue.main.async {
+            let statuses = AWLDebugTool.shared.networkLogger.networkTraffic
+                .filter { $0.url.hasPrefix(self.server.url("/").absoluteString) }
+                .map(\.statusCode)
+            XCTAssertEqual(statuses.suffix(2), [302, 200])
+            logged.fulfill()
+        }
+        wait(for: [logged], timeout: 2)
     }
     
     func testAppRedirectDelegateIsConsulted() {
