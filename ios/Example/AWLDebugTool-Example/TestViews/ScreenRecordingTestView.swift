@@ -6,9 +6,24 @@
 //
 
 import SwiftUI
+#if DEBUG || STAGING
+import AWLDebugTool
+#endif
+
+/// Store builds do not link AWLDebugTool, so the app wraps the marker in its own extension.
+extension View {
+    @ViewBuilder func debugMasked() -> some View {
+#if DEBUG || STAGING
+        awlDebugMasked()
+#else
+        self
+#endif
+    }
+}
 
 struct ScreenRecordingTestView: View {
     @State var showAlert = false
+    @State var showSheet = false
     @State var text: String = ""
     
     var body: some View {
@@ -30,6 +45,16 @@ struct ScreenRecordingTestView: View {
                 Color.white
                 Color.black
             }.frame(height: 100)
+
+            Text("Masked in recordings: IBAN CH00 0000 0000 0000 0000 0")
+                .padding()
+                .background(Color.orange)
+                .debugMasked()
+
+            Button("Show sheet") {
+                showSheet = true
+            }
+            .padding()
             
             ForEach(0..<20, id: \.self) { i in
                 Button(action: {
@@ -44,6 +69,14 @@ struct ScreenRecordingTestView: View {
             
             TextField("TextField", text: $text)
             SecureField("SecureField", text: $text)
+        }
+        .sheet(isPresented: $showSheet) {
+            VStack(spacing: 16) {
+                Text("Sheet in the recording")
+                SecureField("Sheet SecureField", text: $text)
+                Button("Close") { showSheet = false }
+            }
+            .padding()
         }
         .alert("Alert Example", isPresented: $showAlert) {
             Button("OK", role: .cancel) { }
