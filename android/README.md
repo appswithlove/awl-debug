@@ -187,10 +187,12 @@ DevSheet(
 
 Inspect and manipulate the current auth state per token source:
 
-- Shows logged in / logged out status per provider
-- Copies the current token to the clipboard
+- Shows "Logged in" / "Logged out" per provider and the token masked (first 6 and last 4 characters) until you reveal it
+- Copies the current token to the clipboard (marked as sensitive)
 - Edits the token (for example paste an invalid one to trigger a refresh), only when `onSetToken` is provided
 - Deletes the token to break the session, only when `onSetToken` is provided
+- Invalidates the token so the next request gets a 401: calls `onInvalidate`, or writes `<token>.invalid` through `onSetToken`
+- Runs the app's `onLogin`, `onRefresh` and `onLogout`. While an action runs its button shows progress, errors appear as "Action failed: …"
 
 Implement `SessionProvider` for each token source and pass the list:
 
@@ -218,6 +220,16 @@ DevSheet(
 ```
 
 `token` must emit whenever the value changes (login, logout, refresh); that is how the module stays in sync without manual refreshes. The module is hidden when `sessionProviders` is empty.
+
+Token stores without a `Flow` can use `PollingSessionProvider`, which reads a suspend getter every second while the panel shows it:
+
+```kotlin
+PollingSessionProvider(
+    label = "Access Token",
+    onSetToken = { tokenStore.write(it) },
+    onInvalidate = { tokenStore.revokeOnServer() }, // optional, for opaque tokens
+) { tokenStore.read() }
+```
 
 ### FCM push token
 
