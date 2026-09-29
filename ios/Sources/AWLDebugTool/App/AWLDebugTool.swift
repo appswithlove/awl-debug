@@ -35,6 +35,10 @@ public class AWLDebugTool: ObservableObject {
             shared.appLogs.config = config.logs
         }
         shared.appGroupIdentifiers = config.appGroupIdentifiers
+        Task { @MainActor in
+            VersionOverlayPresenter.shared.isAvailable = config.showVersionOverlay
+            VersionOverlayPresenter.shared.update()
+        }
         shared.screenRecorder.initialise(isScreenRecordingOn: isScreenRecordingOn)
         
         if let deeplinks {
@@ -90,6 +94,7 @@ public extension AWLDebugTool {
         presenter.events = showDebugToolEvents
         presenter.content.fcmToken = fcmToken
         presenter.install(in: scene)
+        VersionOverlayPresenter.shared.update(in: scene)
         presenter.applyAppearance(DebugView.AppColorScheme.stored)
     }
 }

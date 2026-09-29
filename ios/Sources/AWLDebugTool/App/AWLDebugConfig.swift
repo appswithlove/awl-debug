@@ -24,6 +24,9 @@ public struct AWLDebugConfig {
         }
     }
 
+    /// Shows "AWL <version> (<build>)" at the top left over the app. Testers can still switch it off in the panel.
+    public var showVersionOverlay: Bool = true
+
     public struct NetworkConfig {
         /// Default field names redacted in JSON and form bodies and in query parameters.
         public static let defaultRedactedFields: Set<String> = [

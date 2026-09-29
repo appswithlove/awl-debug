@@ -203,6 +203,10 @@ enum LS {
         static let closeApp = "Close app"
     }
 
+    struct VersionOverlay {
+        static let toggle = "Show version overlay"
+    }
+
     struct Session {
         static let notSetup = "No tokens configured. Pass tokens in AWLDebugTool.start()."
         static let loggedIn = "Logged in"

@@ -41,19 +41,6 @@ public struct DebugToolViewModifier: ViewModifier {
                 DebugPanelPresenter.shared.applyAppearance(scheme)
             }
             .overlay {
-                VStack {
-                    ZStack {
-                        let text = "AWL \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "")" +
-                        " (\(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? ""))"
-                        Text(text).foregroundStyle(Color(UIColor.label))
-                    }
-                    .background(Color(UIColor.systemBackground))
-                    .font(.system(size: 8))
-                    Spacer()
-                }
-                .ignoresSafeArea()
-            }
-            .overlay {
                 if viewModel.isPerformanceWidgetVisible {
                     GeometryReader { geometry in
                         PerformanceWidgetView(cpuMonitor: AWLDebugTool.shared.cpuMonitor, ramMonitor: AWLDebugTool.shared.ramMonitor, mainThreadMonitor: AWLDebugTool.shared.mainThreadMonitor)
@@ -85,6 +72,7 @@ public struct DebugToolViewModifier: ViewModifier {
                 // On the window rather than this view, so taps also count inside sheets and full-screen covers.
                 presenter.installInActiveScene()
                 presenter.applyAppearance(viewModel.preferredColorScheme)
+                VersionOverlayPresenter.shared.update()
             }
             .onChange(of: fcmToken) { fcmToken in
                 DebugPanelPresenter.shared.content.fcmToken = fcmToken
