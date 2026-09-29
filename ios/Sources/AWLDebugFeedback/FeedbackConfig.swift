@@ -23,6 +23,8 @@ public struct FeedbackConfig: Sendable {
     public let distribution: AWLDistribution?
     /// Who reports. Only sent when set: older feedback services reject the key.
     public let reporter: FeedbackReporter?
+    /// Initial state of "Attach logs". The switch only shows when `AWLDebugTool` is started in the app.
+    public let attachLogsByDefault: Bool
 
     public init(
         endpoint: URL,
@@ -33,7 +35,8 @@ public struct FeedbackConfig: Sendable {
         extraMetadata: @escaping @MainActor @Sendable () -> [String: String] = { [:] },
         shakeToReport: Bool = true,
         distribution: AWLDistribution? = nil,
-        reporter: FeedbackReporter? = nil
+        reporter: FeedbackReporter? = nil,
+        attachLogsByDefault: Bool = true
     ) {
         self.endpoint = endpoint
         self.appKey = appKey
@@ -44,6 +47,7 @@ public struct FeedbackConfig: Sendable {
         self.shakeToReport = shakeToReport
         self.distribution = distribution
         self.reporter = reporter
+        self.attachLogsByDefault = attachLogsByDefault
     }
 }
 

@@ -174,6 +174,7 @@ RootView()
 - Attach once, at the root. `feedbackTool(config: nil)` does nothing.
 - `distribution` and `reporter` are optional and only sent when set, because older feedback services reject unknown metadata keys.
 - Offline queue: when the service cannot be reached (network error, timeout, 5xx, 429), the report is saved in `Library/Application Support/AWLDebug/feedback-queue/` ("Saved. It will be sent when you are online.") and sent again on app start, when the app becomes active and when the network changes. Retries back off from 30 s to 1 h and respect `Retry-After`. At most 20 reports or 50 MB are kept, the oldest are dropped first. Other errors (400, 401, 403, 413, 415, 422) are shown and not queued. Every attempt of a report carries the same `Idempotency-Key` header, so the service stores it once.
+- "Attach logs" (default on, `FeedbackConfig(attachLogsByDefault:)`) adds `logs.txt` when `AWLDebugTool` is also in the app and started: app and device info, the last 500 entries of the Logs module with its active filters, and the last 50 requests (headers only, no bodies), all already redacted. At most 1 MB; the oldest entries are left out first. Without `AWLDebugTool` the switch is hidden. The two products do not link each other: feedback finds the tool at runtime.
 - Dictation needs `NSMicrophoneUsageDescription` and `NSSpeechRecognitionUsageDescription` in the app's `Info.plist`.
 - Tests: `xcodebuild test -scheme AWLDebugTool-Package -destination 'platform=iOS Simulator,name=iPhone 17 Pro'`.
 

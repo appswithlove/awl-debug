@@ -31,13 +31,15 @@ let package = Package(
             name: "AWLDebugToolTests",
             dependencies: ["AWLDebugTool"],
             path: "ios/Tests",
-            exclude: ["AWLDebugFeedbackTests"]),
+            exclude: ["AWLDebugFeedbackTests"],
+            resources: [.copy("AWLDebugToolTests/Fixtures")]),
         .target(
             name: "AWLDebugFeedback",
             path: "ios/Sources/AWLDebugFeedback"),
         .testTarget(
             name: "AWLDebugFeedbackTests",
             dependencies: ["AWLDebugFeedback"],
-            path: "ios/Tests/AWLDebugFeedbackTests"),
+            path: "ios/Tests/AWLDebugFeedbackTests",
+            resources: [.copy("Fixtures")]),
     ]
 )
