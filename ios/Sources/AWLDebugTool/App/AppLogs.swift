@@ -42,6 +42,108 @@ extension String {
     }
 }
 
+extension String {
+    /// `"key":` or, inside stringified JSON, `\"key\":`. Group 1 is the quote, group 2 the key.
+    private static let jsonKeyPattern = try! NSRegularExpression(pattern: #"(\\?")([A-Za-z0-9_\-]+)\1\s*:\s*"#)
+    static let defaultRedactedFields = Set(AWLDebugConfig.NetworkConfig.defaultRedactedFields.map(NetworkRedactor.normalizedFieldName))
+
+    /// Credentials and sensitive JSON fields redacted, as stored in the Logs module.
+    func redactingSecrets() -> String {
+        redactingCredentials().redactingJsonFields()
+    }
+
+    /// Replaces the values of sensitive JSON fields with `"[REDACTED]"`, using the network module's default
+    /// field list. Works on JSON inside free text, on stringified JSON (`\"password\":\"…\"`) and on truncated
+    /// JSON, where an unterminated value is redacted to the end. Keys match ignoring case, `_` and `-`.
+    func redactingJsonFields(_ fieldNames: Set<String> = defaultRedactedFields) -> String {
+        let text = Array(utf16)
+        let nsText = self as NSString
+        var result: [UInt16] = []
+        var copiedUntil = 0
+        var searchFrom = 0
+        while searchFrom < text.count,
+              let match = Self.jsonKeyPattern.firstMatch(in: self, range: NSRange(location: searchFrom, length: text.count - searchFrom)) {
+            let valueStart = match.range.location + match.range.length
+            let key = nsText.substring(with: match.range(at: 2))
+            guard fieldNames.contains(NetworkRedactor.normalizedFieldName(key)), valueStart < text.count else {
+                searchFrom = match.range.location + 1
+                continue
+            }
+            let quote = Array(nsText.substring(with: match.range(at: 1)).utf16)
+            let valueEnd = Self.jsonValueEnd(text, start: valueStart, quote: quote)
+            result += text[copiedUntil..<valueStart] + quote + Array(NetworkRedactor.placeholder.utf16) + quote
+            copiedUntil = valueEnd
+            searchFrom = valueEnd
+        }
+        guard copiedUntil > 0 else {
+            return self
+        }
+        result += text[copiedUntil...]
+        return String(utf16CodeUnits: result, count: result.count)
+    }
+
+    private static let backslash = UInt16(UInt8(ascii: "\\"))
+    private static let doubleQuote = UInt16(UInt8(ascii: "\""))
+
+    /// Exclusive end index of the JSON value starting at `start`.
+    private static func jsonValueEnd(_ text: [UInt16], start: Int, quote: [UInt16]) -> Int {
+        if hasPrefix(text, quote, at: start) {
+            return jsonStringEnd(text, contentStart: start + quote.count, quote: quote)
+        }
+        if text[start] == UInt16(UInt8(ascii: "{")) || text[start] == UInt16(UInt8(ascii: "[")) {
+            return jsonContainerEnd(text, start: start)
+        }
+        let terminators: Set<UInt16> = Set(",}]\n\r \t".utf16)
+        return text[start...].firstIndex(where: terminators.contains) ?? text.count
+    }
+
+    private static func jsonStringEnd(_ text: [UInt16], contentStart: Int, quote: [UInt16]) -> Int {
+        let isEscapedQuote = quote.count == 2
+        var index = contentStart
+        while index < text.count {
+            if isEscapedQuote && hasPrefix(text, [backslash, backslash], at: index) {
+                index += 2
+            } else if hasPrefix(text, quote, at: index) {
+                return index + quote.count
+            } else if !isEscapedQuote && text[index] == backslash {
+                index += 2
+            } else {
+                index += 1
+            }
+        }
+        return text.count
+    }
+
+    private static func jsonContainerEnd(_ text: [UInt16], start: Int) -> Int {
+        var depth = 0
+        var inString = false
+        var index = start
+        while index < text.count {
+            let unit = text[index]
+            if inString && unit == backslash {
+                index += 1
+            } else if unit == doubleQuote {
+                inString.toggle()
+            } else if !inString {
+                if unit == UInt16(UInt8(ascii: "{")) || unit == UInt16(UInt8(ascii: "[")) {
+                    depth += 1
+                } else if unit == UInt16(UInt8(ascii: "}")) || unit == UInt16(UInt8(ascii: "]")) {
+                    depth -= 1
+                    if depth == 0 {
+                        return index + 1
+                    }
+                }
+            }
+            index += 1
+        }
+        return text.count
+    }
+
+    private static func hasPrefix(_ text: [UInt16], _ prefix: [UInt16], at index: Int) -> Bool {
+        index + prefix.count <= text.count && Array(text[index..<index + prefix.count]) == prefix
+    }
+}
+
 /// Reads the process's own unified-log entries (`os_log`, `Logger`, Kermit's `OSLogWriter`).
 struct OSLogReader {
     let subsystems: Set<String>?
@@ -67,7 +169,7 @@ struct OSLogReader {
                     tag = entry.category.isEmpty ? entry.subsystem : "\(entry.subsystem)/\(entry.category)"
                 }
                 return AppLogEntry(date: entry.date, level: Self.level(of: entry.level), tag: tag,
-                                   message: entry.composedMessage.redactingCredentials(), errorDescription: nil)
+                                   message: entry.composedMessage.redactingSecrets(), errorDescription: nil)
             }
     }
 
