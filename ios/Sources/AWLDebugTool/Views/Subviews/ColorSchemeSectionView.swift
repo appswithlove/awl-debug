@@ -31,8 +31,7 @@ struct ColorSchemeSectionView: View {
                 .contentShape(Rectangle())
             })
         } header: {
-            Spacer()
-                .frame(height: 0)
+            Text(LS.Settings.accessibility)
         }
     }
 }

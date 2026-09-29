@@ -37,7 +37,9 @@ public struct DebugToolViewModifier: ViewModifier {
     public func body(content: Content) -> some View {
         content
             .applyFontSize(viewModel.preferredFontSize.sizeCategory)
-            .preferredColorScheme(viewModel.preferredColorScheme.colorScheme)
+            .onChange(of: viewModel.preferredColorScheme) { scheme in
+                DebugPanelPresenter.shared.applyAppearance(scheme)
+            }
             .overlay {
                 VStack {
                     ZStack {
@@ -82,6 +84,7 @@ public struct DebugToolViewModifier: ViewModifier {
                 presenter.content.customView = customView
                 // On the window rather than this view, so taps also count inside sheets and full-screen covers.
                 presenter.installInActiveScene()
+                presenter.applyAppearance(viewModel.preferredColorScheme)
             }
             .onChange(of: fcmToken) { fcmToken in
                 DebugPanelPresenter.shared.content.fcmToken = fcmToken

@@ -89,6 +89,14 @@ final class DebugPanelPresenter: NSObject {
         }
     }
 
+    /// Light or dark for every app window, including UIKit screens and sheets; the panel keeps the system setting.
+    func applyAppearance(_ scheme: DebugView.AppColorScheme) {
+        let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+        for window in scenes.flatMap(\.windows) where window !== self.window {
+            window.overrideUserInterfaceStyle = scheme.userInterfaceStyle
+        }
+    }
+
     func installInActiveScene() {
         if let scene = Self.activeScene() {
             install(in: scene)
@@ -111,19 +119,11 @@ private final class SimultaneousGestureDelegate: NSObject, UIGestureRecognizerDe
     }
 }
 
-/// The panel with the appearance settings the tool applies to the app.
+/// The accessibility overrides apply to the app only, so the panel always shows the device's settings.
 private struct DebugPanelRootView: View {
     @ObservedObject var content: DebugPanelPresenter.Content
 
-    @AppStorage(DebugView.Keys.preferredColorScheme)
-    private var preferredColorScheme: DebugView.AppColorScheme = .auto
-
-    @AppStorage(DebugView.Keys.preferredFontSize)
-    private var preferredFontSize: DebugView.AppFontSize = .system
-
     var body: some View {
         DebugView(fcmToken: content.fcmToken, customView: content.customView)
-            .applyFontSize(preferredFontSize.sizeCategory)
-            .preferredColorScheme(preferredColorScheme.colorScheme)
     }
 }
