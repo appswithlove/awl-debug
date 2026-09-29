@@ -8,11 +8,13 @@ import SwiftUI
 enum FeedbackOutcome {
     case cancelled
     case sent
+    case queued
 }
 
 /// Mark up the screenshot, describe the finding, send.
 struct FeedbackView: View {
     @ObservedObject var session: FeedbackSession
+    @ObservedObject var queue = FeedbackQueueRunner.shared
     let onClose: (FeedbackOutcome) -> Void
     @FocusState private var isTextFocused: Bool
 
@@ -21,8 +23,19 @@ struct FeedbackView: View {
             VStack(spacing: 12) {
                 ScreenshotMarkup(session: session, isKeyboardUp: isTextFocused, dismissKeyboard: dismissKeyboard)
                 DescriptionField(session: session, isFocused: $isTextFocused)
+                if session.canAttachLogs {
+                    Toggle("Attach logs", isOn: $session.attachLogs)
+                        .font(.subheadline)
+                        .disabled(session.phase == .sending || session.isFinished)
+                }
                 if case let .failed(message) = session.phase {
                     FailureRow(message: message, retry: send)
+                }
+                if queue.pendingCount > 0 {
+                    Text("\(queue.pendingCount) pending")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
             .padding()
@@ -38,8 +51,13 @@ struct FeedbackView: View {
         }
         .interactiveDismissDisabled()
         .onChange(of: session.phase) { phase in
-            if phase == .sent {
+            switch phase {
+            case .sent:
                 onClose(.sent)
+            case .queued:
+                onClose(.queued)
+            case .editing, .sending, .failed:
+                break
             }
         }
     }
@@ -47,7 +65,7 @@ struct FeedbackView: View {
     @ToolbarContentBuilder private var toolbar: some ToolbarContent {
         ToolbarItem(placement: .cancellationAction) {
             Button("Cancel", action: cancel)
-                .disabled(session.phase == .sending || session.phase == .sent)
+                .disabled(session.phase == .sending || session.isFinished)
         }
         ToolbarItem(placement: .confirmationAction) {
             if session.phase == .sending {
@@ -160,7 +178,7 @@ private struct MicButton: View {
                 .foregroundStyle(session.dictation.isRecording ? .red : .accentColor)
                 .frame(minWidth: 44, minHeight: 44)
         }
-        .disabled(session.phase == .sending || session.phase == .sent)
+        .disabled(session.phase == .sending || session.isFinished)
         .accessibilityLabel(session.dictation.isRecording ? "Stop dictation" : "Dictate")
     }
 }

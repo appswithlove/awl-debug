@@ -48,8 +48,20 @@ final class FeedbackPresenter {
             window.isHidden = true
             previousKeyWindow?.makeKey()
             self?.window = nil
-            if outcome == .sent, let scene = window.windowScene {
-                self?.sentConfirmation.show(in: scene)
+            guard let scene = window.windowScene else {
+                return
+            }
+            switch outcome {
+            case .sent:
+                self?.sentConfirmation.show(in: scene, message: "Feedback sent", systemImage: "checkmark.circle.fill")
+            case .queued:
+                self?.sentConfirmation.show(
+                    in: scene,
+                    message: "Saved. It will be sent when you are online.",
+                    systemImage: "tray.and.arrow.up.fill"
+                )
+            case .cancelled:
+                break
             }
         }
     }
