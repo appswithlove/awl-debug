@@ -118,6 +118,8 @@ UIKit apps without a SwiftUI root call `AWLDebugTool.install(in: windowScene)` i
 ### 11. Performance overlay
 - user can enable a draggable overlay showing live CPU usage, RAM usage and main thread latency
 - helps spot performance regressions or main thread blocking directly while using the app
+- measuring runs only while "Measure performance" is on or the overlay is visible; otherwise no timer runs
+- CPU is the process's share of all cores (0–100 %), battery level comes from `UIDevice`, and a main-thread ping waiting longer than 700 ms counts as a UI freeze
 
 ### 12. Screen recording
 - you can switch ON/OFF recording via debug panel. (default state you can set by AWLDebugTool.start(isScreenRecordingOn: true))

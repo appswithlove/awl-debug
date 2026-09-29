@@ -8,6 +8,8 @@ public class AWLDebugTool: ObservableObject {
     let cpuMonitor = CPUMonitor()
     let ramMonitor = RAMMonitor()
     let mainThreadMonitor = MainThreadMonitor()
+    let batteryMonitor = BatteryMonitor()
+    @MainActor lazy var performance = PerformanceController(monitors: self)
     let deeplinksManager = DeeplinksManager()
     let sessionManager = SessionManager()
 
@@ -22,9 +24,9 @@ public class AWLDebugTool: ObservableObject {
     ///   - deeplinks: help to test deeplinks
     ///   - config: Network capture and redaction options.
     public static func start(isScreenRecordingOn: Bool = false, deeplinks: DeepLinkStartModel? = nil, tokens: [AWLDebugTool.TokenDebugModel] = [], config: AWLDebugConfig = AWLDebugConfig()) {
-        shared.cpuMonitor.start()
-        shared.ramMonitor.start()
-        shared.mainThreadMonitor.start()
+        Task { @MainActor in
+            shared.performance.updateSampling()
+        }
         
         shared.networkLogger.start(config: config.network)
         shared.screenRecorder.initialise(isScreenRecordingOn: isScreenRecordingOn)

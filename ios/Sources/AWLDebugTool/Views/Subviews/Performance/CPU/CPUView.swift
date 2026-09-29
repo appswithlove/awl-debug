@@ -16,7 +16,7 @@ struct CPUView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Label(String(format: "CPU usage: %.1f%%", vm.currentCPUTotalUsage), systemImage: "cpu")
+            Label(String(format: "\(LS.Performance.cpu): %.1f%%", vm.currentCPUTotalUsage), systemImage: "cpu")
             
             HStack {
                 Image(systemName: "thermometer")
@@ -80,7 +80,7 @@ struct CPUView: View {
             // history graph
             GeometryReader { geo in
                 OneLineView(geo: geo,
-                            values: vm.history.map { CGFloat($0.cpuTotalUsage) },
+                            values: vm.history.map { $0.cpuPercent },
                             minValue: 0,
                             capacity: vm.historyCapacity,
                             color: .red,

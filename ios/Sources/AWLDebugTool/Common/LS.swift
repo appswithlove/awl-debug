@@ -175,5 +175,14 @@ enum LS {
     struct Performance {
         static let performanceSectionTitle = "Performance"
         static let showPerformanceOverlay = "Show performance overlay"
+        static let measure = "Measure performance"
+        static let cpu = "CPU"
+        static let battery = "Battery"
+        static let batteryUnknown = "Battery: n/a"
+        static let freeze = "UI freeze"
+
+        static func freezes(count: Int, longestMs: Int) -> String {
+            count == 0 ? "\(freeze): none" : "\(freeze): \(count)× (longest \(longestMs) ms)"
+        }
     }
 }
