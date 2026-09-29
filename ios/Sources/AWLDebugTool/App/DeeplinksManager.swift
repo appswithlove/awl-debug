@@ -76,9 +76,11 @@ public class DeeplinksManager: ObservableObject {
         }
     }
 
+    /// Schedules the deeplink as a local notification. The tool never asks for the notification permission
+    /// itself, so it does not change the app's own first-request flow; without it, this fails with `.permissionDenied`.
     func fireWithDelay(_ deeplink: AWLDeeplink, delay: TimeInterval, completion: @escaping (Result<Void, DeeplinkError>) -> Void) {
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, _ in
-            guard granted else {
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            guard Self.canSchedule(with: settings.authorizationStatus) else {
                 DispatchQueue.main.async { completion(.failure(.permissionDenied)) }
                 return
             }
@@ -101,6 +103,14 @@ public class DeeplinksManager: ObservableObject {
                     }
                 }
             }
+        }
+    }
+
+    static func canSchedule(with status: UNAuthorizationStatus) -> Bool {
+        switch status {
+        case .authorized, .provisional, .ephemeral: return true
+        case .notDetermined, .denied: return false
+        @unknown default: return false
         }
     }
 

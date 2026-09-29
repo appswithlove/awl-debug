@@ -41,11 +41,9 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -64,7 +62,6 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogWindowProvider
 import androidx.core.view.WindowCompat
@@ -86,6 +83,9 @@ import com.appswithlove.debug.ui.dev.sheet.modules.LogsModule
 import com.appswithlove.debug.ui.dev.sheet.modules.performance.PerformanceModule
 import com.appswithlove.debug.ui.dev.sheet.modules.permissions.PermissionsModule
 import com.appswithlove.debug.ui.dev.sheet.modules.accessibility.AccessibilityModule
+import com.appswithlove.debug.ui.dev.sheet.modules.accessibility.AccessibilityOverride
+import com.appswithlove.debug.ui.dev.sheet.modules.accessibility.AccessibilitySettings
+import com.appswithlove.debug.ui.dev.sheet.modules.accessibility.applyAppNightMode
 import com.appswithlove.debug.ui.dev.sheet.modules.TestCrashesModule
 import com.appswithlove.debug.ui.dev.sheet.modules.ClearAppDataModule
 import com.appswithlove.debug.ui.dev.sheet.modules.clearAppData
@@ -176,9 +176,6 @@ internal fun DevSheet(
 ) {
     val hostColorScheme = MaterialTheme.colorScheme
     val state = viewModel.state.collectAsStateWithLifecycle()
-    var useSystemFontScale by rememberSaveable { mutableStateOf(true) }
-    var fontScale by rememberSaveable { mutableFloatStateOf(1f) }
-
     val density = LocalDensity.current
     val context = LocalContext.current
     // Shared by the Performance page and the overlay, which lives outside the sheet.
@@ -188,6 +185,8 @@ internal fun DevSheet(
     val devStore = remember { DevStore(context.applicationContext) }
     val overlayScope = rememberCoroutineScope()
     var openPerformanceRequests by remember { mutableIntStateOf(0) }
+    val accessibility by devStore.accessibility.collectAsStateWithLifecycle(initialValue = AccessibilitySettings())
+    val accessibilityScope = rememberCoroutineScope()
 
     LaunchedEffect(isAlwaysActive) {
         viewModel.setIsAlwaysActive(isAlwaysActive)
@@ -201,13 +200,7 @@ internal fun DevSheet(
             .fillMaxSize()
             .threeFingerTap { viewModel.submitAction(DevAction.ShowDevSheet()) }
     ) {
-        if (useSystemFontScale) {
-            content()
-        } else {
-            CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
-                content()
-            }
-        }
+        AccessibilityOverride(settings = accessibility, content = content)
 
         if (showVersionOverlay && devConfig != null) {
             VersionOverlay(devConfig = devConfig)
@@ -247,13 +240,15 @@ internal fun DevSheet(
                 onTrackLogsChanged = { viewModel.setTrackLogs(it) },
                 onMaxLogsChanged = { viewModel.setMaxLogSize(it) },
                 systemFontScale = density.fontScale,
-                useSystemFontScale = useSystemFontScale,
-                onUseSystemFontScaleChanged = { useSystem ->
-                    useSystemFontScale = useSystem
-                    if (!useSystem) fontScale = density.fontScale
+                accessibility = accessibility,
+                onAccessibilityChanged = { settings ->
+                    val appearanceChanged = settings.appearance != accessibility.appearance
+                    accessibilityScope.launch {
+                        devStore.setAccessibility(settings)
+                        // After saving: a new night mode recreates the activity and cancels this scope.
+                        if (appearanceChanged) applyAppNightMode(context, settings.appearance)
+                    }
                 },
-                fontScale = fontScale,
-                onFontScaleChanged = { fontScale = it },
             )
         }
     }
@@ -277,10 +272,8 @@ private fun DevSheetContent(
     onTrackLogsChanged: (Boolean) -> Unit,
     onMaxLogsChanged: (Int) -> Unit,
     systemFontScale: Float = 1f,
-    useSystemFontScale: Boolean = true,
-    onUseSystemFontScaleChanged: (Boolean) -> Unit = {},
-    fontScale: Float = 1f,
-    onFontScaleChanged: (Float) -> Unit = {},
+    accessibility: AccessibilitySettings = AccessibilitySettings(),
+    onAccessibilityChanged: (AccessibilitySettings) -> Unit = {},
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -556,11 +549,10 @@ private fun DevSheetContent(
                         )
 
                         AccessibilityModule(
+                            modifier = Modifier.weight(1f),
                             systemFontScale = systemFontScale,
-                            useSystemFontScale = useSystemFontScale,
-                            onUseSystemFontScaleChanged = onUseSystemFontScaleChanged,
-                            fontScale = fontScale,
-                            onFontScaleChanged = onFontScaleChanged,
+                            settings = accessibility,
+                            onSettingsChanged = onAccessibilityChanged,
                         )
                     }
                 }
@@ -708,6 +700,7 @@ private fun DevSheetContent(
                             NavItem(
                                 text = "Accessibility",
                                 onCLick = { currentPage = DevSheetPage.Accessibility },
+                                active = accessibility.isOverriding,
                             )
                         }
 
