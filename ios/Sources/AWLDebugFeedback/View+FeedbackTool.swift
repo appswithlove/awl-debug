@@ -16,6 +16,8 @@ public extension View {
 }
 
 private struct FeedbackToolModifier: ViewModifier {
+    static let triggersNotification = Notification.Name("AWLDebugFeedbackTriggers")
+
     let config: FeedbackConfig?
     private let screenshotTaken = NotificationCenter.default
         .publisher(for: UIApplication.userDidTakeScreenshotNotification)
@@ -27,6 +29,9 @@ private struct FeedbackToolModifier: ViewModifier {
                     if config.shakeToReport {
                         ShakeDetector.install()
                     }
+                    // AWLDebugTool leaves these triggers to feedback instead of opening its panel as well.
+                    NotificationCenter.default.post(name: Self.triggersNotification, object: nil,
+                                                    userInfo: ["triggers": config.shakeToReport ? ["screenshot", "shake"] : ["screenshot"]])
                 }
                 .onReceive(screenshotTaken) { _ in
                     FeedbackPresenter.shared.present(config: config)

@@ -8,6 +8,10 @@ public struct AWLDebugConfig {
     public var appGroupIdentifiers: [String] = []
     /// Token sources shown in the Session module; the module is hidden without providers.
     public var sessionProviders: [any AWLSessionProvider] = []
+    /// Gestures and events that open the panel. A trigger that AWLDebugFeedback also handles opens feedback only.
+    public var triggers: Set<AWLDebugTrigger> = [.threeFingerTap]
+    /// Lets gestures open the panel even when `AWLDebugTool.isActivated` is `false`.
+    public var isAlwaysActive: Bool = false
 
     public init(network: NetworkConfig = NetworkConfig(), logs: LogsConfig = LogsConfig()) {
         self.network = network

@@ -56,9 +56,8 @@ struct MyApp: App {
             ContentView()
 #if DEBUG || STAGING
               .includeDebugTool(
-                  fcmToken: userNotificationService.fcmToken, // 2. Add view
+                  fcmToken: userNotificationService.fcmToken // 2. Add view
                   // fcmToken is optional, if you do not support pushes or don't want to expose the token, you can omit it.
-                  showDebugToolEvents: [.threeTaps, .userDidTakeScreenshot] // when to open the debug panel, defaults to [.threeTaps]
               )
 #endif
         }
@@ -75,7 +74,11 @@ func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive respo
 }
 ```
 
-3. Open AWLDebugTool inside app by clicking 3 times on screen (or by taking a screenshot, if `.userDidTakeScreenshot` is included in `showDebugToolEvents`). The panel opens in a window of its own, above the app's sheets and full-screen covers.
+3. Open AWLDebugTool inside the app with a three-finger tap (Simulator: hold Option, tap with two fingers). The panel opens in a window of its own, above the app's sheets and full-screen covers.
+
+`AWLDebugConfig.triggers` picks the gestures, any of `.threeFingerTap` (default), `.tripleTap` (three quick taps with one finger), `.screenshot` and `.shake`. A trigger that `AWLDebugFeedback` also handles opens feedback only and logs a warning. `showDebugToolEvents` is deprecated: `.threeTaps` is `.tripleTap`, `.userDidTakeScreenshot` is `.screenshot`.
+
+Gestures work only while `AWLDebugTool.isActivated` is `true` (default, stored per device, kept by "Clear App Data"); apps can hide the panel behind their own switch by setting it to `false`. `AWLDebugConfig.isAlwaysActive = true` skips that check, `AWLDebugTool.open()` always works.
 
 From code, for example from a custom module: `AWLDebugTool.open()`, `AWLDebugTool.close()`, `AWLDebugTool.toggle()`, `AWLDebugTool.isOpen`.
 

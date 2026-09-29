@@ -56,6 +56,7 @@ enum Constants {
         static let screenRecordingIsOn = prefix + "screenRecordingIsOn"
         static let screenRecordingMaxVideoDuration = prefix + "screenRecordingMaxVideoDuration"
         static let appLogsRecording = prefix + "appLogsRecording"
+        static let isActivated = prefix + "isActivated"
         static let appLogsLimit = prefix + "appLogsLimit"
         static let versionOverlayVisible = prefix + "versionOverlayVisible"
         static let performanceMeasuring = prefix + "performanceMeasuring"

@@ -12,12 +12,20 @@ import SwiftUI
 struct PanelTestView: View {
     @State private var isShowingSheet = false
     @State private var isShowingCover = false
+#if DEBUG || STAGING
+    @State private var isActivated = AWLDebugTool.isActivated
+#endif
 
     var body: some View {
         VStack(spacing: 16) {
             OpenPanelButton()
             Button("Show sheet") { isShowingSheet = true }
             Button("Show full-screen cover") { isShowingCover = true }
+#if DEBUG || STAGING
+            Toggle("Gestures open the panel", isOn: $isActivated)
+                .onChange(of: isActivated) { AWLDebugTool.isActivated = $0 }
+                .padding(.horizontal)
+#endif
         }
         .buttonStyle(.bordered)
         .sheet(isPresented: $isShowingSheet) {

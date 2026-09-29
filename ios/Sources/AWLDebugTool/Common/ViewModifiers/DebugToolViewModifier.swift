@@ -8,9 +8,18 @@
 import SwiftUI
 
 extension DebugToolViewModifier {
+    /// Replaced by `AWLDebugConfig.triggers`.
     public enum ShowDebugToolEvents {
         case userDidTakeScreenshot
+        /// Three quick taps with one finger, now `AWLDebugTrigger.tripleTap`.
         case threeTaps
+
+        var trigger: AWLDebugTrigger {
+            switch self {
+            case .userDidTakeScreenshot: return .screenshot
+            case .threeTaps: return .tripleTap
+            }
+        }
     }
     
     class ViewModel: ObservableObject {
@@ -31,7 +40,8 @@ public struct DebugToolViewModifier: ViewModifier {
     @State private var widgetOffset: CGSize = .zero
     @State private var widgetPosition: CGPoint = CGPoint(x: 200, y: 100)
     let fcmToken: String?
-    let showDebugToolEvents: [DebugToolViewModifier.ShowDebugToolEvents]
+    /// Overrides `AWLDebugConfig.triggers`; only set by the deprecated `showDebugToolEvents` parameter.
+    let triggers: Set<AWLDebugTrigger>?
     let customView: (() -> any View)?
 
     public func body(content: Content) -> some View {
@@ -66,7 +76,9 @@ public struct DebugToolViewModifier: ViewModifier {
             }
             .onAppear {
                 let presenter = DebugPanelPresenter.shared
-                presenter.events = showDebugToolEvents
+                if let triggers {
+                    presenter.triggers = triggers
+                }
                 presenter.content.fcmToken = fcmToken
                 presenter.content.customView = customView
                 // On the window rather than this view, so taps also count inside sheets and full-screen covers.
@@ -92,9 +104,16 @@ extension View {
 }
 
 extension View {
+    /// Adds the debug panel. It opens on `AWLDebugConfig.triggers` or with `AWLDebugTool.open()`.
     public func includeDebugTool(fcmToken: String? = nil,
-                                 showDebugToolEvents: [DebugToolViewModifier.ShowDebugToolEvents] = [.threeTaps],
                                  customView: (() -> any View)? = nil) -> some View {
-        modifier(DebugToolViewModifier(fcmToken: fcmToken, showDebugToolEvents: showDebugToolEvents, customView: customView))
+        modifier(DebugToolViewModifier(fcmToken: fcmToken, triggers: nil, customView: customView))
+    }
+
+    @available(*, deprecated, message: "Set AWLDebugConfig.triggers; .threeTaps is .tripleTap, .userDidTakeScreenshot is .screenshot")
+    public func includeDebugTool(fcmToken: String? = nil,
+                                 showDebugToolEvents: [DebugToolViewModifier.ShowDebugToolEvents],
+                                 customView: (() -> any View)? = nil) -> some View {
+        modifier(DebugToolViewModifier(fcmToken: fcmToken, triggers: Set(showDebugToolEvents.map(\.trigger)), customView: customView))
     }
 }

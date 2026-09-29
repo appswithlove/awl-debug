@@ -39,6 +39,7 @@ public class AWLDebugTool: ObservableObject {
         Task { @MainActor in
             shared.performance.updateSampling()
             shared.sessionManager.providers = sessionProviders
+            DebugPanelPresenter.shared.configure(triggers: config.triggers, isAlwaysActive: config.isAlwaysActive)
         }
         
         shared.networkLogger.start(config: config.network)
@@ -94,16 +95,21 @@ public extension AWLDebugTool {
         isOpen ? close() : open()
     }
 
-    /// Entry point for UIKit apps, instead of `includeDebugTool()`: opens the panel on the given events in all
+    /// Entry point for UIKit apps, instead of `includeDebugTool()`: opens the panel on `AWLDebugConfig.triggers` in all
     /// windows of `scene`. Call it after the scene's window is visible.
-    @MainActor static func install(in scene: UIWindowScene,
-                                   fcmToken: String? = nil,
-                                   showDebugToolEvents: [DebugToolViewModifier.ShowDebugToolEvents] = [.threeTaps]) {
+    @MainActor static func install(in scene: UIWindowScene, fcmToken: String? = nil) {
         let presenter = DebugPanelPresenter.shared
-        presenter.events = showDebugToolEvents
         presenter.content.fcmToken = fcmToken
         presenter.install(in: scene)
         VersionOverlayPresenter.shared.update(in: scene)
         presenter.applyAppearance(DebugView.AppColorScheme.stored)
+    }
+
+    @available(*, deprecated, message: "Set AWLDebugConfig.triggers; .threeTaps is .tripleTap, .userDidTakeScreenshot is .screenshot")
+    @MainActor static func install(in scene: UIWindowScene,
+                                   fcmToken: String? = nil,
+                                   showDebugToolEvents: [DebugToolViewModifier.ShowDebugToolEvents]) {
+        DebugPanelPresenter.shared.triggers = Set(showDebugToolEvents.map(\.trigger))
+        install(in: scene, fcmToken: fcmToken)
     }
 }

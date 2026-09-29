@@ -13,12 +13,20 @@ final class DebugPanelPresenter: NSObject {
         var customView: (() -> any View)?
     }
 
+    /// AWLDebugFeedback posts this with `userInfo["triggers"]` (`[String]`) for the triggers it handles.
+    static let feedbackTriggersNotification = Notification.Name("AWLDebugFeedbackTriggers")
+
     let content = Content()
-    var events: [DebugToolViewModifier.ShowDebugToolEvents] = []
+    var triggers: Set<AWLDebugTrigger> = [.threeFingerTap] {
+        didSet { updateRecognizers() }
+    }
+    var isAlwaysActive = false
+    private(set) var feedbackTriggers: Set<AWLDebugTrigger> = []
+    private var warnedConflicts: Set<AWLDebugTrigger> = []
 
     private var window: UIWindow?
     private weak var previousKeyWindow: UIWindow?
-    private var installedRecognizers: [ObjectIdentifier: UITapGestureRecognizer] = [:]
+    private var installedRecognizers: [ObjectIdentifier: [AWLDebugTrigger: UITapGestureRecognizer]] = [:]
     private let gestureDelegate = SimultaneousGestureDelegate()
 
     var isOpen: Bool {
@@ -27,18 +35,45 @@ final class DebugPanelPresenter: NSObject {
 
     private override init() {
         super.init()
-        NotificationCenter.default.addObserver(self, selector: #selector(userDidTakeScreenshot),
-                                               name: UIApplication.userDidTakeScreenshotNotification, object: nil)
+        let center = NotificationCenter.default
+        center.addObserver(self, selector: #selector(userDidTakeScreenshot),
+                           name: UIApplication.userDidTakeScreenshotNotification, object: nil)
+        center.addObserver(self, selector: #selector(deviceDidShake), name: PanelShakeDetector.notification, object: nil)
+        center.addObserver(self, selector: #selector(feedbackDidAnnounceTriggers(_:)),
+                           name: Self.feedbackTriggersNotification, object: nil)
+    }
+
+    func configure(triggers: Set<AWLDebugTrigger>, isAlwaysActive: Bool) {
+        self.triggers = triggers
+        self.isAlwaysActive = isAlwaysActive
     }
 
     @objc private func userDidTakeScreenshot() {
-        trigger(.userDidTakeScreenshot)
+        trigger(.screenshot)
     }
 
-    func trigger(_ event: DebugToolViewModifier.ShowDebugToolEvents) {
-        if events.contains(event) {
-            open()
+    @objc private func deviceDidShake() {
+        trigger(.shake)
+    }
+
+    @objc private func feedbackDidAnnounceTriggers(_ notification: Notification) {
+        let names = notification.userInfo?["triggers"] as? [String] ?? []
+        feedbackTriggers = Set(names.compactMap(AWLDebugTrigger.init(feedbackName:)))
+    }
+
+    /// Opens the panel if `trigger` is configured and the tool is activated. Never closes it.
+    func trigger(_ trigger: AWLDebugTrigger) {
+        guard triggers.contains(trigger), isAlwaysActive || AWLDebugTool.isActivated else {
+            return
         }
+        if feedbackTriggers.contains(trigger) {
+            if warnedConflicts.insert(trigger).inserted {
+                AWLDebugTool.log("Trigger \(trigger) is configured for the panel and for feedback; it opens feedback only.",
+                                 level: .warn, tag: "AWLDebug")
+            }
+            return
+        }
+        open()
     }
 
     func open() {
@@ -77,15 +112,44 @@ final class DebugPanelPresenter: NSObject {
         }
     }
 
-    /// Recognises three taps on the scene's windows without taking touches away from the app.
+    /// Recognises the tap triggers on the scene's windows without taking touches away from the app.
     func install(in scene: UIWindowScene) {
         for window in scene.windows where window !== self.window && installedRecognizers[ObjectIdentifier(window)] == nil {
-            let recognizer = UITapGestureRecognizer(target: self, action: #selector(handleTripleTap))
-            recognizer.numberOfTapsRequired = 3
-            recognizer.cancelsTouchesInView = false
-            recognizer.delegate = gestureDelegate
-            window.addGestureRecognizer(recognizer)
-            installedRecognizers[ObjectIdentifier(window)] = recognizer
+            let recognizers: [AWLDebugTrigger: UITapGestureRecognizer] = [
+                .threeFingerTap: makeRecognizer(action: #selector(handleThreeFingerTap), taps: 1, touches: Self.threeFingerTouches),
+                .tripleTap: makeRecognizer(action: #selector(handleTripleTap), taps: 3, touches: 1),
+            ]
+            recognizers.values.forEach(window.addGestureRecognizer)
+            installedRecognizers[ObjectIdentifier(window)] = recognizers
+        }
+        updateRecognizers()
+    }
+
+    /// The Simulator cannot send three touches; holding Option gives two.
+    #if targetEnvironment(simulator)
+    private static let threeFingerTouches = 2
+    #else
+    private static let threeFingerTouches = 3
+    #endif
+
+    private func makeRecognizer(action: Selector, taps: Int, touches: Int) -> UITapGestureRecognizer {
+        let recognizer = UITapGestureRecognizer(target: self, action: action)
+        recognizer.numberOfTapsRequired = taps
+        recognizer.numberOfTouchesRequired = touches
+        recognizer.cancelsTouchesInView = false
+        recognizer.delaysTouchesEnded = false
+        recognizer.delegate = gestureDelegate
+        return recognizer
+    }
+
+    private func updateRecognizers() {
+        for recognizers in installedRecognizers.values {
+            for (trigger, recognizer) in recognizers {
+                recognizer.isEnabled = triggers.contains(trigger)
+            }
+        }
+        if triggers.contains(.shake) {
+            PanelShakeDetector.install()
         }
     }
 
@@ -103,8 +167,12 @@ final class DebugPanelPresenter: NSObject {
         }
     }
 
+    @objc private func handleThreeFingerTap() {
+        trigger(.threeFingerTap)
+    }
+
     @objc private func handleTripleTap() {
-        trigger(.threeTaps)
+        trigger(.tripleTap)
     }
 
     private static func activeScene() -> UIWindowScene? {
