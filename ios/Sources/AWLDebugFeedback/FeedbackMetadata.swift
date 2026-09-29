@@ -98,9 +98,12 @@ struct FeedbackMetadata: Encodable, Equatable {
         }
         let email = reporter.email
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .flatMap { email in
-                email.count <= maxEmailLength && email.range(of: #"^[^@\s]+@[^@\s]+\.[^@\s]+$"#, options: .regularExpression) != nil ? email : nil
-            }
+            .flatMap { isValidEmail($0) ? $0 : nil }
         return Reporter(name: short(name), email: email)
+    }
+
+    /// Same rule as the service.
+    static func isValidEmail(_ email: String) -> Bool {
+        email.count <= maxEmailLength && email.range(of: #"^[^@\s]+@[^@\s]+\.[^@\s]+$"#, options: .regularExpression) != nil
     }
 }
