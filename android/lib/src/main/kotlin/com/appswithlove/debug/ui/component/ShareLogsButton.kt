@@ -38,7 +38,7 @@ internal fun ShareLogsButton(
         onClick = {
             scope.launch {
                 try {
-                    val text = logHistory.logEntries.value.joinToString(separator = "") { "${it.toExportString()}\n\n" }
+                    val text = logHistory.filteredSnapshot().joinToString(separator = "") { "${it.toExportString()}\n\n" }
                     shareTextFile(context, filename, text, chooserTitle = "Share Logs")
                 } catch (e: Exception) {
                     e.printStackTrace()
