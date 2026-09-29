@@ -208,11 +208,31 @@ enum LS {
     }
 
     struct Session {
-        static let notSetup = "No tokens configured. Pass tokens in AWLDebugTool.start()."
         static let loggedIn = "Logged in"
         static let loggedOut = "Logged out"
         static let reveal = "Reveal token"
         static let hide = "Hide token"
+        static let edit = "Edit"
+        static let delete = "Delete"
+        static let login = "Login"
+        static let refresh = "Refresh"
+        static let logout = "Logout"
+        static let pastePlaceholder = "Paste token"
+        static let confirm = "Confirm"
+        static let cancel = "Cancel"
+        static let deleteTitle = "Delete token?"
+
+        static func editTitle(_ label: String) -> String {
+            "Edit token - \(label)"
+        }
+
+        static func deleteMessage(_ label: String) -> String {
+            "This will remove the access token for \"\(label)\" and break the current session."
+        }
+
+        static func actionFailed(_ message: String) -> String {
+            "Action failed: \(message)"
+        }
     }
 
     struct Performance {
