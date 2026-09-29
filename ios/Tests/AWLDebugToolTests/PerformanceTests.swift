@@ -53,19 +53,39 @@ final class PerformanceTests: XCTestCase {
         XCTAssertEqual(CPUMonitor.normalized(50, cores: 0), 50)
     }
 
-    func testFullLoadOnAllCoresIsAboveHalf() {
+    /// Compares the monitor's reading with the CPU time the process really used in the same window, so a busy
+    /// machine (where the load threads get little CPU) does not fail the test.
+    func testCPUReadingMatchesTheProcessCPUTimeUnderLoad() {
         let cores = ProcessInfo.processInfo.activeProcessorCount
-        let end = Date().addingTimeInterval(1.5)
+        let idle = CPUMonitor.normalized(CPUMonitor.readThreads().map(\.cpuUsage).reduce(0, +), cores: cores)
+
+        let end = Date().addingTimeInterval(2)
         for _ in 0..<cores {
             Thread.detachNewThread {
                 while Date() < end {}
             }
         }
+        // thread_basic_info.cpu_usage is a decaying average over roughly the last second.
+        Thread.sleep(forTimeInterval: 0.5)
+        let wallStart = Date()
+        let cpuStart = Self.processCPUTime()
         Thread.sleep(forTimeInterval: 1)
-
-        let total = CPUMonitor.readThreads().map(\.cpuUsage).reduce(0, +)
-        XCTAssertGreaterThan(CPUMonitor.normalized(total, cores: cores), 50)
+        let reading = CPUMonitor.normalized(CPUMonitor.readThreads().map(\.cpuUsage).reduce(0, +), cores: cores)
+        let consumed = (Self.processCPUTime() - cpuStart) / Date().timeIntervalSince(wallStart) / Double(cores) * 100
         Thread.sleep(until: end)
+
+        XCTAssertGreaterThan(consumed, 0)
+        XCTAssertEqual(Double(reading), consumed, accuracy: max(15, consumed * 0.5),
+                       "monitor \(reading) % vs. consumed \(consumed) % (idle \(idle) %)")
+        XCTAssertGreaterThan(reading, idle)
+    }
+
+    /// User plus system CPU time of the whole process, in seconds.
+    private static func processCPUTime() -> Double {
+        var usage = rusage()
+        getrusage(RUSAGE_SELF, &usage)
+        func seconds(_ time: timeval) -> Double { Double(time.tv_sec) + Double(time.tv_usec) / 1_000_000 }
+        return seconds(usage.ru_utime) + seconds(usage.ru_stime)
     }
 
     func testBlockedMainThreadCountsAsFreeze() {
