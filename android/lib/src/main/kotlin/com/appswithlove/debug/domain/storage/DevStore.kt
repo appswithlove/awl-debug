@@ -53,10 +53,18 @@ internal class DevStore(context: Context) {
         private val PERFORMANCE_OVERLAY_X_KEY = floatPreferencesKey("PERFORMANCE_OVERLAY_X_KEY")
         private val PERFORMANCE_OVERLAY_Y_KEY = floatPreferencesKey("PERFORMANCE_OVERLAY_Y_KEY")
 
+        private val VERSION_OVERLAY_VISIBLE_KEY = booleanPreferencesKey("VERSION_OVERLAY_VISIBLE_KEY")
         private val SAVED_DEEPLINKS_KEY = stringPreferencesKey("SAVED_DEEPLINKS_KEY")
         private val A11Y_USE_SYSTEM_FONT_SCALE_KEY = booleanPreferencesKey("A11Y_USE_SYSTEM_FONT_SCALE_KEY")
         private val A11Y_FONT_SCALE_KEY = floatPreferencesKey("A11Y_FONT_SCALE_KEY")
         private val A11Y_APPEARANCE_KEY = stringPreferencesKey("A11Y_APPEARANCE_KEY")
+    }
+
+    /** The tester's choice for the version overlay, `null` until they toggle it. */
+    val versionOverlayVisible: Flow<Boolean?> = dataStore.data.map { it[VERSION_OVERLAY_VISIBLE_KEY] }
+
+    suspend fun setVersionOverlayVisible(visible: Boolean) {
+        dataStore.edit { preferences -> preferences[VERSION_OVERLAY_VISIBLE_KEY] = visible }
     }
 
     /** Overlay visibility and position (dp from the top start corner). */
