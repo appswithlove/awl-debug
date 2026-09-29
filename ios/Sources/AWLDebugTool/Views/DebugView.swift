@@ -49,18 +49,7 @@ public struct DebugView: View {
                 UserDefaultsView(isShowingDeleteUserDefaults: $vm.isShowingDeleteUserDefaults,
                                  showDeleteUserDefaultsAlert: vm.showDeleteUserDefaultsAlert)
                 
-                PermissionsView(
-                    statuses: permissionsManager.statuses,
-                    checkIfPermissionRequestTypeExistsInApp: { type in
-                        permissionsManager.checkIfPermissionRequestTypeExistsInApp(type)
-                    },
-                    request: { type in
-                        Task { await permissionsManager.request(type) }
-                    },
-                    openAppSettings: {
-                        permissionsManager.openAppSettings()
-                    }
-                )
+                PermissionsView(manager: permissionsManager)
                 
                 ColorSchemeSectionView(preferredColorScheme: $vm.preferredColorScheme)
                 FontSizeSectionView(preferredFontSize: $vm.preferredFontSize)

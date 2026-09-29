@@ -108,9 +108,6 @@ enum LS {
     struct Buttons {
         static let deselectAllBtn: String = "Deselect all"
         static let selectAllBtn: String = "Select all"
-        static let enable: String = "Enable"
-        static let unavailable: String = "Unavailable"
-        static let settings: String = "Settings"
     }
     
     struct Deeplinks {
@@ -168,6 +165,16 @@ enum LS {
         }
     }
     
+    struct Permissions {
+        static let granted = "Granted"
+        static let denied = "Denied"
+        static let notDetermined = "Not determined"
+        static let limited = "Limited"
+        static let provisional = "Provisional"
+        static let unknown = "Unknown"
+        static let empty = "No permissions declared"
+    }
+
     struct Session {
         static let notSetup = "No tokens configured. Pass tokens in AWLDebugTool.start()."
     }
