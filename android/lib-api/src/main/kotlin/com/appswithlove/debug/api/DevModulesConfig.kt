@@ -16,6 +16,8 @@ data class DevModulesConfig(
     val sessionProviders: List<SessionProvider> = emptyList(),
     /** Shown once a `DevHttpLogInterceptor` has been created. */
     val showNetworkModule: Boolean = true,
+    /** Default of the "Show version overlay" switch; testers can change it on the device. */
+    val showVersionOverlay: Boolean = true,
 ) {
     val hasAnyModuleEnabled = showLogsModule || showPerformanceModule ||
             showPermissionsModule || showAccessibilityModule || showDeeplinksModule ||

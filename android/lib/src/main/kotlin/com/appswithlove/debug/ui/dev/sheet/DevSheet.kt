@@ -87,6 +87,7 @@ import com.appswithlove.debug.ui.dev.sheet.modules.performance.PerformanceModule
 import com.appswithlove.debug.ui.dev.sheet.modules.permissions.PermissionsModule
 import com.appswithlove.debug.ui.dev.sheet.modules.accessibility.AccessibilityModule
 import com.appswithlove.debug.ui.dev.sheet.modules.TestCrashesModule
+import com.appswithlove.debug.ui.dev.sheet.modules.VersionOverlay
 import com.appswithlove.debug.ui.dev.sheet.modules.deeplinks.DeeplinksModule
 import com.appswithlove.debug.ui.dev.sheet.modules.session.SessionDetailModule
 import com.appswithlove.debug.ui.dev.sheet.modules.session.SessionManager
@@ -190,6 +191,9 @@ internal fun DevSheet(
         viewModel.setIsAlwaysActive(isAlwaysActive)
     }
 
+    val savedVersionOverlay by devStore.versionOverlayVisible.collectAsStateWithLifecycle(initialValue = null)
+    val showVersionOverlay = savedVersionOverlay ?: modulesConfig.showVersionOverlay
+
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -201,6 +205,10 @@ internal fun DevSheet(
             CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
                 content()
             }
+        }
+
+        if (showVersionOverlay && devConfig != null) {
+            VersionOverlay(devConfig = devConfig)
         }
 
         DevTheme(
@@ -226,6 +234,10 @@ internal fun DevSheet(
                 },
                 modulesConfig = modulesConfig,
                 devConfig = devConfig,
+                showVersionOverlay = showVersionOverlay,
+                onShowVersionOverlayChanged = { visible ->
+                    overlayScope.launch { devStore.setVersionOverlayVisible(visible) }
+                },
                 logHistory = logHistory,
                 actioner = { action -> viewModel.submitAction(action) },
                 customModules = customModules,
@@ -254,6 +266,8 @@ private fun DevSheetContent(
     onPerformanceOverlayChanged: (Boolean) -> Unit = {},
     logHistory: LogHistory,
     devConfig: DevConfig? = null,
+    showVersionOverlay: Boolean = false,
+    onShowVersionOverlayChanged: ((Boolean) -> Unit)? = null,
     modulesConfig: DevModulesConfig = DevModulesConfig(),
     actioner: (DevAction) -> Unit,
     customModules: @Composable ColumnScope.() -> Unit = {},
@@ -631,7 +645,11 @@ private fun DevSheetContent(
                             modifier = Modifier.verticalScroll(rememberScrollState()),
                             verticalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
-                        AppInfoModule(devConfig = devConfig)
+                        AppInfoModule(
+                            devConfig = devConfig,
+                            showVersionOverlay = showVersionOverlay,
+                            onShowVersionOverlayChanged = onShowVersionOverlayChanged,
+                        )
 
                         if (modulesConfig.showLogsModule) {
                             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))

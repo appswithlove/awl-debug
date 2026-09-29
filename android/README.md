@@ -158,6 +158,7 @@ DevSheet(
 |---|---|---|
 | `showLogsModule` | `true` | Logs (Timber + HTTP summaries) |
 | `showNetworkModule` | `true` | [Network](#http-logging), shown once a `DevHttpLogInterceptor` exists |
+| `showVersionOverlay` | `true` | Default of the "Show version overlay" switch in App Info: `AWL <versionName> (<versionCode>)` from `devConfig`, top start, touches pass through, visible in screenshots but not in the panel. Testers' choice is saved on the device. |
 | `showPerformanceModule` | `true` | Performance. Samples every second, but only while its switch or the overlay ("Show performance overlay") is on. Long-press the overlay to open the module. |
 | `showPermissionsModule` | `true` | Permissions |
 | `showAccessibilityModule` | `true` | Accessibility |
