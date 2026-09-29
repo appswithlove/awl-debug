@@ -9,6 +9,16 @@ import UIKit
 enum MarkupTool: CaseIterable {
     case pen
     case arrow
+    /// A black rectangle, burnt in so the area never leaves the device.
+    case redact
+
+    var name: String {
+        switch self {
+        case .pen: "Pen"
+        case .arrow: "Arrow"
+        case .redact: "Redact"
+        }
+    }
 }
 
 enum MarkupColor: CaseIterable {
@@ -46,10 +56,19 @@ struct MarkupMark: Equatable {
     enum Shape: Equatable {
         case stroke([CGPoint])
         case arrow(start: CGPoint, end: CGPoint)
+        /// Filled black between two opposite corners.
+        case redact(start: CGPoint, end: CGPoint)
     }
 
     var shape: Shape
     let color: MarkupColor
+
+    var isFilled: Bool {
+        if case .redact = shape {
+            return true
+        }
+        return false
+    }
 }
 
 enum MarkupGeometry {
@@ -76,7 +95,17 @@ enum MarkupGeometry {
         return (point(arrowHeadAngle), point(-arrowHeadAngle))
     }
 
-    /// The mark's outline in a space of the given size, ready to be stroked with `lineWidth(for:)`.
+    /// The redacted area in a space of the given size.
+    static func rect(from start: CGPoint, to end: CGPoint, in size: CGSize) -> CGRect {
+        CGRect(
+            x: min(start.x, end.x) * size.width,
+            y: min(start.y, end.y) * size.height,
+            width: abs(end.x - start.x) * size.width,
+            height: abs(end.y - start.y) * size.height
+        )
+    }
+
+    /// The mark's outline in a space of the given size: stroked with `lineWidth(for:)`, or filled for redact.
     static func path(for mark: MarkupMark, in size: CGSize) -> CGPath {
         func scaled(_ point: CGPoint) -> CGPoint {
             CGPoint(x: point.x * size.width, y: point.y * size.height)
@@ -98,19 +127,26 @@ enum MarkupGeometry {
             path.move(to: left)
             path.addLine(to: to)
             path.addLine(to: right)
+        case let .redact(start, end):
+            path.addRect(rect(from: start, to: end, in: size))
         }
         return path
     }
 
-    static func stroke(_ marks: [MarkupMark], in context: CGContext, size: CGSize) {
+    static func draw(_ marks: [MarkupMark], in context: CGContext, size: CGSize) {
         context.saveGState()
         context.setLineWidth(lineWidth(for: size))
         context.setLineCap(.round)
         context.setLineJoin(.round)
         for mark in marks {
             context.addPath(path(for: mark, in: size))
-            context.setStrokeColor(mark.color.uiColor.cgColor)
-            context.strokePath()
+            if mark.isFilled {
+                context.setFillColor(mark.color.uiColor.cgColor)
+                context.fillPath()
+            } else {
+                context.setStrokeColor(mark.color.uiColor.cgColor)
+                context.strokePath()
+            }
         }
         context.restoreGState()
     }
