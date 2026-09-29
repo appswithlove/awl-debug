@@ -125,6 +125,10 @@ public struct DebugView: View {
                 }
             }
         }
+        .task(id: sessionManager.entries.map(\.id)) {
+            // Live while the panel is open: login, refresh and logout show up without reopening.
+            await sessionManager.observe()
+        }
         .onAppear {
             screenRecorder.isDebugPanelVisible = true
         }

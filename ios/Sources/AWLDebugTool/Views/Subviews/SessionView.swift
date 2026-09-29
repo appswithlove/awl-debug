@@ -5,104 +5,190 @@
 
 import SwiftUI
 
+/// Start-page row: one status dot per provider, opens the detail page. Hidden without providers.
 struct SessionView: View {
     @ObservedObject var sessionManager: SessionManager
 
     var body: some View {
-        Section {
-            if !sessionManager.tokens.isEmpty {
-                ForEach(sessionManager.tokens, id: \.label) { tokenModel in
-                    TokenRow(tokenModel: tokenModel)
+        if !sessionManager.entries.isEmpty {
+            Section {
+                NavigationLink {
+                    SessionDetailView(sessionManager: sessionManager)
+                } label: {
+                    HStack {
+                        Text(LS.Headers.session)
+                        Spacer()
+                        ForEach(sessionManager.entries) { entry in
+                            SessionStatusDot(entry: entry)
+                        }
+                    }
                 }
-            } else {
-                Text(LS.Session.notSetup)
-                    .foregroundColor(.secondary)
             }
-        } header: {
-            Text(LS.Headers.session)
         }
     }
 }
 
-private struct TokenRow: View {
-    @ObservedObject var tokenModel: AWLDebugTool.TokenDebugModel
-    @State private var isRevealed = false
+private struct SessionStatusDot: View {
+    @ObservedObject var entry: SessionEntry
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        HStack(spacing: 4) {
+            Circle()
+                .fill(entry.isLoggedIn ? Color.green : Color.gray)
+                .frame(width: 8, height: 8)
+            Text(entry.label)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(entry.label): \(entry.isLoggedIn ? LS.Session.loggedIn : LS.Session.loggedOut)")
+    }
+}
+
+struct SessionDetailView: View {
+    @ObservedObject var sessionManager: SessionManager
+
+    var body: some View {
+        Form {
+            ForEach(sessionManager.entries) { entry in
+                Section {
+                    SessionCard(entry: entry)
+                }
+            }
+        }
+        .navigationTitle(LS.Headers.session)
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+private struct SessionCard: View {
+    @ObservedObject var entry: SessionEntry
+    @State private var isRevealed = false
+    @State private var isEditing = false
+    @State private var isConfirmingDelete = false
+    @State private var editedToken = ""
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text(tokenModel.label)
+                Text(entry.label)
                     .font(.headline)
                 Spacer()
                 Circle()
-                    .fill(tokenModel.token == nil ? Color.gray : Color.green)
+                    .fill(entry.isLoggedIn ? Color.green : Color.gray)
                     .frame(width: 8, height: 8)
-                Text(tokenModel.token == nil ? LS.Session.loggedOut : LS.Session.loggedIn)
+                Text(entry.isLoggedIn ? LS.Session.loggedIn : LS.Session.loggedOut)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
 
             HStack {
-                Button {
-                    UIPasteboard.general.string = tokenModel.token
-                } label: {
-                    HStack {
-                        Text(displayedToken)
-                        Image(systemName: "doc.on.doc")
-                    }
-                    .font(.caption)
+                Text(displayedToken)
+                    .font(.caption.monospaced())
                     .foregroundColor(.secondary)
-                    .lineLimit(1)
-                }
-                .buttonStyle(.borderless)
-                .disabled(tokenModel.token == nil)
-                .accessibilityLabel(LS.Actions.copy)
-
+                    .lineLimit(isRevealed ? nil : 1)
+                    .textSelection(.enabled)
+                Spacer()
                 Button {
                     isRevealed.toggle()
                 } label: {
                     Image(systemName: isRevealed ? "eye.slash" : "eye")
                 }
-                .buttonStyle(.borderless)
-                .disabled(tokenModel.token == nil)
                 .accessibilityLabel(isRevealed ? LS.Session.hide : LS.Session.reveal)
-
-                Spacer()
-
+                .disabled(!entry.isLoggedIn)
                 Button {
-                    tokenModel.invalidateToken()
+                    entry.copyToken()
                 } label: {
-                    Text(tokenModel.isTokenInvalidating ? LS.Actions.invalidating : LS.Actions.invalidate)
+                    Image(systemName: "doc.on.doc")
                 }
-                .buttonStyle(.bordered)
-                .foregroundColor(.red)
-                .disabled(tokenModel.isTokenInvalidating)
+                .accessibilityLabel(LS.Actions.copy)
+                .disabled(!entry.isLoggedIn)
+            }
+            .buttonStyle(.borderless)
+
+            actions
+
+            if let errorMessage = entry.errorMessage {
+                Text(errorMessage)
+                    .font(.caption)
+                    .foregroundColor(.red)
             }
         }
         .padding(.vertical, 4)
-        .task {
-            // Live while visible: the app's token changes (login, refresh, logout) show up without reopening.
-            while !Task.isCancelled {
-                await tokenModel.refresh()
-                try? await Task.sleep(nanoseconds: AWLDebugTool.TokenDebugModel.refreshInterval)
+        .alert(LS.Session.editTitle(entry.label), isPresented: $isEditing) {
+            TextField(LS.Session.pastePlaceholder, text: $editedToken)
+            Button(LS.Session.cancel, role: .cancel) {}
+            Button(LS.Session.confirm) {
+                let value = editedToken
+                Task { await entry.edit(value) }
             }
+        }
+        .alert(LS.Session.deleteTitle, isPresented: $isConfirmingDelete) {
+            Button(LS.Session.cancel, role: .cancel) {}
+            Button(LS.Session.delete, role: .destructive) {
+                Task { await entry.delete() }
+            }
+        } message: {
+            Text(LS.Session.deleteMessage(entry.label))
         }
     }
 
-    private var displayedToken: String {
-        guard let token = tokenModel.token else { return LS.Strings.unknownValue }
-        return isRevealed ? token : AWLDebugTool.TokenDebugModel.masked(token)
+    /// Only the actions the app offers, and only those that fit the current state.
+    private var actions: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack {
+                if entry.canEdit {
+                    actionButton(LS.Session.edit, action: .edit) {
+                        editedToken = entry.token ?? ""
+                        isEditing = true
+                    }
+                }
+                if entry.canDelete {
+                    actionButton(LS.Session.delete, action: .delete, role: .destructive) {
+                        isConfirmingDelete = true
+                    }
+                }
+                if entry.canInvalidate {
+                    actionButton(entry.runningAction == .invalidate ? LS.Actions.invalidating : LS.Actions.invalidate,
+                                 action: .invalidate, role: .destructive) {
+                        Task { await entry.invalidateToken() }
+                    }
+                }
+                if entry.canLogin {
+                    actionButton(LS.Session.login, action: .login) {
+                        Task { await entry.login() }
+                    }
+                }
+                if entry.canRefresh {
+                    actionButton(LS.Session.refresh, action: .refresh) {
+                        Task { await entry.refresh() }
+                    }
+                }
+                if entry.canLogout {
+                    actionButton(LS.Session.logout, action: .logout) {
+                        Task { await entry.logout() }
+                    }
+                }
+            }
+        }
+        .buttonStyle(.bordered)
     }
-}
 
-#Preview {
-    let m = SessionManager()
-    m.tokens = [
-        .init(label: "Test1", getToken: { "123" }),
-        .init(label: "Test2", getToken: { "123123123123123131313123123123123" })
-    ]
-    
-    return Form {
-        SessionView(sessionManager: m)
+    private func actionButton(_ title: String, action: SessionEntry.Action, role: ButtonRole? = nil,
+                              perform: @escaping () -> Void) -> some View {
+        Button(role: role, action: perform) {
+            HStack(spacing: 6) {
+                if entry.runningAction == action {
+                    ProgressView()
+                }
+                Text(title)
+            }
+        }
+        .disabled(entry.runningAction != nil)
+    }
+
+    private var displayedToken: String {
+        guard let token = entry.token else { return LS.Strings.unknownValue }
+        return isRevealed ? token : SessionEntry.masked(token)
     }
 }
