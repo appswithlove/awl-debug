@@ -95,14 +95,16 @@ import com.appswithlove.debug.ui.dev.sheet.modules.clearAppData
 import com.appswithlove.debug.ui.dev.sheet.modules.VersionOverlay
 import com.appswithlove.debug.ui.dev.sheet.modules.deeplinks.DeeplinksModule
 import com.appswithlove.debug.api.DeeplinkItem
-import android.content.Context
-import android.content.ContextWrapper
 import androidx.compose.runtime.DisposableEffect
 import kotlinx.coroutines.delay
 import com.appswithlove.debug.ui.dev.sheet.modules.session.SessionDetailModule
 import com.appswithlove.debug.ui.dev.sheet.modules.session.SessionManager
 import com.appswithlove.debug.ui.dev.sheet.modules.session.SessionModule
-import com.appswithlove.debug.ui.component.threeFingerTap
+import com.appswithlove.debug.api.DevTrigger
+import com.appswithlove.debug.ui.component.ScreenshotTrigger
+import com.appswithlove.debug.ui.component.ShakeTrigger
+import com.appswithlove.debug.ui.component.devTriggerGestures
+import com.appswithlove.debug.ui.component.findActivity
 import com.appswithlove.debug.ui.dev.log.LogCollector
 import com.appswithlove.debug.ui.dev.network.NetworkCollector
 import com.appswithlove.debug.ui.dev.network.NetworkViewModel
@@ -121,7 +123,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 
 /**
- * A composable that provides a development sheet that can be triggered by a three-finger tap.
+ * A composable that provides a development sheet that opens with the configured [triggers].
  *
  * @param modifier Modifier to be applied to the `DevSheet`. Note that this only modifies the
  * `DevSheet` itself, not the content.
@@ -129,10 +131,12 @@ import kotlinx.coroutines.launch
  * `BuildConfig` to this to show app info on the sheet.
  * @param modulesConfig A [com.appswithlove.debug.api.DevModulesConfig] that controls which built-in modules are shown in the
  * `DevSheet`. All modules are enabled by default.
+ * @param triggers The gestures that open the `DevSheet`. Defaults to [DevTrigger.ThreeFingerTap].
+ * A trigger never closes an open sheet.
  * @param customModules A composable lambda that allows you to add your own custom modules to the
  * `DevSheet`.
- * @param isAlwaysActive If set to `true`, the three-finger tap gesture to open the `DevSheet`
- * will always be active. Defaults to `false`.
+ * @param isAlwaysActive If set to `true`, the [triggers] work even while the dev tool is
+ * deactivated (see `DevSettings`). Defaults to `false`.
  * @param swipeToDismiss If set to `true`, the `DevSheet` can be dismissed by swiping it down.
  * Defaults to `false`.
  * @param inheritHostTheme If set to `true`, the drawer adopts the host app's full [MaterialTheme]
@@ -148,6 +152,7 @@ fun DevSheet(
     modifier: Modifier = Modifier,
     devConfig: DevConfig? = null,
     modulesConfig: DevModulesConfig = DevModulesConfig(),
+    triggers: Set<DevTrigger> = setOf(DevTrigger.ThreeFingerTap),
     customModules: @Composable ColumnScope.() -> Unit = {},
     isAlwaysActive: Boolean = false,
     swipeToDismiss: Boolean = false,
@@ -160,6 +165,7 @@ fun DevSheet(
         modifier = modifier,
         devConfig = devConfig,
         modulesConfig = modulesConfig,
+        triggers = triggers,
         customModules = customModules,
         isAlwaysActive = isAlwaysActive,
         swipeToDismiss = swipeToDismiss,
@@ -176,6 +182,7 @@ internal fun DevSheet(
     modifier: Modifier = Modifier,
     devConfig: DevConfig? = null,
     modulesConfig: DevModulesConfig = DevModulesConfig(),
+    triggers: Set<DevTrigger> = setOf(DevTrigger.ThreeFingerTap),
     customModules: @Composable ColumnScope.() -> Unit = {},
     isAlwaysActive: Boolean = false,
     swipeToDismiss: Boolean = false,
@@ -208,10 +215,19 @@ internal fun DevSheet(
         onDispose { DeeplinkDispatcher.setHandler(null) }
     }
 
+    val canTrigger = state.value.isActive || state.value.isAlwaysActive
+    val openFromTrigger = { viewModel.submitAction(DevAction.ShowDevSheet(show = true)) }
+    if (canTrigger && DevTrigger.Shake in triggers) ShakeTrigger(onShake = openFromTrigger)
+    if (canTrigger && DevTrigger.Screenshot in triggers) ScreenshotTrigger(onScreenshot = openFromTrigger)
+
     Box(
         modifier = modifier
             .fillMaxSize()
-            .threeFingerTap { viewModel.submitAction(DevAction.ShowDevSheet()) }
+            .devTriggerGestures(
+                threeFingerTap = canTrigger && DevTrigger.ThreeFingerTap in triggers,
+                tripleTap = canTrigger && DevTrigger.TripleTap in triggers,
+                onTrigger = openFromTrigger,
+            )
     ) {
         AccessibilityOverride(settings = accessibility, content = content)
 
@@ -1022,10 +1038,4 @@ private enum class DevSheetPage {
             DeeplinkDetail -> Deeplinks
             else -> Home
         }
-}
-
-private tailrec fun Context.findActivity(): Activity? = when (this) {
-    is Activity -> this
-    is ContextWrapper -> baseContext.findActivity()
-    else -> null
 }

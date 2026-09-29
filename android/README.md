@@ -36,7 +36,7 @@ Made by [Apps with love](https://appswithlove.com).
 
 ## Features
 
-- Debug sheet opens and closes with a three-finger tap
+- Debug sheet opens with a three-finger tap, triple tap, shake or screenshot (configurable)
 - Logs: Timber and HTTP summary entries, filter by query, export to file
 - Network: every OkHttp request with redacted headers and bodies, filters, search, detail, cURL copy and export
 - Deeplinks: fire ad-hoc or preconfigured deeplinks from the sheet
@@ -95,7 +95,7 @@ awl-debug ships as a real + no-op pair with a shared API, the same pattern [Leak
 | Artifact | Contents | Weight |
 |---|---|---|
 | `debug-api` | Contract types only: `DevConfig`, `DevModulesConfig`, `DevNetworkConfig`, `DeeplinkItem`, `SessionProvider`, `FcmTokenProvider`. Pulled in transitively by both AARs, never referenced directly. | a few KB |
-| `debug` | The real panel: Compose sheet, three-finger gesture, log collector, HTTP interceptor, all modules, charts. | ~430 KB plus its Compose, Material 3 and Vico dependencies |
+| `debug` | The real panel: Compose sheet, trigger gestures, log collector, HTTP interceptor, all modules, charts. | ~430 KB plus its Compose, Material 3 and Vico dependencies |
 | `feedback` / `feedback-no-op` | Optional in-app feedback (see [Feedback](#feedback)) and its stub, same pairing rule. The no-op renders your content only, has no shake detection and no `INTERNET` permission. | |
 | `debug-no-op` | The same public functions and classes with empty bodies. `DevSheet` renders your `content` and nothing else; `DevLogTree`, `DevKermitLogWriter` and `DevHttpLogInterceptor` discard everything. Depends only on `debug-api`. | ~14 KB |
 
@@ -114,7 +114,7 @@ The contract types live under `com.appswithlove.debug.api.*`, for example `com.a
 
 ### DevSheet
 
-Wrap `DevSheet` around your top-level composable. The sheet opens with a three-finger tap while the dev tool is activated (see [Activate and deactivate](#activate-and-deactivate)).
+Wrap `DevSheet` around your top-level composable. The sheet opens with the configured `triggers` while the dev tool is activated (see [Activate and deactivate](#activate-and-deactivate)).
 
 ```kotlin
 DevSheet(
@@ -133,11 +133,27 @@ DevSheet(
 |---|---|---|
 | `devConfig` | `null` | Build info shown in the App Info module: version name and code, flavor, build type, plus optional `customParams: Map<String, String>` |
 | `modulesConfig` | `DevModulesConfig()` | Which built-in modules are shown and their inputs, see [Modules](#modules) |
+| `triggers` | `setOf(DevTrigger.ThreeFingerTap)` | Gestures that open the sheet, see [Triggers](#triggers) |
 | `customModules` | empty | Composable lambda appended at the bottom of the sheet, see [Custom modules](#custom-modules) |
-| `isAlwaysActive` | `false` | When `true`, the three-finger tap works even if the dev tool is deactivated |
+| `isAlwaysActive` | `false` | When `true`, the triggers work even if the dev tool is deactivated |
 | `swipeToDismiss` | `false` | When `true`, the sheet can be dismissed by swiping down |
 | `inheritHostTheme` | `false` | When `true`, the sheet uses the host app's `MaterialTheme` instead of its own |
 | `modifier` | `Modifier` | Applied to the wrapping container |
+
+#### Triggers
+
+| `DevTrigger` | Gesture |
+|---|---|
+| `ThreeFingerTap` | Three fingers at once; two on an emulator |
+| `TripleTap` | Three taps with one finger within 600 ms; the app still receives the taps |
+| `Screenshot` | A system screenshot, Android 14 (API 34) and later. The `debug` artifact declares the `DETECT_SCREEN_CAPTURE` normal permission for it |
+| `Shake` | Shaking the device (accelerometer, 2.7 g, at most once per 1.5 s) |
+
+A trigger only opens the sheet; it never closes an open one. Shake and screenshot listeners only run while the dev tool is activated or `isAlwaysActive = true`.
+
+```kotlin
+DevSheet(triggers = setOf(DevTrigger.ThreeFingerTap, DevTrigger.Shake)) { MyApp() }
+```
 
 ### Modules
 
@@ -387,7 +403,7 @@ Like Timber entries, Kermit messages are redacted before they are stored (`Beare
 
 ### Activate and deactivate
 
-The three-finger tap only opens the sheet while the dev tool is activated, unless `isAlwaysActive = true`. The flag is persisted on the device. Toggle it from your own UI, for example a hidden switch in settings:
+The triggers only open the sheet while the dev tool is activated, unless `isAlwaysActive = true`. The activation is persisted on the device (DataStore `dev_settings`); `isAlwaysActive` does not change it. Toggle it from your own UI, for example a hidden switch in settings:
 
 ```kotlin
 val context = LocalContext.current

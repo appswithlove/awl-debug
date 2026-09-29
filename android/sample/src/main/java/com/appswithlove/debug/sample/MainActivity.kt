@@ -25,6 +25,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.appswithlove.debug.api.DeeplinkItem
 import com.appswithlove.debug.api.DevConfig
 import com.appswithlove.debug.api.DevModulesConfig
+import com.appswithlove.debug.api.DevTrigger
 import com.appswithlove.debug.domain.model.DevSettings
 import com.appswithlove.debug.sample.ui.theme.AwlDebugTheme
 import com.appswithlove.debug.ui.dev.sheet.DevSheet
@@ -72,6 +73,7 @@ private fun App(openedDeeplink: String? = null) {
                 buildType = "1",
                 flavor = "dev",
             ),
+            triggers = DevTrigger.entries.toSet(),
             isAlwaysActive = false,
             swipeToDismiss = false,
             inheritHostTheme = true,

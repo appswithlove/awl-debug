@@ -113,6 +113,16 @@ public final class com/appswithlove/debug/api/DevNetworkConfig {
 	public fun toString ()Ljava/lang/String;
 }
 
+public final class com/appswithlove/debug/api/DevTrigger : java/lang/Enum {
+	public static final field Screenshot Lcom/appswithlove/debug/api/DevTrigger;
+	public static final field Shake Lcom/appswithlove/debug/api/DevTrigger;
+	public static final field ThreeFingerTap Lcom/appswithlove/debug/api/DevTrigger;
+	public static final field TripleTap Lcom/appswithlove/debug/api/DevTrigger;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/appswithlove/debug/api/DevTrigger;
+	public static fun values ()[Lcom/appswithlove/debug/api/DevTrigger;
+}
+
 public abstract interface class com/appswithlove/debug/api/FcmTokenProvider {
 	public fun getOnRefresh ()Lkotlin/jvm/functions/Function1;
 	public fun getOnRevoke ()Lkotlin/jvm/functions/Function1;
