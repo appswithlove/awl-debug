@@ -196,6 +196,37 @@ RootView()
 - Dictation needs `NSMicrophoneUsageDescription` and `NSSpeechRecognitionUsageDescription` in the app's `Info.plist`.
 - Tests: `xcodebuild test -scheme AWLDebugTool-Package -destination 'platform=iOS Simulator,name=iPhone 17 Pro'`.
 
+### 15. Remote reporting
+Records sessions, the requests captured by the Network module and a performance sample every 5 s (CPU, memory, battery, longest main-thread stall) for the feedback service, so problems show up across test devices without anyone exporting logs.
+
+```swift
+#if DEBUG || STAGING
+var config = AWLDebugConfig()
+config.remoteReporting = RemoteReportingConfig(
+    endpoint: URL(string: "https://feedback.example.com")!,
+    appKey: "<app key>",
+    environment: "staging",
+    distribution: .internal
+)
+AWLDebugTool.start(config: config)
+
+AWLDebugTool.setUserIdentifier(user.id) // after login, nil after logout; only a SHA-256 hash leaves the device
+AWLDebugTool.flushReports()
+#endif
+```
+
+| Parameter | Default | Description |
+|---|---|---|
+| `distribution` | required | With `.store` nothing is recorded or sent |
+| `captureBodies` | `false` | Also send captured request and response bodies |
+| `maxBodyBytes` | `65536` | Bodies are cut off after this many bytes (at most 65536) |
+| `onlyOnUnmeteredNetwork` | `false` | Only send over networks that are not expensive or constrained |
+
+- A session starts when the app becomes active and ends when it goes to the background; back within 30 minutes, the same session continues.
+- Data is buffered in `Library/Application Support/AWLDebug/reporting/` (at most 10 MB, oldest entries dropped first and counted) and packed into batches of up to 2000 requests and 2000 samples.
+- Values are redacted as in the Network module, bodies are off by default, and the SDK's own requests to the service are never recorded.
+- An App Store install (App Store receipt, no provisioning profile) records nothing, whatever `distribution` says.
+
 ## Store builds
 The SDK must never ship to the App Store. Compile every call behind a flag that store configurations do not define (e.g. `AWL_DEBUG`). Package products cannot be linked per configuration, so both products are dynamic frameworks. Store configurations then remove them:
 
