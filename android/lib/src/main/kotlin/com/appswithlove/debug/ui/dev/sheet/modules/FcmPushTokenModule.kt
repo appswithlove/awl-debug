@@ -26,7 +26,7 @@ import com.appswithlove.debug.ui.theme.AppTheme
 import com.appswithlove.debug.ui.theme.DevTheme
 
 @Composable
-fun FcmPushTokenModule(
+internal fun FcmPushTokenModule(
     token: String?,
     onLongPress: (String) -> Unit,
     onRefresh: (() -> Unit)? = null,

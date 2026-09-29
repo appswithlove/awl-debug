@@ -15,7 +15,7 @@ import androidx.compose.ui.unit.dp
 import com.appswithlove.debug.api.DevConfig
 
 @Composable
-fun AppInfoModule(devConfig: DevConfig? = null) {
+internal fun AppInfoModule(devConfig: DevConfig? = null) {
     Column {
         Text(
             text = "App Info",

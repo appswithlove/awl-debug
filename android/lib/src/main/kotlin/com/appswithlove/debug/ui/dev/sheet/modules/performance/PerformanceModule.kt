@@ -39,7 +39,7 @@ import com.patrykandpatrick.vico.compose.cartesian.rememberVicoScrollState
 private const val SAMPLE_INTERVAL_SECONDS = 2
 
 @Composable
-fun PerformanceModule(
+internal fun PerformanceModule(
     modifier: Modifier = Modifier,
     performanceMonitor: PerformanceMonitor,
 ) {

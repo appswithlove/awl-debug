@@ -15,6 +15,6 @@ class DevLogTree(
             Log.ERROR, Log.ASSERT -> DevLogSeverity.ERROR
             else -> DevLogSeverity.INFO
         }
-        logCollector.log(Log(severity, message))
+        logCollector.log(Log(severity, message, tag, t))
     }
 }

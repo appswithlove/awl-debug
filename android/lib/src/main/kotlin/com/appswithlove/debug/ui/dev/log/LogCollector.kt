@@ -2,5 +2,5 @@ package com.appswithlove.debug.ui.dev.log
 
 object LogCollector {
     val logHistory = LogHistory()
-    val devLogCollector = DevLogWriter(logHistory)
+    val devLogCollector: DevLogCollector = DevLogWriter(logHistory)
 }

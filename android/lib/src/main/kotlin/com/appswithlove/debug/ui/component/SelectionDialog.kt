@@ -32,7 +32,7 @@ import com.appswithlove.debug.ui.theme.AppTheme
 import com.appswithlove.debug.ui.theme.DevTheme
 
 @Composable
-fun SelectionDialog(
+internal fun SelectionDialog(
     show: MutableState<Boolean>,
     title: String,
     values: List<Int>,

@@ -19,7 +19,7 @@ import com.appswithlove.debug.ui.theme.AppTheme
 import kotlinx.coroutines.launch
 
 @Composable
-fun InfoTooltip(
+internal fun InfoTooltip(
     tooltipText: String,
     tooltipState: TooltipState,
 ) {

@@ -50,7 +50,7 @@ import com.appswithlove.debug.ui.theme.AppTheme
 import com.appswithlove.debug.ui.theme.DevTheme
 
 @Composable
-fun LogsModule(
+internal fun LogsModule(
     modifier: Modifier = Modifier,
     logHistory: LogHistory,
     onEntryLongPress: (String) -> Unit,
@@ -182,6 +182,11 @@ fun LogsModule(
                                                 )
                                             ) {
                                                 append(entry.severity.name)
+                                            }
+                                        }
+                                        if (entry.tag != null) {
+                                            withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                                                append(" | ${entry.tag}")
                                             }
                                         }
                                         withStyle(

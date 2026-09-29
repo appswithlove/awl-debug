@@ -8,7 +8,7 @@ import androidx.compose.ui.Modifier
 import com.appswithlove.debug.ui.theme.AppTheme
 
 @Composable
-fun DevSwitch(
+internal fun DevSwitch(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,

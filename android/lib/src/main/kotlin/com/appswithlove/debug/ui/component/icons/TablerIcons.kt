@@ -14,7 +14,7 @@ import androidx.compose.ui.unit.dp
  *
  * Icons are stroke-based (24x24, stroke width 2, round caps/joins) and are tinted by [androidx.compose.material3.Icon].
  */
-object TablerIcons {
+internal object TablerIcons {
     val X: ImageVector by lazyIcon("TablerX", "M18 6l-12 12", "M6 6l12 12")
 
     val ChevronLeft: ImageVector by lazyIcon("TablerChevronLeft", "M15 6l-6 6l6 6")

@@ -10,13 +10,13 @@ import kotlin.collections.minus
 import kotlin.collections.plus
 
 @Suppress("Unused")
-class DevLogWriter(private val logHistory: LogHistory) : DevLogCollector {
+internal class DevLogWriter(private val logHistory: LogHistory) : DevLogCollector {
     override fun setTrackLogs(track: Boolean) {
         logHistory.setTrackLogs(track)
     }
 
     override fun log(log: Log) {
-        logHistory.push(LogEntry(log.severity, log.message))
+        logHistory.push(LogEntry(log.severity, log.message, tag = log.tag, throwable = log.throwable))
     }
 
     override fun setMaxSize(size: Int) {
@@ -26,31 +26,31 @@ class DevLogWriter(private val logHistory: LogHistory) : DevLogCollector {
 
 class LogHistory {
     private val _trackLogs = MutableStateFlow(true)
-    val trackLogs = _trackLogs.asStateFlow()
+    internal val trackLogs = _trackLogs.asStateFlow()
 
     private val _maxSize = MutableStateFlow(750)
-    val maxSize = _maxSize.asStateFlow()
+    internal val maxSize = _maxSize.asStateFlow()
 
     private val _logEntries = MutableStateFlow<List<LogEntry>>(emptyList())
-    val logEntries = _logEntries.asStateFlow()
+    internal val logEntries = _logEntries.asStateFlow()
 
     private val _query = MutableStateFlow("")
-    val query = _query.asStateFlow()
+    internal val query = _query.asStateFlow()
 
     private val _selectedSeverityTags = MutableStateFlow<List<DevLogSeverity>>(emptyList())
-    val selectedSeverityTags = _selectedSeverityTags.asStateFlow()
+    internal val selectedSeverityTags = _selectedSeverityTags.asStateFlow()
 
-    val filteredLogEntries = combine(
+    internal val filteredLogEntries = combine(
         _maxSize,
         _logEntries,
         _query
     ) { maxSize, logs, query ->
         logs.filter {
-            it.message.contains(query, true)
+            it.message.contains(query, true) || it.tag?.contains(query, true) == true
         }.take(maxSize)
     }
 
-    fun push(entry: LogEntry) {
+    internal fun push(entry: LogEntry) {
         if (_trackLogs.value) {
             val updatedLogs = (_logEntries.value + entry).let {
                 if (it.size > _maxSize.value) it.takeLast(_maxSize.value) else it
@@ -59,11 +59,11 @@ class LogHistory {
         }
     }
 
-    fun search(query: String) {
+    internal fun search(query: String) {
         _query.value = query
     }
 
-    fun filterBySeverity(severity: DevLogSeverity) {
+    internal fun filterBySeverity(severity: DevLogSeverity) {
         if (severity in _selectedSeverityTags.value) {
             _selectedSeverityTags.value -= severity
         } else {
@@ -71,19 +71,19 @@ class LogHistory {
         }
     }
 
-    fun clear() {
+    internal fun clear() {
         _logEntries.value = emptyList()
     }
 
-    fun setMaxSize(size: Int) {
+    internal fun setMaxSize(size: Int) {
         _maxSize.value = size
     }
 
-    fun setTrackLogs(track: Boolean) {
+    internal fun setTrackLogs(track: Boolean) {
         _trackLogs.value = track
     }
 
-    companion object {
+    internal companion object {
         val Preview = LogHistory()
         val PreviewEmpty = LogHistory()
 
@@ -137,21 +137,25 @@ class LogHistory {
     }
 }
 
-data class LogEntry(
+internal data class LogEntry(
     val severity: DevLogSeverity?,
     val message: String,
     val timestamp: Long = System.currentTimeMillis(),
+    val tag: String? = null,
+    val throwable: Throwable? = null,
 ) {
+    private val tagPrefix: String = tag?.let { "$it | " }.orEmpty()
+
     val formattedTime: String = SimpleDateFormat(
         "dd.MM.yyyy HH:mm:ss",
         Locale.getDefault()
     ).format(Date(timestamp))
 
     fun toExportString(): String {
-        return "$formattedTime | $severity | $message"
+        return "$formattedTime | $severity | $tagPrefix$message"
     }
 
     override fun toString(): String {
-        return "$formattedTime | $message"
+        return "$formattedTime | $tagPrefix$message"
     }
 }

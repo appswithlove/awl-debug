@@ -9,7 +9,7 @@ import com.appswithlove.debug.ui.theme.AppTheme
 import com.appswithlove.debug.ui.theme.DevTheme
 
 @Composable
-fun DevSlider(
+internal fun DevSlider(
     value: Float,
     valueRange: ClosedFloatingPointRange<Float>,
     steps: Int,

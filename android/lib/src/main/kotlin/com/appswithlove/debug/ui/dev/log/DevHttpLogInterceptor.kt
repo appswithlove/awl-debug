@@ -88,5 +88,7 @@ class DevHttpLogInterceptor(
 
 data class Log(
     val severity: DevLogSeverity,
-    val message: String
+    val message: String,
+    val tag: String? = null,
+    val throwable: Throwable? = null,
 )

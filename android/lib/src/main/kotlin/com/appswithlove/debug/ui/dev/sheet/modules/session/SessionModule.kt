@@ -26,7 +26,7 @@ import com.appswithlove.debug.ui.theme.DevTheme
 import kotlinx.coroutines.flow.flowOf
 
 @Composable
-fun SessionModule(
+internal fun SessionModule(
     states: List<SessionManager.ProviderState>,
     onClick: () -> Unit,
 ) {
