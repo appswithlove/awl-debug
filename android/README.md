@@ -158,7 +158,7 @@ DevSheet(
 | `showNetworkModule` | `true` | [Network](#http-logging), shown once a `DevHttpLogInterceptor` exists |
 | `showPerformanceModule` | `true` | Performance |
 | `showPermissionsModule` | `true` | Permissions |
-| `showAccessibilityModule` | `true` | Accessibility |
+| `showAccessibilityModule` | `true` | Accessibility: font size (system, preset steps or 50–200 %) and appearance (System, Light, Dark) for the app content, saved on the device. On Android 12+ the appearance is applied app-wide through `UiModeManager.setApplicationNightMode`. |
 | `showDeeplinksModule` / `deeplinks` | `true` / empty | [Deeplinks](#deeplinks) |
 | `showSessionModule` / `sessionProviders` | `true` / empty | [Session](#session), hidden when the list is empty |
 | `showFcmPushTokenModule` / `fcmTokenProvider` | `true` / `null` | [FCM push token](#fcm-push-token), hidden when `null` |

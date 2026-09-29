@@ -5,10 +5,13 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.appswithlove.debug.ui.dev.sheet.modules.accessibility.AccessibilitySettings
+import com.appswithlove.debug.ui.dev.sheet.modules.accessibility.Appearance
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -37,6 +40,27 @@ internal class DevStore(context: Context) {
         private val NETWORK_EXCLUDED_METHODS_KEY = stringSetPreferencesKey("NETWORK_EXCLUDED_METHODS_KEY")
         private val NETWORK_EXCLUDED_STATUS_KEY = stringSetPreferencesKey("NETWORK_EXCLUDED_STATUS_KEY")
         private val NETWORK_EXCLUDED_HOSTS_KEY = stringSetPreferencesKey("NETWORK_EXCLUDED_HOSTS_KEY")
+
+        private val A11Y_USE_SYSTEM_FONT_SCALE_KEY = booleanPreferencesKey("A11Y_USE_SYSTEM_FONT_SCALE_KEY")
+        private val A11Y_FONT_SCALE_KEY = floatPreferencesKey("A11Y_FONT_SCALE_KEY")
+        private val A11Y_APPEARANCE_KEY = stringPreferencesKey("A11Y_APPEARANCE_KEY")
+    }
+
+    val accessibility: Flow<AccessibilitySettings> = dataStore.data
+        .map { preferences ->
+            AccessibilitySettings(
+                useSystemFontScale = preferences[A11Y_USE_SYSTEM_FONT_SCALE_KEY] ?: true,
+                fontScale = preferences[A11Y_FONT_SCALE_KEY] ?: 1f,
+                appearance = Appearance.entries.find { it.name == preferences[A11Y_APPEARANCE_KEY] } ?: Appearance.System,
+            )
+        }
+
+    suspend fun setAccessibility(value: AccessibilitySettings) {
+        dataStore.edit { preferences ->
+            preferences[A11Y_USE_SYSTEM_FONT_SCALE_KEY] = value.useSystemFontScale
+            preferences[A11Y_FONT_SCALE_KEY] = value.fontScale
+            preferences[A11Y_APPEARANCE_KEY] = value.appearance.name
+        }
     }
 
     val networkPreferences: Flow<NetworkPreferences> = dataStore.data
