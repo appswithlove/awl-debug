@@ -57,6 +57,7 @@ struct AWLDebugTool_ExampleApp: App {
             config: {
                 var config = AWLDebugConfig()
                 config.sessionProviders = [accessTokenProvider, refreshTokenProvider]
+                config.triggers = [.threeFingerTap, .tripleTap, .shake]
                 return config
             }()
         )
