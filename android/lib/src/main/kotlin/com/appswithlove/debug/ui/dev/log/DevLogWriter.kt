@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.combine
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.concurrent.atomic.AtomicLong
 import kotlin.collections.minus
 import kotlin.collections.plus
 
@@ -40,15 +41,23 @@ class LogHistory {
     private val _selectedSeverityTags = MutableStateFlow<List<DevLogSeverity>>(emptyList())
     internal val selectedSeverityTags = _selectedSeverityTags.asStateFlow()
 
+    /** Entries matching the search and the selected severities; the same filter applies to the export. */
     internal val filteredLogEntries = combine(
         _maxSize,
         _logEntries,
-        _query
-    ) { maxSize, logs, query ->
-        logs.filter {
-            it.message.contains(query, true) || it.tag?.contains(query, true) == true
-        }.take(maxSize)
+        _query,
+        _selectedSeverityTags,
+    ) { maxSize, logs, query, severities ->
+        logs.filter { it.matches(query, severities) }.take(maxSize)
     }
+
+    /** Current entries after search and severity filter, for the export. */
+    internal fun filteredSnapshot(): List<LogEntry> =
+        _logEntries.value.filter { it.matches(_query.value, _selectedSeverityTags.value) }
+
+    private fun LogEntry.matches(query: String, severities: List<DevLogSeverity>): Boolean =
+        (severities.isEmpty() || severity in severities) &&
+            (message.contains(query, true) || tag?.contains(query, true) == true)
 
     internal fun push(entry: LogEntry) {
         if (_trackLogs.value) {
@@ -137,12 +146,15 @@ class LogHistory {
     }
 }
 
+private val nextLogEntryId = AtomicLong()
+
 internal data class LogEntry(
     val severity: DevLogSeverity?,
     val message: String,
     val timestamp: Long = System.currentTimeMillis(),
     val tag: String? = null,
     val throwable: Throwable? = null,
+    val id: Long = nextLogEntryId.getAndIncrement(),
 ) {
     private val tagPrefix: String = tag?.let { "$it | " }.orEmpty()
 
