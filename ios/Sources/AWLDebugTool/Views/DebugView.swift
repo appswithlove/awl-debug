@@ -16,6 +16,7 @@ public struct DebugView: View {
     @ObservedObject private var sessionManager = AWLDebugTool.shared.sessionManager
     @ObservedObject private var permissionsManager = PermissionsManager()
     @ObservedObject private var networkReachabilityManager = NetworkReachabilityManager()
+    @ObservedObject private var performance = AWLDebugTool.shared.performance
     
     @StateObject private var vm = DebugViewModel()
 
@@ -67,7 +68,13 @@ public struct DebugView: View {
                 FontSizeSectionView(preferredFontSize: $vm.preferredFontSize)
 
                 Section {
+                    Toggle(LS.Performance.measure, isOn: $performance.isMeasuring)
                     Toggle(LS.Performance.showPerformanceOverlay, isOn: $vm.isPerformanceWidgetVisible)
+                        .onChange(of: vm.isPerformanceWidgetVisible) { _ in
+                            performance.updateSampling()
+                        }
+
+                    BatteryView(monitor: debugTool.batteryMonitor)
                         
                     CPUView(cpuMonitor: debugTool.cpuMonitor)
                         .padding(.top, 24)

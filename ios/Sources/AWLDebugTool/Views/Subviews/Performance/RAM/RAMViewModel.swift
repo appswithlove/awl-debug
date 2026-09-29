@@ -22,7 +22,7 @@ final class RAMViewModel: ObservableObject {
         self.ramMonitor = ramMonitor
         ramMonitor.collection.snapshotPublisher
             .throttle(
-                for: .seconds(2),
+                for: .seconds(1),
                 scheduler: RunLoop.main,
                 latest: true
             )
