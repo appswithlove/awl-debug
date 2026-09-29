@@ -16,7 +16,7 @@ internal class DevLogWriter(private val logHistory: LogHistory) : DevLogCollecto
     }
 
     override fun log(log: Log) {
-        logHistory.push(LogEntry(log.severity, log.message, tag = log.tag, throwable = log.throwable))
+        logHistory.push(LogEntry(log.severity, log.message.redactCredentials(), tag = log.tag, throwable = log.throwable))
     }
 
     override fun setMaxSize(size: Int) {

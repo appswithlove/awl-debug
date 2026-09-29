@@ -1,18 +1,32 @@
 package com.appswithlove.debug.ui.dev.log
 
+import com.appswithlove.debug.api.DevNetworkConfig
+import com.appswithlove.debug.ui.dev.network.NetworkEntry
+import com.appswithlove.debug.ui.dev.network.NetworkLogStore
+import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.matchers.collections.shouldContain
+import io.kotest.matchers.collections.shouldContainExactly
+import io.kotest.matchers.ints.shouldBeLessThan
 import io.kotest.matchers.shouldBe
-import io.kotest.matchers.string.shouldContain
-import io.kotest.matchers.string.shouldNotContain
+import io.kotest.matchers.string.shouldEndWith
+import io.kotest.matchers.string.shouldStartWith
+import okhttp3.FormBody
 import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
+import okio.Buffer
 import okio.BufferedSink
+import okio.GzipSink
+import okio.buffer
 import org.junit.After
 import org.junit.Test
+import java.io.IOException
+import java.util.concurrent.TimeUnit
 
 class DevHttpLogInterceptorTest {
 
@@ -26,68 +40,114 @@ class DevHttpLogInterceptorTest {
     }
 
     private val server = MockWebServer().apply { start() }
+    private val store = NetworkLogStore()
     private val collector = RecordingCollector()
+    private val json = "application/json".toMediaType()
 
     @After
     fun tearDown() {
         server.shutdown()
     }
 
-    private fun String.loggedBody() = substringAfter("Body: ").substringBefore("\n(truncated")
-
-    private fun client(redactHeaders: Set<String> = emptySet()) = OkHttpClient.Builder()
-        .addInterceptor(DevHttpLogInterceptor(collector, redactHeaders))
+    private fun client(config: DevNetworkConfig = DevNetworkConfig()) = OkHttpClient.Builder()
+        .addInterceptor(DevHttpLogInterceptor(config, store, collector))
         .build()
 
+    private fun execute(request: Request, config: DevNetworkConfig = DevNetworkConfig()): NetworkEntry {
+        client(config).newCall(request).execute().use { it.body?.string() }
+        return store.entries.value.last()
+    }
+
     @Test
-    fun intercept_sensitiveHeaders_areRedactedInRequestAndResponse() {
+    fun intercept_sensitiveHeaders_areRedacted() {
         server.enqueue(MockResponse().setBody("ok").addHeader("Set-Cookie", "c=d"))
         val request = Request.Builder()
             .url(server.url("/"))
-            .header("Authorization", "Bearer abc.def")
-            .header("Proxy-Authorization", "Basic cHJveHk=")
+            .header("Authorization", "Bearer x")
             .header("Cookie", "a=b")
             .header("x-api-key", "123")
-            .header("X-Visible", "visible-value")
+            .header("X-Visible", "visible")
             .build()
 
-        client(redactHeaders = setOf("X-Api-Key")).newCall(request).execute().close()
+        val entry = execute(request, DevNetworkConfig(redactHeaders = setOf("X-Api-Key")))
 
-        val logged = collector.logs.joinToString("\n") { it.message }
-        logged shouldContain "Authorization: [REDACTED]"
-        logged shouldContain "Proxy-Authorization: [REDACTED]"
-        logged shouldContain "Cookie: [REDACTED]"
-        logged shouldContain "Set-Cookie: [REDACTED]"
-        logged shouldContain "x-api-key: [REDACTED]"
-        logged shouldContain "X-Visible: visible-value"
-        listOf("abc.def", "cHJveHk=", "a=b", "c=d", "123").forEach { logged shouldNotContain it }
+        entry.requestHeaders shouldContainExactly listOf(
+            "Authorization" to "[REDACTED]",
+            "Cookie" to "[REDACTED]",
+            "x-api-key" to "[REDACTED]",
+            "X-Visible" to "visible",
+        )
+        entry.responseHeaders shouldContain ("Set-Cookie" to "[REDACTED]")
+        entry.redactedCount shouldBe 4
     }
 
     @Test
-    fun intercept_largeResponseBody_isTruncatedInLogButDeliveredInFull() {
-        val body = "a".repeat(300 * 1024)
-        server.enqueue(MockResponse().setBody(body))
-
-        val received = client().newCall(Request.Builder().url(server.url("/")).build())
-            .execute().use { it.body!!.string() }
-
-        received.length shouldBe body.length
-        val responseLog = collector.logs.last().message
-        responseLog shouldContain "(truncated, ${300 * 1024} bytes total)"
-        responseLog.loggedBody().length shouldBe DevHttpLogInterceptor.DEFAULT_MAX_BODY_BYTES.toInt()
-    }
-
-    @Test
-    fun intercept_largeRequestBody_isTruncatedInLog() {
+    fun intercept_urlUserinfoAndQueryParams_areRedacted() {
         server.enqueue(MockResponse())
-        val body = "b".repeat(300 * 1024).toRequestBody("text/plain".toMediaType())
+        val url = server.url("/items").newBuilder()
+            .username("user").password("pass")
+            .addQueryParameter("token", "abc")
+            .addQueryParameter("page", "2")
+            .build()
 
-        client().newCall(Request.Builder().url(server.url("/")).post(body).build()).execute().close()
+        val entry = execute(Request.Builder().url(url).build())
 
-        server.takeRequest().bodySize shouldBe 300L * 1024
-        val requestLog = collector.logs.first().message
-        requestLog shouldContain "(truncated, ${300 * 1024} bytes total)"
-        requestLog.loggedBody().length shouldBe DevHttpLogInterceptor.DEFAULT_MAX_BODY_BYTES.toInt()
+        entry.url shouldBe "http://[REDACTED]@${server.hostName}:${server.port}/items?token=[REDACTED]&page=2"
+        server.takeRequest().requestUrl!!.queryParameter("token") shouldBe "abc"
+    }
+
+    @Test
+    fun intercept_nestedJsonFields_areRedactedAtAnyDepth() {
+        server.enqueue(
+            MockResponse()
+                .setHeader("Content-Type", "application/json")
+                .setBody("""{"user":{"password":"p","items":[{"access_token":"t","id":1}]}}""")
+        )
+
+        val entry = execute(Request.Builder().url(server.url("/")).build())
+
+        entry.responseBody!!.text shouldBe
+            """{"user":{"password":"[REDACTED]","items":[{"access_token":"[REDACTED]","id":1}]}}"""
+        entry.redactedCount shouldBe 2
+    }
+
+    @Test
+    fun intercept_formBody_isRedacted() {
+        server.enqueue(MockResponse())
+        val form = FormBody.Builder().add("username", "a").add("password", "p").build()
+
+        val entry = execute(Request.Builder().url(server.url("/")).post(form).build())
+
+        entry.requestBody!!.text shouldBe "username=a&password=[REDACTED]"
+        server.takeRequest().body.readUtf8() shouldBe "username=a&password=p"
+    }
+
+    @Test
+    fun intercept_largeJsonBody_isRedactedThenTruncated() {
+        val prefix = """{"password":"p","data":""""
+        val suffix = "\"}"
+        val body = prefix + "a".repeat(300 * 1024 - prefix.length - suffix.length) + suffix
+        server.enqueue(MockResponse().setHeader("Content-Type", "application/json").setBody(body))
+
+        val entry = execute(Request.Builder().url(server.url("/")).build())
+
+        val captured = entry.responseBody!!
+        captured.truncated shouldBe true
+        captured.originalBytes shouldBe 307_200L
+        captured.text.length shouldBe 256 * 1024
+        captured.text shouldStartWith """{"password":"[REDACTED]""""
+    }
+
+    @Test
+    fun intercept_unparsableJsonAndBinary_arePlaceholders() {
+        server.enqueue(MockResponse().setHeader("Content-Type", "application/json").setBody("{broken"))
+        server.enqueue(MockResponse().setHeader("Content-Type", "image/png").setBody("PNG-bytes"))
+
+        val unparsable = execute(Request.Builder().url(server.url("/a")).build())
+        val binary = execute(Request.Builder().url(server.url("/b")).build())
+
+        unparsable.responseBody!!.text shouldBe "(unparsable JSON, not shown)"
+        binary.responseBody!!.text shouldBe "(binary, 9 bytes)"
     }
 
     @Test
@@ -103,11 +163,110 @@ class DevHttpLogInterceptorTest {
             }
         }
 
-        client().newCall(Request.Builder().url(server.url("/")).post(oneShotBody).build())
-            .execute().close()
+        val entry = execute(Request.Builder().url(server.url("/")).post(oneShotBody).build())
 
         writeCount shouldBe 1
         server.takeRequest().body.readUtf8() shouldBe "upload-payload"
-        collector.logs.first().message shouldContain "(one-shot body, not captured)"
+        entry.requestBody!!.text shouldBe "(one-shot body, not captured)"
+    }
+
+    @Test
+    fun intercept_eventStream_isNotPeekedAndDoesNotBlock() {
+        server.enqueue(
+            MockResponse()
+                .setHeader("Content-Type", "text/event-stream")
+                .setBody("data: first\n\n" + "data: more\n\n".repeat(100))
+                .throttleBody(16, 1, TimeUnit.SECONDS)
+        )
+
+        val startedAt = System.nanoTime()
+        client().newCall(Request.Builder().url(server.url("/events")).build()).execute().use { response ->
+            response.body!!.source().readUtf8Line() shouldBe "data: first"
+        }
+        val elapsedMs = ((System.nanoTime() - startedAt) / 1_000_000).toInt()
+
+        elapsedMs shouldBeLessThan 3_000
+        store.entries.value.single().responseBody!!.text shouldBe "(stream, not captured)"
+    }
+
+    @Test
+    fun intercept_multipart_redactsFieldsAndSummarizesFiles() {
+        server.enqueue(MockResponse())
+        val multipart = MultipartBody.Builder("boundary")
+            .setType(MultipartBody.FORM)
+            .addFormDataPart("password", "p")
+            .addFormDataPart("note", "hello")
+            .addFormDataPart("avatar", "me.png", "PNG".toRequestBody("image/png".toMediaType()))
+            .build()
+
+        val entry = execute(Request.Builder().url(server.url("/")).post(multipart).build())
+
+        val lines = entry.requestBody!!.text.lines()
+        lines shouldContain "[REDACTED]"
+        lines shouldContain "hello"
+        lines shouldContain "(file me.png, 3 bytes)"
+    }
+
+    @Test
+    fun intercept_captureBodiesDisabled_storesNoBodyContent() {
+        server.enqueue(MockResponse().setBody("not wanted"))
+
+        val entry = execute(
+            Request.Builder().url(server.url("/")).post("x".toRequestBody(json)).build(),
+            DevNetworkConfig(captureBodies = false),
+        )
+
+        entry.requestBody!!.text shouldBe "(not captured)"
+        entry.responseBody!!.text shouldBe "(not captured)"
+    }
+
+    @Test
+    fun intercept_failedRequest_isRecordedWithStatusZero() {
+        val url = server.url("/")
+        server.shutdown()
+
+        shouldThrow<IOException> {
+            client().newCall(Request.Builder().url(url).build()).execute()
+        }
+
+        val entry = store.entries.value.single()
+        entry.isFailed shouldBe true
+        (entry.error != null) shouldBe true
+        collector.logs.single().severity shouldBe DevLogSeverity.ERROR
+    }
+
+    @Test
+    fun intercept_writesShortSummaryToLogs() {
+        server.enqueue(MockResponse().setResponseCode(404))
+
+        execute(Request.Builder().url(server.url("/missing?token=abc")).build())
+
+        val log = collector.logs.single()
+        log.tag shouldBe "HTTP"
+        log.severity shouldBe DevLogSeverity.WARN
+        log.message shouldStartWith "GET 404 "
+        log.message shouldEndWith "ms http://${server.hostName}:${server.port}/missing?token=[REDACTED]"
+    }
+
+    @Test
+    fun intercept_asNetworkInterceptor_decodesGzipBody() {
+        val gzipped = Buffer().also { buffer ->
+            GzipSink(buffer).buffer().use { it.writeUtf8("""{"idToken":"t","ok":true}""") }
+        }
+        server.enqueue(
+            MockResponse()
+                .setHeader("Content-Type", "application/json")
+                .setHeader("Content-Encoding", "gzip")
+                .setBody(gzipped)
+        )
+        val client = OkHttpClient.Builder()
+            .addNetworkInterceptor(DevHttpLogInterceptor(DevNetworkConfig(), store, collector))
+            .build()
+
+        client.newCall(Request.Builder().url(server.url("/")).build()).execute().use {
+            it.body!!.string() shouldBe """{"idToken":"t","ok":true}"""
+        }
+
+        store.entries.value.single().responseBody!!.text shouldBe """{"idToken":"[REDACTED]","ok":true}"""
     }
 }

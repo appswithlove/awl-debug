@@ -1,161 +1,118 @@
 package com.appswithlove.debug.ui.dev.log
 
-import com.appswithlove.debug.ui.dev.log.LogCollector.devLogCollector
-import okhttp3.Headers
+import com.appswithlove.debug.api.DevNetworkConfig
+import com.appswithlove.debug.ui.dev.network.BodyCapture
+import com.appswithlove.debug.ui.dev.network.NetworkCollector
+import com.appswithlove.debug.ui.dev.network.NetworkEntry
+import com.appswithlove.debug.ui.dev.network.NetworkLogStore
+import com.appswithlove.debug.ui.dev.network.NetworkRedactor
 import okhttp3.Interceptor
-import okhttp3.RequestBody
 import okhttp3.Response
-import okio.Buffer
-import okio.Sink
-import okio.Timeout
-import okio.buffer
 import java.io.IOException
 
 /**
- * An OkHttp [Interceptor].
+ * An OkHttp [Interceptor] that records every request and response for the Network module and
+ * writes a one-line summary to the Logs module.
  *
- * To function, this interceptor must be added to your `OkHttpClient`
- * instance using the `.addInterceptor()` method.
+ * Add it with `addInterceptor()` to see what the app sends, or with `addNetworkInterceptor()` to
+ * also see headers added by OkHttp, such as cookies from the `CookieJar`.
  *
- * This interceptor captures all outgoing HTTP requests and their corresponding
- * responses. It then formats this network traffic information (including
- * status codes, headers, and bodies) and passes it to the provided
- * [DevLogCollector] for storage or display.
+ * Values are redacted before they are stored: `Authorization`, `Proxy-Authorization`, `Cookie`,
+ * `Set-Cookie` and userinfo in URLs always, everything else according to [DevNetworkConfig].
+ * One-shot, duplex and streaming bodies are never read.
  *
- * The values of `Authorization`, `Proxy-Authorization`, `Cookie` and `Set-Cookie`
- * are always replaced with `[REDACTED]`. One-shot and duplex request bodies are
- * never read, and captured bodies are cut off after [maxBodyBytes].
- *
- * @param logCollector The collector service that will receive the formatted
- * [Log] objects.
- * @param redactHeaders Additional header names whose values are redacted
- * (case-insensitive).
- * @param maxBodyBytes Maximum number of bytes captured per request or response body.
+ * @param config What to capture and redact.
  */
 @Suppress("Unused")
-class DevHttpLogInterceptor @JvmOverloads constructor(
-    private val logCollector: DevLogCollector = devLogCollector,
-    redactHeaders: Set<String> = emptySet(),
-    private val maxBodyBytes: Long = DEFAULT_MAX_BODY_BYTES,
+class DevHttpLogInterceptor(
+    private val config: DevNetworkConfig = DevNetworkConfig(),
 ) : Interceptor {
 
-    private val redactedHeaderNames: Set<String> =
-        (ALWAYS_REDACTED_HEADERS + redactHeaders).mapTo(mutableSetOf()) { it.lowercase() }
+    private var store: NetworkLogStore = NetworkCollector.store
+    private var logCollector: DevLogCollector = LogCollector.devLogCollector
+    private val redactor = NetworkRedactor(config)
+    private val bodyCapture = BodyCapture(config, redactor)
+
+    init {
+        store.onInterceptorCreated()
+    }
+
+    internal constructor(
+        config: DevNetworkConfig,
+        store: NetworkLogStore,
+        logCollector: DevLogCollector,
+    ) : this(config) {
+        this.store = store
+        this.logCollector = logCollector
+        store.onInterceptorCreated()
+    }
 
     @Throws(IOException::class)
     override fun intercept(chain: Interceptor.Chain): Response {
         val request = chain.request()
+        val counter = NetworkRedactor.Counter()
+        val startedAtMillis = System.currentTimeMillis()
+        val url = redactor.url(request.url, counter)
+        val requestHeaders = redactor.headers(request.headers, counter)
+        val requestBody = bodyCapture.request(request.body, counter)
+        val requestBytes = request.body?.contentLength()?.takeIf { it >= 0 }
 
-        val requestMessage = "--> ${request.method} ${request.url}\n" +
-                "Headers: \n${request.headers.toRedactedString()}\n" +
-                "Body: ${request.body.toFormattedString()}\n" +
-                "--> END ${request.method}"
-
-        // Log the request as DEBUG
-        logCollector.log(
-            Log(DevLogSeverity.DEBUG, requestMessage)
-        )
-
-        // Determine Severity from Response
-        val startTime = System.nanoTime()
-        try {
-            val response = chain.proceed(request)
-            val durationMs = (System.nanoTime() - startTime) / 1_000_000L
-
-            // Determine severity from the response code
-            val severity = when (response.code) {
-                in 200..299 -> DevLogSeverity.INFO
-                in 300..399 -> DevLogSeverity.INFO
-                in 400..499 -> DevLogSeverity.WARN
-                else -> DevLogSeverity.ERROR // 5xx and others
-            }
-
-            val responseMessage =
-                "<-- ${response.code} ${response.message} ${response.request.url} (${durationMs}ms)\n" +
-                        "Headers: \n${response.headers.toRedactedString()}\n" +
-                        "Body: ${response.toFormattedBody()}\n" +
-                        "<-- END HTTP"
-
-            logCollector.log(
-                Log(severity, responseMessage)
+        fun entry(response: Response?, durationMs: Long, error: Throwable?): NetworkEntry {
+            val responseBody = response?.let { bodyCapture.response(it, counter) }
+            val responseHeaders = response?.let { redactor.headers(it.headers, counter) }.orEmpty()
+            return NetworkEntry(
+                id = store.newId(),
+                startedAtMillis = startedAtMillis,
+                method = request.method,
+                url = url,
+                host = request.url.host,
+                path = request.url.encodedPath,
+                status = response?.code ?: 0,
+                reason = response?.message?.ifEmpty { null },
+                durationMs = durationMs,
+                requestBytes = requestBytes,
+                responseBytes = response?.body?.contentLength()?.takeIf { it >= 0 } ?: responseBody?.originalBytes,
+                requestHeaders = requestHeaders,
+                responseHeaders = responseHeaders,
+                requestBody = requestBody,
+                responseBody = responseBody,
+                error = error?.toString(),
+                redactedCount = counter.count,
+                isSlow = durationMs > config.slowRequestThresholdMs,
             )
-            return response
+        }
 
+        val startNanos = System.nanoTime()
+        val response = try {
+            chain.proceed(request)
         } catch (e: Exception) {
-            val durationMs = (System.nanoTime() - startTime) / 1_000_000L
-            val errorMessage = "<-- HTTP FAILED: $e (${durationMs}ms)"
-            logCollector.log(
-                Log(DevLogSeverity.ERROR, errorMessage)
-            )
+            record(entry(response = null, durationMs = elapsedMs(startNanos), error = e))
             throw e
         }
+        record(entry(response, elapsedMs(startNanos), error = null))
+        return response
     }
 
-    private fun Headers.toRedactedString(): String = buildString {
-        for (index in 0 until size) {
-            val name = name(index)
-            val value = if (name.lowercase() in redactedHeaderNames) REDACTED else value(index)
-            append(name).append(": ").append(value).append('\n')
-        }
+    private fun record(entry: NetworkEntry) {
+        store.add(entry)
+        logCollector.log(Log(entry.severity(), entry.summary(), tag = LOG_TAG))
     }
 
-    private fun RequestBody?.toFormattedString(): String {
-        if (this == null) return "(no body)"
-        if (isOneShot() || isDuplex()) return "(one-shot body, not captured)"
-        return try {
-            val contentLength = contentLength()
-            if (contentLength > MAX_READABLE_REQUEST_BYTES) {
-                return "($contentLength bytes, not captured)"
-            }
-            val sink = CappedSink(maxBodyBytes)
-            sink.buffer().use { writeTo(it) }
-            sink.captured.readUtf8().withTruncationNote(sink.totalBytes)
-        } catch (e: IOException) {
-            " (body could not be read: ${e.message})"
-        }
+    private fun NetworkEntry.severity() = when (status) {
+        in 200..399 -> DevLogSeverity.INFO
+        in 400..499 -> DevLogSeverity.WARN
+        else -> DevLogSeverity.ERROR // 5xx, failures and others
     }
 
-    private fun Response.toFormattedBody(): String {
-        val body = peekBody(maxBodyBytes + 1)
-        val bytes = body.bytes()
-        if (bytes.size <= maxBodyBytes) return String(bytes, Charsets.UTF_8)
-        val originalBytes = this.body?.contentLength()?.takeIf { it >= 0 }
-        return String(bytes, 0, maxBodyBytes.toInt(), Charsets.UTF_8)
-            .withTruncationNote(originalBytes ?: -1L)
+    private fun NetworkEntry.summary(): String {
+        val status = if (isFailed) "Failed" else status.toString()
+        return "$method $status ${durationMs}ms $url" + (error?.let { " ($it)" } ?: "")
     }
 
-    private fun String.withTruncationNote(totalBytes: Long): String = when {
-        totalBytes in 0..maxBodyBytes -> this
-        totalBytes > maxBodyBytes -> "$this\n(truncated, $totalBytes bytes total)"
-        else -> "$this\n(truncated after $maxBodyBytes bytes)"
-    }
-
-    /** Keeps the first [limit] bytes written to it and only counts the rest. */
-    private class CappedSink(private val limit: Long) : Sink {
-        val captured = Buffer()
-        var totalBytes = 0L
-            private set
-
-        override fun write(source: Buffer, byteCount: Long) {
-            val bytesToKeep = minOf(byteCount, limit - captured.size).coerceAtLeast(0L)
-            source.read(captured, bytesToKeep)
-            source.skip(byteCount - bytesToKeep)
-            totalBytes += byteCount
-        }
-
-        override fun flush() = Unit
-        override fun timeout(): Timeout = Timeout.NONE
-        override fun close() = Unit
-    }
-
-    companion object {
-        const val DEFAULT_MAX_BODY_BYTES: Long = 256L * 1024
-        private const val MAX_READABLE_REQUEST_BYTES: Long = 1024L * 1024
-        private const val REDACTED = "[REDACTED]"
-        private val ALWAYS_REDACTED_HEADERS =
-            setOf("Authorization", "Proxy-Authorization", "Cookie", "Set-Cookie")
-    }
+    private fun elapsedMs(startNanos: Long) = (System.nanoTime() - startNanos) / 1_000_000L
 }
+
+private const val LOG_TAG = "HTTP"
 
 data class Log(
     val severity: DevLogSeverity,

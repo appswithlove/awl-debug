@@ -2,7 +2,6 @@ package com.appswithlove.debug.sample
 
 import com.appswithlove.debug.sample.BuildConfig
 import com.appswithlove.debug.ui.dev.log.DevHttpLogInterceptor
-import com.appswithlove.debug.ui.dev.log.LogCollector.devLogCollector
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.OkHttpClient
@@ -17,7 +16,7 @@ object HttpUtils {
     val okHttpClient = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
-        .addInterceptor(DevHttpLogInterceptor(logCollector = devLogCollector))
+        .addInterceptor(DevHttpLogInterceptor())
         .addInterceptor(
             HttpLoggingInterceptor().apply {
                 level = if (BuildConfig.DEBUG) {
