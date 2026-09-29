@@ -12,6 +12,7 @@ public class AWLDebugTool: ObservableObject {
     @MainActor lazy var performance = PerformanceController(monitors: self)
     let deeplinksManager = DeeplinksManager()
     let sessionManager = SessionManager()
+    private(set) var appGroupIdentifiers: [String] = []
 
     /// Main initializer.
     ///
@@ -29,6 +30,7 @@ public class AWLDebugTool: ObservableObject {
         }
         
         shared.networkLogger.start(config: config.network)
+        shared.appGroupIdentifiers = config.appGroupIdentifiers
         shared.screenRecorder.initialise(isScreenRecordingOn: isScreenRecordingOn)
         
         if let deeplinks {

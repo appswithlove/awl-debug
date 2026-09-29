@@ -3,6 +3,8 @@ import Foundation
 /// Options passed to `AWLDebugTool.start(config:)`.
 public struct AWLDebugConfig {
     public var network: NetworkConfig
+    /// App-group `UserDefaults` suites that "Clear App Data" also empties.
+    public var appGroupIdentifiers: [String] = []
 
     public init(network: NetworkConfig = NetworkConfig()) {
         self.network = network

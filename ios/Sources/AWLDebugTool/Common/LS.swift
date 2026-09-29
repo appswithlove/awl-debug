@@ -28,7 +28,6 @@ enum LS {
         static let btnClose = "Close"
         static let btnDone = "Done"
         static let logs = "Logs"
-        static let userDefaults = "User Defaults"
         static let permissions = "Permissions"
         static let fcm = "FCM push token"
         static let aboutSection = "About"
@@ -45,10 +44,6 @@ enum LS {
         // MARK: - Logs
         static let deleteNLTitle = "Delete network logs?"
         static let deleteNLMessage = "All captured requests will be removed."
-        
-        // MARK: - UserDefaults
-        static let deleteUDTitle = "Deleting UserDefaults data"
-        static let deleteUDMessage = "Are you sure you want to delete all UserDefaults data?"
         
         static let btnOK = "OK"
         static let btnCancel = "Cancel"
@@ -86,9 +81,6 @@ enum LS {
         static let showNetworkLogs = "Show network logs"
         static let clearNetworkLogs = "Clear network logs"
         static let exportNetworkLogs = "Export network logs"
-        
-        // MARK: - UserDefaults
-        static let clearAppUserDefaults = "Clear app UserDefaults"
         
         // MARK: - Setting
         static let openAppSettings = "Open app settings"
@@ -181,6 +173,20 @@ enum LS {
         static let provisional = "Provisional"
         static let unknown = "Unknown"
         static let empty = "No permissions declared"
+    }
+
+    struct ClearData {
+        static let title = "Clear App Data"
+        static let button = "Clear app data"
+        static let confirmTitle = "Clear app data?"
+        static let confirmMessage = "The selected data will be deleted. AWL Debug settings are kept."
+        static let userDefaults = "UserDefaults"
+        static let keychain = "Keychain"
+        static let files = "Files"
+        static let cookies = "Cookies and caches"
+        static let confirm = "Clear"
+        static let done = "Data cleared. Close the app to start fresh."
+        static let closeApp = "Close app"
     }
 
     struct Session {
