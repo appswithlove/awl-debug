@@ -15,3 +15,13 @@ final class DeeplinksTests: XCTestCase {
         XCTAssertNil(DeeplinksManager.validURL(from: "://missing"))
     }
 }
+
+final class DeeplinkSchedulingTests: XCTestCase {
+
+    func testSchedulingNeedsAnExistingPermission() {
+        XCTAssertTrue(DeeplinksManager.canSchedule(with: .authorized))
+        XCTAssertTrue(DeeplinksManager.canSchedule(with: .provisional))
+        XCTAssertFalse(DeeplinksManager.canSchedule(with: .notDetermined))
+        XCTAssertFalse(DeeplinksManager.canSchedule(with: .denied))
+    }
+}
