@@ -6,7 +6,7 @@ import UIKit
 @MainActor
 final class ScreenRecorder: NSObject {
     static let shared = ScreenRecorder()
-    static let framesPerSecond = 3
+    nonisolated static let framesPerSecond = 3
 
     let storage: RecordingStorage
     private let encodingQueue = DispatchQueue(label: "com.appswithlove.debug.recording", qos: .utility)
@@ -16,6 +16,7 @@ final class ScreenRecorder: NSObject {
     private var touches: [ObjectIdentifier: RecordingTouch] = [:]
     private var isEncoding = false
     private var maxFrames = 300 * framesPerSecond
+    private var isLandscape: Bool?
     private var recognizers: [ObjectIdentifier: (window: Weak<UIWindow>, recognizer: RecordingTouchRecognizer)] = [:]
 
     /// `true` while the panel is open; no frames are taken then.
@@ -49,8 +50,8 @@ final class ScreenRecorder: NSObject {
         }
         let center = NotificationCenter.default
         center.addObserver(self, selector: #selector(windowDidBecomeVisible(_:)), name: UIWindow.didBecomeVisibleNotification, object: nil)
-        center.addObserver(self, selector: #selector(noteActivity), name: UIResponder.keyboardWillShowNotification, object: nil)
-        center.addObserver(self, selector: #selector(noteActivity), name: UIResponder.keyboardDidHideNotification, object: nil)
+        center.addObserver(self, selector: #selector(keyboardWillShow), name: UIResponder.keyboardWillShowNotification, object: nil)
+        center.addObserver(self, selector: #selector(keyboardDidHide), name: UIResponder.keyboardDidHideNotification, object: nil)
         center.addObserver(self, selector: #selector(noteActivity), name: UIDevice.orientationDidChangeNotification, object: nil)
         installRecognizers()
         activity = RecordingActivity()
@@ -66,6 +67,7 @@ final class ScreenRecorder: NSObject {
         timer?.invalidate()
         timer = nil
         touches = [:]
+        isLandscape = nil
         NotificationCenter.default.removeObserver(self)
         for entry in recognizers.values {
             entry.window.value?.removeGestureRecognizer(entry.recognizer)
@@ -88,6 +90,7 @@ final class ScreenRecorder: NSObject {
         guard !windows.isEmpty else {
             return
         }
+        noteOrientation(of: scene, at: now)
         let frame = RecordingFrameRenderer.capture(windows: windows, bounds: scene.screen.bounds, date: now)
         let drawnTouches = Array(touches.values)
         touches = touches.filter { $0.value.phase != .ended }
@@ -116,10 +119,41 @@ final class ScreenRecorder: NSObject {
         activity.noteActivity(at: Date())
     }
 
+    @objc private func keyboardWillShow() {
+        noteEvent("keyboard shown")
+    }
+
+    @objc private func keyboardDidHide() {
+        noteEvent("keyboard hidden")
+    }
+
+    private func noteEvent(_ text: String, at date: Date = Date()) {
+        activity.noteActivity(at: date)
+        guard !isPaused else {
+            return
+        }
+        let storage = storage
+        encodingQueue.async {
+            storage.appendEvent(text, at: date)
+        }
+    }
+
+    /// Adds an `orientation` event when the screen turned since the last frame.
+    private func noteOrientation(of scene: UIWindowScene, at date: Date) {
+        let bounds = scene.screen.bounds
+        let landscape = bounds.width > bounds.height
+        defer { isLandscape = landscape }
+        if let isLandscape, isLandscape != landscape {
+            noteEvent("orientation \(landscape ? "landscape" : "portrait")", at: date)
+        }
+    }
+
     private func record(_ touches: Set<UITouch>, in window: UIWindow) {
         guard !isPaused else {
             return
         }
+        let now = Date()
+        let screen = window.windowScene?.screen.bounds.size ?? window.bounds.size
         for touch in touches {
             let point = touch.location(in: window)
             let location = CGPoint(x: point.x + window.frame.minX, y: point.y + window.frame.minY)
@@ -130,8 +164,11 @@ final class ScreenRecorder: NSObject {
             default: phase = .moved
             }
             self.touches[ObjectIdentifier(touch)] = RecordingTouch(location: location, phase: phase)
+            if phase != .moved {
+                noteEvent(RecordingTimeline.touchEvent(phase: phase, at: location, in: screen), at: now)
+            }
         }
-        activity.noteActivity(at: Date())
+        activity.noteActivity(at: now)
     }
 
     @objc private func windowDidBecomeVisible(_ notification: Notification) {
@@ -166,30 +203,32 @@ final class ScreenRecorder: NSObject {
 // MARK: - Export
 
 extension ScreenRecorder {
-    /// Encodes the frames of `folder` and offers the video in the share sheet. `false` when there are no frames.
-    func exportVideo(folder: URL, completion: @escaping (Bool) -> Void) {
+    /// Builds `recording.mp4`, `frames.jpg` and `timeline.md` from all frames of `folder` and offers them as a ZIP in
+    /// the share sheet. `false` when there are no frames.
+    func exportZip(folder: URL, completion: @escaping (Bool) -> Void) {
         waitForPendingFrames()
-        let frames = RecordingStorage.frames(in: folder)
-        guard let newest = frames.last, let size = UIImage(contentsOfFile: newest.path)?.size else {
+        let frames = RecordingStorage.timedFrames(in: folder)
+        guard !frames.isEmpty else {
             completion(false)
             return
         }
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd_HH.mm.ss"
-        let outputURL = FileManager.default.temporaryDirectory
-            .appending(path: "awl-debug-recording-\(formatter.string(from: .now)).mp4")
-        try? FileManager.default.removeItem(at: outputURL)
-        DispatchQueue.global(qos: .userInitiated).async {
-            createVideo(from: frames, size: size, fps: Self.framesPerSecond, outputURL: outputURL) { success in
-                DispatchQueue.main.async {
-                    if success {
-                        let activity = UIActivityViewController(activityItems: [outputURL], applicationActivities: nil)
-                        UIViewController.topMostViewController()?.present(activity, animated: true)
-                    }
-                    completion(true)
+        let events = RecordingStorage.events(in: folder)
+        Task.detached(priority: .userInitiated) {
+            let zip = try? await RecordingExport.zip(frames: frames, events: events, date: .now)
+            await MainActor.run {
+                if let zip {
+                    let activity = UIActivityViewController(activityItems: [zip], applicationActivities: nil)
+                    UIViewController.topMostViewController()?.present(activity, animated: true)
                 }
+                completion(true)
             }
         }
+    }
+
+    /// Current recording, or the previous run's when the current one has no frames yet. Waits for pending frames.
+    func feedbackRecordingFolder() -> URL? {
+        waitForPendingFrames()
+        return [storage.currentFolder, storage.lastFolder].first { RecordingStorage.newestFrameDate(in: $0) != nil }
     }
 }
 

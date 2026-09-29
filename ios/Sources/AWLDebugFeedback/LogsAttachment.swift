@@ -70,7 +70,8 @@ enum LogsAttachment {
     private typealias IsAvailable = @convention(c) (AnyClass, Selector) -> Bool
     private typealias FeedbackLogsAttachment = @convention(c) (AnyClass, Selector, @escaping @convention(block) (Data?) -> Void) -> Void
 
-    private static func classMethod<Function>(of type: AnyClass, _ selector: String, as _: Function.Type) -> Function? {
+    /// Implementation of a class method of the tool bridge, called through a `@convention(c)` type.
+    static func classMethod<Function>(of type: AnyClass, _ selector: String, as _: Function.Type) -> Function? {
         guard let method = class_getClassMethod(type, NSSelectorFromString(selector)) else {
             return nil
         }

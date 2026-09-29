@@ -35,6 +35,11 @@ struct FeedbackView: View {
                         .font(.subheadline)
                         .disabled(session.phase == .sending || session.isFinished)
                 }
+                if session.canAttachRecording {
+                    Toggle("Attach last recording", isOn: $session.attachRecording)
+                        .font(.subheadline)
+                        .disabled(session.phase == .sending || session.isFinished)
+                }
                 if case let .failed(message) = session.phase {
                     FailureRow(message: message, retry: send)
                 }

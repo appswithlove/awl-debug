@@ -16,6 +16,7 @@ struct FeedbackClient {
         metadata: FeedbackMetadata,
         screenshotJPEG: Data,
         logs: Data? = nil,
+        recording: RecordingAttachment? = nil,
         idempotencyKey: UUID
     ) throws -> URLRequest {
         var form = MultipartFormData()
@@ -24,6 +25,15 @@ struct FeedbackClient {
         form.addFile(name: "screenshot", filename: "screenshot.jpg", mimeType: "image/jpeg", data: screenshotJPEG)
         if let logs {
             form.addFile(name: "logs", filename: "logs.txt", mimeType: "text/plain; charset=utf-8", data: logs)
+        }
+        if let video = recording?.video {
+            form.addFile(name: "video", filename: "recording.mp4", mimeType: "video/mp4", data: video)
+            if let frames = recording?.frames {
+                form.addFile(name: "frames", filename: "frames.jpg", mimeType: "image/jpeg", data: frames)
+            }
+            if let timeline = recording?.timeline {
+                form.addFile(name: "timeline", filename: "timeline.md", mimeType: "text/markdown; charset=utf-8", data: timeline)
+            }
         }
 
         var request = URLRequest(url: endpoint.appending(path: "v1/feedback"))
@@ -37,6 +47,8 @@ struct FeedbackClient {
     }
 
     static let idempotencyHeader = "Idempotency-Key"
+    /// The service reads at most 32 MiB per report.
+    static let maxBodyBytes = 32 * 1024 * 1024
 
     /// Sends one attempt of a report built by `makeRequest`.
     static func send(_ request: URLRequest, session: URLSession) async throws(FeedbackFailure) {

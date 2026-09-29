@@ -5,114 +5,133 @@
 //  Created by Yanis Plumit on 15.09.2025.
 //
 
-import UIKit
 import AVFoundation
+import UIKit
 
-extension URL {
-    var pathSafe: String {
-        if #available(iOS 16.0, *) {
-            return self.path(percentEncoded: true)
-        } else {
-            return self.path
+enum ImagesToVideoExport {
+    struct Failure: Error {}
+
+    static let maxLongEdge: CGFloat = 1280
+    /// Enough for sharp text at 3 fps: an iPhone screen at scale 1 comes to about 4 MB per minute.
+    private static let bitsPerPixel: Double = 0.5
+
+    /// `frameSize` fitted into `maxLongEdge`, times `scale`, rounded down to even pixels as H.264 needs them.
+    static func videoSize(for frameSize: CGSize, scale: CGFloat = 1) -> CGSize {
+        let longEdge = max(frameSize.width, frameSize.height)
+        guard longEdge > 0 else {
+            return .zero
         }
-    }
-}
-
-func createVideo(from imageUrls: [URL], size: CGSize, fps: Int = 30, outputURL: URL, completion: @escaping (Bool) -> Void) {
-    guard !imageUrls.isEmpty else {
-        completion(false);
-        return
+        let factor = min(1, maxLongEdge / longEdge) * scale
+        func even(_ value: CGFloat) -> CGFloat {
+            max(2, (value * factor / 2).rounded(.down) * 2)
+        }
+        return CGSize(width: even(frameSize.width), height: even(frameSize.height))
     }
 
-    do {
+    /// Writes the images as an H.264 MP4 of `size`, one image per frame at `fps`, in the given order. Images of another
+    /// size or orientation are fitted in on black. Unreadable images are left out; throws when none is written.
+    static func createVideo(from imageUrls: [URL], size: CGSize, fps: Int, outputURL: URL) async throws {
+        try? FileManager.default.removeItem(at: outputURL)
         let writer = try AVAssetWriter(outputURL: outputURL, fileType: .mp4)
-        let settings: [String: Any] = [
-            AVVideoCodecKey: AVVideoCodecType.hevc,
-            AVVideoWidthKey: size.width,
-            AVVideoHeightKey: size.height
-        ]
-        let input = AVAssetWriterInput(mediaType: .video, outputSettings: settings)
+        // `moov` in front, so browsers start playing before the whole file is loaded.
+        writer.shouldOptimizeForNetworkUse = true
+        let width = Int(size.width)
+        let height = Int(size.height)
+        let input = AVAssetWriterInput(mediaType: .video, outputSettings: [
+            AVVideoCodecKey: AVVideoCodecType.h264,
+            AVVideoWidthKey: width,
+            AVVideoHeightKey: height,
+            AVVideoCompressionPropertiesKey: [
+                AVVideoAverageBitRateKey: Int(Double(width * height * fps) * bitsPerPixel),
+                AVVideoProfileLevelKey: AVVideoProfileLevelH264HighAutoLevel,
+                AVVideoExpectedSourceFrameRateKey: fps,
+                AVVideoMaxKeyFrameIntervalKey: fps * 10,
+                AVVideoAllowFrameReorderingKey: false,
+            ] as [String: Any],
+        ])
         input.expectsMediaDataInRealTime = false
+        let adaptor = AVAssetWriterInputPixelBufferAdaptor(assetWriterInput: input, sourcePixelBufferAttributes: [
+            kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
+            kCVPixelBufferWidthKey as String: width,
+            kCVPixelBufferHeightKey as String: height,
+        ])
+        guard writer.canAdd(input) else {
+            throw Failure()
+        }
         writer.add(input)
-
-        let adaptor = AVAssetWriterInputPixelBufferAdaptor(assetWriterInput: input, sourcePixelBufferAttributes: nil)
-        writer.startWriting()
+        guard writer.startWriting() else {
+            throw writer.error ?? Failure()
+        }
         writer.startSession(atSourceTime: .zero)
 
-        var frameCount: Int64 = 0
-        let frameDuration = CMTime(value: 1, timescale: CMTimeScale(fps))
-
-        for imageUrl in imageUrls {
-            while !input.isReadyForMoreMediaData {
-                Thread.sleep(forTimeInterval: 0.01)
-            }
-            
-            let imagePath = imageUrl.pathSafe
-            if var image = UIImage(contentsOfFile: imagePath) {
-                if image.size.width != size.width, let fixedImage = image.rotated90CW() {
-                    image = fixedImage
-                }
-                
-                if let buffer = pixelBuffer(from: image) {
-                    let time = CMTimeMultiply(frameDuration, multiplier: Int32(frameCount))
-                    adaptor.append(buffer, withPresentationTime: time)
-                    frameCount += 1
+        let written = await withCheckedContinuation { (continuation: CheckedContinuation<Int64, Never>) in
+            var index = 0
+            var written: Int64 = 0
+            var isDone = false
+            input.requestMediaDataWhenReady(on: DispatchQueue(label: "com.appswithlove.debug.video")) {
+                while !isDone, input.isReadyForMoreMediaData {
+                    guard index < imageUrls.count, writer.status == .writing else {
+                        isDone = true
+                        input.markAsFinished()
+                        continuation.resume(returning: written)
+                        return
+                    }
+                    let url = imageUrls[index]
+                    index += 1
+                    autoreleasepool {
+                        guard let image = UIImage(contentsOfFile: url.path)?.cgImage,
+                              let pool = adaptor.pixelBufferPool,
+                              let buffer = pixelBuffer(from: image, pool: pool, size: size) else {
+                            return
+                        }
+                        if adaptor.append(buffer, withPresentationTime: CMTime(value: written, timescale: CMTimeScale(fps))) {
+                            written += 1
+                        }
+                    }
                 }
             }
         }
-
-        input.markAsFinished()
-        writer.finishWriting {
-            completion(writer.status == .completed)
+        await writer.finishWriting()
+        guard writer.status == .completed, written > 0 else {
+            try? FileManager.default.removeItem(at: outputURL)
+            throw writer.error ?? Failure()
         }
-    } catch {
-        print("\(LS.logWatermark) Error AVAssetWriter: \(error)")
-        completion(false)
     }
-}
 
-func pixelBuffer(from image: UIImage) -> CVPixelBuffer? {
-    let attrs = [
-        kCVPixelBufferCGImageCompatibilityKey: kCFBooleanTrue!,
-        kCVPixelBufferCGBitmapContextCompatibilityKey: kCFBooleanTrue!
-    ] as CFDictionary
-
-    var pixelBuffer: CVPixelBuffer?
-    let status = CVPixelBufferCreate(kCFAllocatorDefault, Int(image.size.width), Int(image.size.height),
-                                     kCVPixelFormatType_32ARGB, attrs, &pixelBuffer)
-    guard status == kCVReturnSuccess, let buffer = pixelBuffer else { return nil }
-
-    CVPixelBufferLockBaseAddress(buffer, [])
-    let context = CGContext(data: CVPixelBufferGetBaseAddress(buffer),
-                            width: Int(image.size.width),
-                            height: Int(image.size.height),
-                            bitsPerComponent: 8,
-                            bytesPerRow: CVPixelBufferGetBytesPerRow(buffer),
-                            space: CGColorSpaceCreateDeviceRGB(),
-                            bitmapInfo: CGImageAlphaInfo.noneSkipFirst.rawValue)
-    if let cgImage = image.cgImage {
-        context?.draw(cgImage, in: CGRect(origin: .zero, size: image.size))
+    private static func pixelBuffer(from image: CGImage, pool: CVPixelBufferPool, size: CGSize) -> CVPixelBuffer? {
+        var pixelBuffer: CVPixelBuffer?
+        guard CVPixelBufferPoolCreatePixelBuffer(kCFAllocatorDefault, pool, &pixelBuffer) == kCVReturnSuccess,
+              let buffer = pixelBuffer else {
+            return nil
+        }
+        CVPixelBufferLockBaseAddress(buffer, [])
+        defer { CVPixelBufferUnlockBaseAddress(buffer, []) }
+        guard let context = CGContext(
+            data: CVPixelBufferGetBaseAddress(buffer),
+            width: Int(size.width),
+            height: Int(size.height),
+            bitsPerComponent: 8,
+            bytesPerRow: CVPixelBufferGetBytesPerRow(buffer),
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue
+        ) else {
+            return nil
+        }
+        context.setFillColor(UIColor.black.cgColor)
+        context.fill(CGRect(origin: .zero, size: size))
+        context.interpolationQuality = .high
+        context.draw(image, in: aspectFit(CGSize(width: image.width, height: image.height), in: size))
+        return buffer
     }
-    CVPixelBufferUnlockBaseAddress(buffer, [])
-    return buffer
-}
 
-private extension UIImage {
-    func rotated90CW() -> UIImage? {
-        let radians: Float = .pi / 2
-        var newSize = CGRect(origin: CGPoint.zero, size: self.size).applying(CGAffineTransform(rotationAngle: CGFloat(radians))).size
-        newSize.width = floor(newSize.width)
-        newSize.height = floor(newSize.height)
-        
-        UIGraphicsBeginImageContextWithOptions(newSize, false, self.scale)
-        guard let context = UIGraphicsGetCurrentContext() else { return nil }
-        context.translateBy(x: newSize.width/2, y: newSize.height/2)
-        context.rotate(by: CGFloat(radians))
-        self.draw(in: CGRect(x: -self.size.width/2, y: -self.size.height/2, width: self.size.width, height: self.size.height))
-        
-        let newImage = UIGraphicsGetImageFromCurrentImageContext()
-        UIGraphicsEndImageContext()
-        
-        return newImage
+    /// `content` scaled to fit `bounds`, centred.
+    static func aspectFit(_ content: CGSize, in bounds: CGSize) -> CGRect {
+        guard content.width > 0, content.height > 0 else {
+            return CGRect(origin: .zero, size: bounds)
+        }
+        let factor = min(bounds.width / content.width, bounds.height / content.height)
+        let size = CGSize(width: content.width * factor, height: content.height * factor)
+        return CGRect(x: (bounds.width - size.width) / 2, y: (bounds.height - size.height) / 2,
+                      width: size.width, height: size.height)
     }
 }

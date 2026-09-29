@@ -33,6 +33,10 @@ final class FeedbackSession: ObservableObject {
     @Published private(set) var phase = Phase.editing
     /// Adds `logs.txt` with the debug tool's logs and requests.
     @Published var attachLogs: Bool
+    /// Adds the screen recording as `video`, `frames` and `timeline`. Off by default.
+    @Published var attachRecording = false
+    /// Set when the recording was too large and the report went without it.
+    @Published private(set) var recordingNotice: String?
     @Published var reporterName: String
     @Published var reporterEmail: String
     /// Name and email fields instead of "Sent as": until a first report is sent, or after "Change".
@@ -43,6 +47,7 @@ final class FeedbackSession: ObservableObject {
     private let config: FeedbackConfig
     private let queue: FeedbackQueueRunner
     private let logsSource: LogsAttachment.Source?
+    private let recordingSource: RecordingAttachment.Source?
     private let reporterStore: ReporterStore
     /// The same for every attempt of this report, so the service can drop duplicates.
     private let idempotencyKey = UUID()
@@ -53,12 +58,14 @@ final class FeedbackSession: ObservableObject {
         config: FeedbackConfig,
         queue: FeedbackQueueRunner = .shared,
         logsSource: LogsAttachment.Source? = LogsAttachment.toolSource,
+        recordingSource: RecordingAttachment.Source? = RecordingAttachment.toolSource,
         reporterStore: ReporterStore = ReporterStore()
     ) {
         self.screenshot = screenshot
         self.config = config
         self.queue = queue
         self.logsSource = logsSource
+        self.recordingSource = recordingSource
         self.reporterStore = reporterStore
         attachLogs = config.attachLogsByDefault
         let reporter = reporterStore.load(fallback: config.reporter)
@@ -75,6 +82,13 @@ final class FeedbackSession: ObservableObject {
     var canAttachLogs: Bool {
         logsSource != nil
     }
+
+    /// Only with the debug tool in the app and a recording on the device.
+    var canAttachRecording: Bool {
+        recordingSource != nil
+    }
+
+    static let videoTooLargeNotice = "Video too large, sent without video"
 
     var trimmedText: String {
         text.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -204,6 +218,14 @@ final class FeedbackSession: ObservableObject {
             return
         }
 
+        var recording: RecordingAttachment?
+        if attachRecording, let recordingSource {
+            // Room left in the request for the recording, with some for the text, metadata and part headers.
+            let room = FeedbackClient.maxBodyBytes - jpeg.count - (logs?.count ?? 0) - 64 * 1024
+            recording = await recordingSource().fitting(maxBytes: room)
+            recordingNotice = recording?.isTooLarge == true ? Self.videoTooLargeNotice : nil
+        }
+
         let client = FeedbackClient(endpoint: config.endpoint, appKey: config.appKey)
         let request: URLRequest
         do {
@@ -212,6 +234,7 @@ final class FeedbackSession: ObservableObject {
                 metadata: metadata,
                 screenshotJPEG: jpeg,
                 logs: logs,
+                recording: recording,
                 idempotencyKey: idempotencyKey
             )
         } catch {
