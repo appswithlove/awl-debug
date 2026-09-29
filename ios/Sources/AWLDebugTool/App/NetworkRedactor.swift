@@ -225,7 +225,7 @@ struct NetworkRedactor {
         return nil
     }
 
-    private static func normalizedFieldName(_ name: String) -> String {
+    static func normalizedFieldName(_ name: String) -> String {
         name.lowercased().replacingOccurrences(of: "_", with: "").replacingOccurrences(of: "-", with: "")
     }
 }

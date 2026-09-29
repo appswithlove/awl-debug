@@ -30,6 +30,21 @@ final class AppLogsTests: XCTestCase {
         XCTAssertEqual("Basic setup done".redactingCredentials(), "Basic setup done")
     }
 
+    /// Same cases as the Android `CredentialRedactionTest`.
+    func testJsonFieldsAreRedacted() {
+        XCTAssertEqual(#"Body: {"user":"max","password":"hunter2","auth":{"access_token":"a.b","expires":3600}}"#.redactingSecrets(),
+                       #"Body: {"user":"max","password":"[REDACTED]","auth":{"access_token":"[REDACTED]","expires":3600}}"#)
+        XCTAssertEqual(#"{"apiKey": 12345, "Credential": {"id": 1, "pin": "0000"}, "token": null, "ok": true}"#.redactingSecrets(),
+                       #"{"apiKey": "[REDACTED]", "Credential": "[REDACTED]", "token": "[REDACTED]", "ok": true}"#)
+        XCTAssertEqual(#"payload="{\"refreshToken\":\"r1\",\"name\":\"x\"}""#.redactingSecrets(),
+                       #"payload="{\"refreshToken\":\"[REDACTED]\",\"name\":\"x\"}""#)
+        XCTAssertEqual(#"{"clientSecret":"abc"#.redactingSecrets(), #"{"clientSecret":"[REDACTED]""#)
+        XCTAssertEqual(#"token rotation done, {"tokenType":"Bearer-less","secretary":"Ann"}"#.redactingSecrets(),
+                       #"token rotation done, {"tokenType":"Bearer-less","secretary":"Ann"}"#)
+        XCTAssertEqual(#"Grüße {"password":"päss\"wörd","note":"ok"} 👍"#.redactingSecrets(),
+                       #"Grüße {"password":"[REDACTED]","note":"ok"} 👍"#)
+    }
+
     func testOSLogLevelsMapToSeverities() {
         XCTAssertEqual(OSLogReader.level(of: .debug), .debug)
         XCTAssertEqual(OSLogReader.level(of: .info), .info)

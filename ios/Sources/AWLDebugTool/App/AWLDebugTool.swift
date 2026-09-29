@@ -62,10 +62,10 @@ public class AWLDebugTool: ObservableObject {
 // MARK: - Logs
 
 public extension AWLDebugTool {
-    /// Adds an entry to the Logs module. Safe to call from any thread; `Bearer`/`Basic` credentials are redacted.
+    /// Adds an entry to the Logs module. Safe to call from any thread; `Bearer`/`Basic` credentials and sensitive JSON fields are redacted.
     static func log(_ message: String, level: AWLDebugLogLevel = .info, tag: String? = nil, error: Error? = nil) {
-        let entry = AppLogEntry(date: Date(), level: level, tag: tag, message: message.redactingCredentials(),
-                                errorDescription: error.map { "\(String(reflecting: type(of: $0))): \(String(describing: $0))".redactingCredentials() })
+        let entry = AppLogEntry(date: Date(), level: level, tag: tag, message: message.redactingSecrets(),
+                                errorDescription: error.map { "\(String(reflecting: type(of: $0))): \(String(describing: $0))".redactingSecrets() })
         Task { @MainActor in
             shared.appLogs.append(entry)
         }
