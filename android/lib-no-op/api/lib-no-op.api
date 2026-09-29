@@ -7,10 +7,17 @@ public final class com/appswithlove/debug/domain/model/DevSettings {
 
 public final class com/appswithlove/debug/ui/dev/log/DevHttpLogInterceptor : okhttp3/Interceptor {
 	public static final field $stable I
+	public static final field Companion Lcom/appswithlove/debug/ui/dev/log/DevHttpLogInterceptor$Companion;
+	public static final field DEFAULT_MAX_BODY_BYTES J
 	public fun <init> ()V
 	public fun <init> (Lcom/appswithlove/debug/ui/dev/log/DevLogCollector;)V
-	public synthetic fun <init> (Lcom/appswithlove/debug/ui/dev/log/DevLogCollector;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Lcom/appswithlove/debug/ui/dev/log/DevLogCollector;Ljava/util/Set;)V
+	public fun <init> (Lcom/appswithlove/debug/ui/dev/log/DevLogCollector;Ljava/util/Set;J)V
+	public synthetic fun <init> (Lcom/appswithlove/debug/ui/dev/log/DevLogCollector;Ljava/util/Set;JILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun intercept (Lokhttp3/Interceptor$Chain;)Lokhttp3/Response;
+}
+
+public final class com/appswithlove/debug/ui/dev/log/DevHttpLogInterceptor$Companion {
 }
 
 public abstract interface class com/appswithlove/debug/ui/dev/log/DevLogCollector {
