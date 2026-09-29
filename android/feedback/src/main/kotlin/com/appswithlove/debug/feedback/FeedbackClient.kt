@@ -13,6 +13,22 @@ import java.util.concurrent.TimeUnit
 
 internal class EncodedImage(val bytes: ByteArray, val mimeType: String, val fileName: String)
 
+/** One file of a report, sent as multipart part [name]. */
+internal class FeedbackPart(val name: String, val fileName: String, val mimeType: String, val bytes: ByteArray)
+
+/**
+ * A report as it goes over the wire. [idempotencyKey] is created once per report and sent unchanged
+ * on every attempt, so the service stores a retried report only once.
+ */
+internal class FeedbackReport(
+    val idempotencyKey: String,
+    val endpoint: String,
+    val appKey: String,
+    val text: String,
+    val metadataJson: String,
+    val parts: List<FeedbackPart>,
+)
+
 internal sealed interface SendError {
     data object Unauthorized : SendError
     data object TooLarge : SendError
@@ -24,6 +40,10 @@ internal sealed interface SendError {
     data object InvalidEndpoint : SendError
     data object Unknown : SendError
 }
+
+/** Network errors, timeouts, 5xx and 429 are worth another attempt later; other rejections are final. */
+internal val SendError.isRetryable: Boolean
+    get() = this == SendError.Network || this == SendError.Server || this is SendError.RateLimited
 
 internal sealed interface SendResult {
     data class Success(val taskId: String?) : SendResult
@@ -43,22 +63,22 @@ internal fun errorForStatus(code: Int, retryAfter: String?): SendError = when (c
 internal class FeedbackClient(
     private val httpClient: OkHttpClient = defaultHttpClient,
 ) {
-    suspend fun send(
-        config: FeedbackConfig,
-        text: String,
-        metadataJson: String,
-        screenshot: EncodedImage,
-    ): SendResult = withContext(Dispatchers.IO) {
+    suspend fun send(report: FeedbackReport): SendResult = withContext(Dispatchers.IO) {
         val body = MultipartBody.Builder()
             .setType(MultipartBody.FORM)
-            .addFormDataPart("text", text)
-            .addFormDataPart("metadata", metadataJson)
-            .addFormDataPart("screenshot", screenshot.fileName, screenshot.bytes.toRequestBody(screenshot.mimeType.toMediaType()))
+            .addFormDataPart("text", report.text)
+            .addFormDataPart("metadata", report.metadataJson)
+            .apply {
+                report.parts.forEach { part ->
+                    addFormDataPart(part.name, part.fileName, part.bytes.toRequestBody(part.mimeType.toMediaType()))
+                }
+            }
             .build()
         val request = try {
             Request.Builder()
-                .url("${config.endpoint.trimEnd('/')}/v1/feedback")
-                .header("X-App-Key", config.appKey)
+                .url("${report.endpoint.trimEnd('/')}/v1/feedback")
+                .header("X-App-Key", report.appKey)
+                .header("Idempotency-Key", report.idempotencyKey)
                 .post(body)
                 .build()
         } catch (_: IllegalArgumentException) {
