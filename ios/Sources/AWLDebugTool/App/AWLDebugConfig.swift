@@ -6,6 +6,8 @@ public struct AWLDebugConfig {
     public var logs: LogsConfig
     /// App-group `UserDefaults` suites that "Clear App Data" also empties.
     public var appGroupIdentifiers: [String] = []
+    /// Token sources shown in the Session module; the module is hidden without providers.
+    public var sessionProviders: [any AWLSessionProvider] = []
 
     public init(network: NetworkConfig = NetworkConfig(), logs: LogsConfig = LogsConfig()) {
         self.network = network
