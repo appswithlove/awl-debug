@@ -355,7 +355,7 @@ DevHttpLogInterceptor(
 
 The Network module lists requests with time, method, status (colored by class), duration and host + path, and marks requests above `slowRequestThresholdMs` as "slow". Search matches URL, method and status. Filters by method, status class and host, the sort order, the recording switch and "Number of logs per session" are saved on the device. The detail view shows headers and bodies (JSON indented, "Raw" toggle) and offers "Copy URL", "Copy cURL", "Copy response" and "Share". "Export network logs" shares `awl-debug-network-<timestamp>.txt` with the current search and filters applied.
 
-Log messages from any source are also redacted: `Bearer <token>` and `Basic <credentials>` become `Bearer [REDACTED]` and `Basic [REDACTED]`.
+Log messages from any source are also redacted: `Bearer <token>` and `Basic <credentials>` become `Bearer [REDACTED]` and `Basic [REDACTED]`, and JSON fields from the default `redactJsonFields` list (`password`, `secret`, `token`, `accessToken`, `refreshToken`, `idToken`, `credential`, `apiKey`, `clientSecret`) get the value `"[REDACTED]"`, also in stringified or truncated JSON.
 
 Log exports are shared through the library's own `FileProvider` (authority `${applicationId}.awldebug.fileprovider`, limited to `cacheDir/awl-debug/`), so it does not conflict with a `FileProvider` in your app.
 
@@ -399,7 +399,7 @@ fun installDebugLogWriter() {
 }
 ```
 
-Like Timber entries, Kermit messages are redacted before they are stored (`Bearer <token>`, `Basic <credentials>`).
+Like Timber entries, Kermit messages are redacted before they are stored (`Bearer <token>`, `Basic <credentials>`, sensitive JSON fields).
 
 ### Activate and deactivate
 
