@@ -44,8 +44,10 @@ public struct DebugView: View {
                             }
                     }
                 }
+
+                FeedbackEntryView()
                 
-                // Fixed order, the same on Android: App-Info, Logs, Network, Performance, Permissions, Accessibility,
+                // Fixed order, the same on Android: App-Info, Send feedback, Logs, Network, Performance, Permissions, Accessibility,
                 // Deeplinks, Session, FCM, Screen Recording, Clear App Data, Test Crashes, custom modules.
 
                 Section {

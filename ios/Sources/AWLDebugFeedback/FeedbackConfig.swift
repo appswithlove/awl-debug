@@ -17,8 +17,8 @@ public struct FeedbackConfig: Sendable {
     public let environment: String
     /// Read when a report is sent. The `screen` entry, if present, fills the report's current screen.
     public let extraMetadata: @MainActor @Sendable () -> [String: String]
-    /// Whether shaking the device opens the tool. System screenshots always do.
-    public let shakeToReport: Bool
+    /// Gestures that start a report. A trigger also set in `AWLDebugConfig.triggers` starts feedback only.
+    public let triggers: Set<FeedbackTrigger>
     /// How the build is distributed. Only sent when set: older feedback services reject the key.
     public let distribution: AWLDistribution?
     /// Who reports. Only sent when set: older feedback services reject the key.
@@ -33,7 +33,7 @@ public struct FeedbackConfig: Sendable {
         buildNumber: String,
         environment: String,
         extraMetadata: @escaping @MainActor @Sendable () -> [String: String] = { [:] },
-        shakeToReport: Bool = true,
+        triggers: Set<FeedbackTrigger> = [.shake, .screenshot],
         distribution: AWLDistribution? = nil,
         reporter: FeedbackReporter? = nil,
         attachLogsByDefault: Bool = true
@@ -44,11 +44,43 @@ public struct FeedbackConfig: Sendable {
         self.buildNumber = buildNumber
         self.environment = environment
         self.extraMetadata = extraMetadata
-        self.shakeToReport = shakeToReport
+        self.triggers = triggers
         self.distribution = distribution
         self.reporter = reporter
         self.attachLogsByDefault = attachLogsByDefault
     }
+
+    @available(*, deprecated, message: "Use triggers: shakeToReport false is triggers: [.screenshot].")
+    public init(
+        endpoint: URL,
+        appKey: String,
+        appVersion: String,
+        buildNumber: String,
+        environment: String,
+        extraMetadata: @escaping @MainActor @Sendable () -> [String: String] = { [:] },
+        shakeToReport: Bool,
+        distribution: AWLDistribution? = nil,
+        reporter: FeedbackReporter? = nil,
+        attachLogsByDefault: Bool = true
+    ) {
+        self.init(endpoint: endpoint, appKey: appKey, appVersion: appVersion, buildNumber: buildNumber,
+                  environment: environment, extraMetadata: extraMetadata,
+                  triggers: shakeToReport ? [.shake, .screenshot] : [.screenshot],
+                  distribution: distribution, reporter: reporter, attachLogsByDefault: attachLogsByDefault)
+    }
+
+    @available(*, deprecated, message: "Use triggers.contains(.shake).")
+    public var shakeToReport: Bool {
+        triggers.contains(.shake)
+    }
+}
+
+/// Gestures that start a report, see `FeedbackConfig.triggers`.
+public enum FeedbackTrigger: String, Hashable, CaseIterable, Sendable {
+    /// The tester shakes the device (Simulator: Device → Shake).
+    case shake
+    /// The tester takes a system screenshot.
+    case screenshot
 }
 
 /// How a build reaches its users.

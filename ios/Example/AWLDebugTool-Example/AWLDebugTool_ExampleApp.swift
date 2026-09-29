@@ -10,6 +10,7 @@ import SwiftUI
 import UserNotifications
 
 #if DEBUG || STAGING
+import AWLDebugFeedback
 import AWLDebugTool
 #endif
 
@@ -57,7 +58,7 @@ struct AWLDebugTool_ExampleApp: App {
             config: {
                 var config = AWLDebugConfig()
                 config.sessionProviders = [accessTokenProvider, refreshTokenProvider]
-                config.triggers = [.threeFingerTap, .tripleTap, .shake]
+                config.triggers = [.threeFingerTap, .tripleTap]
                 return config
             }()
         )
@@ -73,6 +74,15 @@ struct AWLDebugTool_ExampleApp: App {
                 .includeDebugTool(customView: {
                     DebugPanelView()
                 })
+                .feedbackTool(config: FeedbackConfig(
+                    // Local feedback service; replace the key with one from your service.
+                    endpoint: URL(string: "http://localhost:3300")!,
+                    appKey: "<app key>",
+                    appVersion: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0",
+                    buildNumber: Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1",
+                    environment: "example",
+                    distribution: .debug
+                ))
 #endif
         }
     }
@@ -107,6 +117,9 @@ struct DebugPanelView: View {
                 }
                 Button("Close panel") {
                     AWLDebugTool.close()
+                }
+                Button("Start feedback from code") {
+                    AWLFeedback.start()
                 }
             } header: {
                 Text("Custom section header 1")

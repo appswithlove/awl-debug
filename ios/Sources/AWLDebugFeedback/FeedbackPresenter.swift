@@ -3,6 +3,7 @@
 //  Copyright © 2026 Apps with love AG. All rights reserved.
 //
 
+import Combine
 import SwiftUI
 import UIKit
 
@@ -12,10 +13,49 @@ import UIKit
 final class FeedbackPresenter {
     static let shared = FeedbackPresenter()
 
+    /// The config of the `feedbackTool` on screen; used by `AWLFeedback.start()` and the panel entry.
+    private(set) var config: FeedbackConfig?
     private var window: UIWindow?
+    private var isClosingPanel = false
+    private var pendingCountObserver: AnyCancellable?
     private let sentConfirmation = SentConfirmationPresenter()
 
+    func register(_ config: FeedbackConfig) {
+        self.config = config
+        pendingCountObserver = pendingCountObserver ?? FeedbackQueueRunner.shared.$pendingCount
+            .removeDuplicates()
+            .sink { _ in
+                // `@Published` emits before the value is stored.
+                Task { @MainActor in Self.announceChange() }
+            }
+        Self.announceChange()
+    }
+
+    func unregister() {
+        config = nil
+        Self.announceChange()
+    }
+
+    func start() {
+        guard let config else {
+            return
+        }
+        present(config: config)
+    }
+
+    /// Closes the debug panel first, so it is not in the screenshot.
     func present(config: FeedbackConfig) {
+        guard window == nil, !isClosingPanel else {
+            return
+        }
+        isClosingPanel = true
+        ToolBridge.closePanel { [weak self] in
+            self?.isClosingPanel = false
+            self?.show(config: config)
+        }
+    }
+
+    private func show(config: FeedbackConfig) {
         guard window == nil, let scene = Self.activeScene() else {
             return
         }
@@ -64,6 +104,10 @@ final class FeedbackPresenter {
                 break
             }
         }
+    }
+
+    private static func announceChange() {
+        NotificationCenter.default.post(name: AWLFeedbackBridge.didChangeNotification, object: nil)
     }
 
     private static func activeScene() -> UIWindowScene? {

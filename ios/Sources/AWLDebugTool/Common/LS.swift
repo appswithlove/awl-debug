@@ -207,6 +207,11 @@ enum LS {
         static let toggle = "Show version overlay"
     }
 
+    enum Feedback {
+        static let entry = "Send feedback"
+        static func pending(_ count: Int) -> String { "\(count) pending" }
+    }
+
     struct Session {
         static let loggedIn = "Logged in"
         static let loggedOut = "Logged out"
