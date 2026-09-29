@@ -269,6 +269,14 @@ val client = OkHttpClient.Builder()
     .build()
 ```
 
+The values of `Authorization`, `Proxy-Authorization`, `Cookie` and `Set-Cookie` are always logged as `[REDACTED]`. Add more header names (case-insensitive) with `redactHeaders`. Request and response bodies are cut off after `maxBodyBytes` (default 256 KiB). One-shot and duplex request bodies are never read.
+
+```kotlin
+DevHttpLogInterceptor(redactHeaders = setOf("X-Api-Key"))
+```
+
+Log exports are shared through the library's own `FileProvider` (authority `${applicationId}.awldebug.fileprovider`, limited to `cacheDir/awl-debug/`), so it does not conflict with a `FileProvider` in your app.
+
 ### Timber integration
 
 Plant `DevLogTree` in `Application.onCreate()` to forward Timber logs to the panel:
