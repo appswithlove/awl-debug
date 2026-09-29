@@ -92,6 +92,7 @@ dependencies {
     testImplementation(libs.roborazzi.junit.rule)
     testImplementation(libs.androidx.ui.test.junit4)
     testImplementation(libs.timber)
+    testImplementation(libs.kermit)
     debugImplementation(platform(libs.androidx.compose.bom))
     debugImplementation(libs.androidx.ui.test.manifest)
     androidTestImplementation(libs.androidx.junit)
@@ -104,6 +105,7 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.kotlinx.serialization.json)
     compileOnly(libs.timber)
+    compileOnly(libs.kermit)
     implementation(libs.vico.compose) // Charts
 }
 
