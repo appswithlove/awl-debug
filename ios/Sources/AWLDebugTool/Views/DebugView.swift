@@ -45,24 +45,26 @@ public struct DebugView: View {
                     }
                 }
                 
-                if customView != nil {
-                    AnyView(customView!())
+                // Fixed order, the same on Android: App-Info, Logs, Network, Performance, Permissions, Accessibility,
+                // Deeplinks, Session, FCM, Screen Recording, Clear App Data, Test Crashes, custom modules.
+
+                Section {
+                    NavigationLink {
+                        AppLogsView(store: appLogs)
+                    } label: {
+                        HStack {
+                            Text(LS.AppLogs.title)
+                            if appLogs.isRecording {
+                                Circle()
+                                    .fill(.green)
+                                    .frame(width: 8, height: 8)
+                                    .accessibilityHidden(true)
+                            }
+                        }
+                    }
                 }
-                
-                SessionView(sessionManager: sessionManager)
-                
-                FirebaseView()
-                
-                FCMPushTokenView(fcmToken: fcmToken)
 
-                DeeplinksView(manager: deeplinksManager)
-
-                UserDefaultsView(appGroupIdentifiers: debugTool.appGroupIdentifiers)
-                
-                PermissionsView(manager: permissionsManager)
-                
-                ColorSchemeSectionView(preferredColorScheme: $vm.preferredColorScheme)
-                FontSizeSectionView(preferredFontSize: $vm.preferredFontSize)
+                LogsView(networkLogger: networkLogger)
 
                 Section {
                     Toggle(LS.Performance.measure, isOn: $performance.isMeasuring)
@@ -87,31 +89,32 @@ public struct DebugView: View {
                 } header: {
                     Text(LS.Performance.performanceSectionTitle)
                 }
-                
-                Section {
-                    NavigationLink {
-                        AppLogsView(store: appLogs)
-                    } label: {
-                        HStack {
-                            Text(LS.AppLogs.title)
-                            if appLogs.isRecording {
-                                Circle()
-                                    .fill(.green)
-                                    .frame(width: 8, height: 8)
-                                    .accessibilityHidden(true)
-                            }
-                        }
-                    }
-                }
 
-                LogsView(networkLogger: networkLogger)
-                
+                PermissionsView(manager: permissionsManager)
+
+                ColorSchemeSectionView(preferredColorScheme: $vm.preferredColorScheme)
+                FontSizeSectionView(preferredFontSize: $vm.preferredFontSize)
+
+                DeeplinksView(manager: deeplinksManager)
+
+                SessionView(sessionManager: sessionManager)
+
+                FCMPushTokenView(fcmToken: fcmToken)
+
                 ScreenRecordingView(isScreenRecordingOn: $screenRecorder.isScreenRecordingOn,
                                     isScreenRecordingOnByDefault: $screenRecorder.isScreenRecordingOnByDefault,
                                     exportLastVideo: screenRecorder.exportLastVideo,
                                     isExportingVideo: screenRecorder.isExportingVideo,
                                     exportCurrentVideo: screenRecorder.exportCurrentVideo,
                                     maxVideoDuration: $screenRecorder.maxVideoDuration)
+
+                UserDefaultsView(appGroupIdentifiers: debugTool.appGroupIdentifiers)
+
+                FirebaseView()
+
+                if customView != nil {
+                    AnyView(customView!())
+                }
             }
             .navigationBarTitleDisplayMode(.inline)
             .navigationTitle(LS.Strings.appName)
