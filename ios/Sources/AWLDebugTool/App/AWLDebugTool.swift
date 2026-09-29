@@ -71,5 +71,6 @@ public extension AWLDebugTool {
         presenter.events = showDebugToolEvents
         presenter.content.fcmToken = fcmToken
         presenter.install(in: scene)
+        presenter.applyAppearance(DebugView.AppColorScheme.stored)
     }
 }
