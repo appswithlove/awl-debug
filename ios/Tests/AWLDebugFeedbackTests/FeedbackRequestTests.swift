@@ -22,7 +22,7 @@ struct FeedbackRequestTests {
             appVersion: appVersion,
             buildNumber: "42",
             environment: "staging",
-            locale: "de_CH",
+            locale: "de-CH",
             extraMetadata: extra,
             date: date,
             distribution: distribution,
@@ -45,10 +45,15 @@ struct FeedbackRequestTests {
         #expect(object["appVersion"] as? String == "1.0")
         #expect(object["buildNumber"] as? String == "42")
         #expect(object["environment"] as? String == "staging")
-        #expect(object["locale"] as? String == "de_CH")
+        #expect(object["locale"] as? String == "de-CH")
         #expect(object["screen"] as? String == "ProductDetail")
         #expect(object["timestamp"] as? String == "2026-09-21T14:13:20Z")
         #expect(object["extra"] as? [String: String] == ["screen": "ProductDetail", "itemId": "7"])
+    }
+
+    @Test(arguments: [("de_CH", "de-CH"), ("fr_CH", "fr-CH"), ("en", "en")])
+    func localeIsBCP47(identifier: String, expected: String) {
+        #expect(FeedbackMetadata.localeIdentifier(Locale(identifier: identifier)) == expected)
     }
 
     @Test

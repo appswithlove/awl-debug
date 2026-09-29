@@ -153,3 +153,29 @@ RootView()
 - `distribution` and `reporter` are optional and only sent when set, because older feedback services reject unknown metadata keys.
 - Dictation needs `NSMicrophoneUsageDescription` and `NSSpeechRecognitionUsageDescription` in the app's `Info.plist`.
 - Tests: `xcodebuild test -scheme AWLDebugTool-Package -destination 'platform=iOS Simulator,name=iPhone 17 Pro'`.
+
+## Store builds
+The SDK must never ship to the App Store. Compile every call behind a flag that store configurations do not define (e.g. `AWL_DEBUG`). Package products cannot be linked per configuration, so both products are dynamic frameworks. Store configurations then remove them:
+
+1. In the store configuration's xcconfig, drop the load commands of unused frameworks:
+   ```
+   OTHER_LDFLAGS = $(inherited) -Wl,-dead_strip_dylibs
+   ```
+2. Add a Run Script build phase to the app target, after "Embed Frameworks":
+   ```bash
+   # Keeps the AWL debug SDK out of configurations without AWL_DEBUG.
+   [[ " ${OTHER_SWIFT_FLAGS:-} " == *" -DAWL_DEBUG "* ]] && exit 0
+   rm -rf "${TARGET_BUILD_DIR}/${WRAPPER_NAME}/Frameworks/AWLDebugTool.framework" \
+          "${TARGET_BUILD_DIR}/${WRAPPER_NAME}/Frameworks/AWLDebugFeedback.framework"
+   if otool -L "${TARGET_BUILD_DIR}/${WRAPPER_NAME}/${EXECUTABLE_NAME}" | grep -q AWLDebug; then
+       echo "error: the store build still links the AWL debug SDK"; exit 1
+   fi
+   ```
+
+Verify on the built store app; all three counts must be `0`:
+```bash
+APP=path/to/MyApp.app
+nm -a "$APP/MyApp" | grep -ciE "AWLDebug|AWLFeedback"
+otool -L "$APP/MyApp" | grep -c AWLDebug
+find "$APP" -iname "*AWLDebug*" | wc -l
+```

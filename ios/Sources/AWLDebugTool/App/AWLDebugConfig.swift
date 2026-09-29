@@ -9,6 +9,11 @@ public struct AWLDebugConfig {
     }
 
     public struct NetworkConfig {
+        /// Default field names redacted in JSON and form bodies and in query parameters.
+        public static let defaultRedactedFields: Set<String> = [
+            "password", "secret", "token", "accessToken", "refreshToken", "idToken", "credential", "apiKey", "clientSecret"
+        ]
+
         /// Captures request and response bodies. Headers, URL and status are always captured.
         public var captureBodies: Bool
         /// Maximum stored size per body, applied after redaction.
@@ -19,7 +24,7 @@ public struct AWLDebugConfig {
         /// JSON and form field names whose values are redacted, at any depth.
         /// Compared case-insensitively and ignoring `_` and `-` (`accessToken` matches `access_token`).
         public var redactJsonFields: Set<String>
-        /// Query parameter names whose values are redacted.
+        /// Query parameter names whose values are redacted, compared like `redactJsonFields`.
         public var redactQueryParams: Set<String>
         /// Request and response content types whose bodies are never read, in addition to
         /// `text/event-stream` and `application/x-ndjson`. Responses with status 101 are never read either.
@@ -30,8 +35,8 @@ public struct AWLDebugConfig {
         public init(captureBodies: Bool = true,
                     maxBodyBytes: Int = 256 * 1024,
                     redactHeaders: Set<String> = [],
-                    redactJsonFields: Set<String> = ["password", "accessToken", "refreshToken", "idToken", "clientSecret"],
-                    redactQueryParams: Set<String> = ["access_token", "token", "api_key"],
+                    redactJsonFields: Set<String> = defaultRedactedFields,
+                    redactQueryParams: Set<String> = defaultRedactedFields,
                     streamContentTypes: Set<String> = [],
                     slowRequestThresholdMs: Int = 1_000) {
             self.captureBodies = captureBodies

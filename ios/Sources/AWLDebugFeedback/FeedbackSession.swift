@@ -119,7 +119,7 @@ final class FeedbackSession: ObservableObject {
             appVersion: config.appVersion,
             buildNumber: config.buildNumber,
             environment: config.environment,
-            locale: Locale.current.identifier,
+            locale: FeedbackMetadata.localeIdentifier(.current),
             extraMetadata: config.extraMetadata(),
             date: .now,
             distribution: config.distribution,
