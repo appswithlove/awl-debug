@@ -90,6 +90,17 @@ internal object TablerIcons {
         "M4.012 16.737a2.005 2.005 0 0 1 -1.012 -1.737v-10c0 -1.1 .9 -2 2 -2h10c.75 0 1.158 .385 1.5 1",
     )
 
+    val Filter: ImageVector by lazyIcon(
+        "TablerFilter",
+        "M4 4h16v2.172a2 2 0 0 1 -.586 1.414l-4.414 4.414v7l-6 2v-8.5l-4.48 -4.928a2 2 0 0 1 -.52 -1.345v-2.227z",
+    )
+
+    val ArrowsSort: ImageVector by lazyIcon(
+        "TablerArrowsSort",
+        "M3 9l4 -4l4 4m-4 -4v14",
+        "M21 15l-4 4l-4 -4m4 4v-14",
+    )
+
     val Eye: ImageVector by lazyIcon(
         "TablerEye",
         "M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0",

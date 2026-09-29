@@ -14,9 +14,11 @@ data class DevModulesConfig(
     val showTestCrashesModule: Boolean = true,
     val showSessionModule: Boolean = true,
     val sessionProviders: List<SessionProvider> = emptyList(),
+    /** Shown once a `DevHttpLogInterceptor` has been created. */
+    val showNetworkModule: Boolean = true,
 ) {
     val hasAnyModuleEnabled = showLogsModule || showPerformanceModule ||
             showPermissionsModule || showAccessibilityModule || showDeeplinksModule ||
             (showFcmPushTokenModule && fcmTokenProvider != null) || showTestCrashesModule ||
-            (showSessionModule && sessionProviders.isNotEmpty())
+            (showSessionModule && sessionProviders.isNotEmpty()) || showNetworkModule
 }

@@ -5,6 +5,9 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -27,6 +30,36 @@ internal class DevStore(context: Context) {
         private val DEV_TOOL_ACTIVATED_KEY = booleanPreferencesKey("DEV_TOOL_ACTIVATED_KEY")
 
         private val DEV_TOOL_ALWAYS_ACTIVE_KEY = booleanPreferencesKey("ACTIVATE_DEV_TOOL_KEY")
+
+        private val NETWORK_TRACKING_KEY = booleanPreferencesKey("NETWORK_TRACKING_KEY")
+        private val NETWORK_MAX_SIZE_KEY = intPreferencesKey("NETWORK_MAX_SIZE_KEY")
+        private val NETWORK_SORT_KEY = stringPreferencesKey("NETWORK_SORT_KEY")
+        private val NETWORK_EXCLUDED_METHODS_KEY = stringSetPreferencesKey("NETWORK_EXCLUDED_METHODS_KEY")
+        private val NETWORK_EXCLUDED_STATUS_KEY = stringSetPreferencesKey("NETWORK_EXCLUDED_STATUS_KEY")
+        private val NETWORK_EXCLUDED_HOSTS_KEY = stringSetPreferencesKey("NETWORK_EXCLUDED_HOSTS_KEY")
+    }
+
+    val networkPreferences: Flow<NetworkPreferences> = dataStore.data
+        .map { preferences ->
+            NetworkPreferences(
+                isTracking = preferences[NETWORK_TRACKING_KEY] ?: true,
+                maxSize = preferences[NETWORK_MAX_SIZE_KEY],
+                sort = preferences[NETWORK_SORT_KEY],
+                excludedMethods = preferences[NETWORK_EXCLUDED_METHODS_KEY].orEmpty(),
+                excludedStatusClasses = preferences[NETWORK_EXCLUDED_STATUS_KEY].orEmpty(),
+                excludedHosts = preferences[NETWORK_EXCLUDED_HOSTS_KEY].orEmpty(),
+            )
+        }
+
+    suspend fun setNetworkPreferences(value: NetworkPreferences) {
+        dataStore.edit { preferences ->
+            preferences[NETWORK_TRACKING_KEY] = value.isTracking
+            value.maxSize?.let { preferences[NETWORK_MAX_SIZE_KEY] = it }
+            value.sort?.let { preferences[NETWORK_SORT_KEY] = it }
+            preferences[NETWORK_EXCLUDED_METHODS_KEY] = value.excludedMethods
+            preferences[NETWORK_EXCLUDED_STATUS_KEY] = value.excludedStatusClasses
+            preferences[NETWORK_EXCLUDED_HOSTS_KEY] = value.excludedHosts
+        }
     }
 
     val isDevToolActivated: Flow<Boolean> = dataStore.data
@@ -59,3 +92,13 @@ internal class DevStore(context: Context) {
         }
     }
 }
+
+/** Network module settings persisted per device. Enum values are stored by name. */
+internal data class NetworkPreferences(
+    val isTracking: Boolean = true,
+    val maxSize: Int? = null,
+    val sort: String? = null,
+    val excludedMethods: Set<String> = emptySet(),
+    val excludedStatusClasses: Set<String> = emptySet(),
+    val excludedHosts: Set<String> = emptySet(),
+)

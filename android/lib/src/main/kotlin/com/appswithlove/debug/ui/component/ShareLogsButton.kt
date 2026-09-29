@@ -1,6 +1,5 @@
 package com.appswithlove.debug.ui.component
 
-import android.content.Intent
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
@@ -11,14 +10,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.core.content.FileProvider
 import com.appswithlove.debug.ui.component.icons.TablerIcons
 import com.appswithlove.debug.ui.dev.log.LogHistory
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import java.io.File
-import java.nio.charset.StandardCharsets
 
 @Composable
 internal fun ShareLogsButton(
@@ -42,34 +36,10 @@ internal fun ShareLogsButton(
         },
         contentColor = MaterialTheme.colorScheme.onSurface,
         onClick = {
-            scope.launch(Dispatchers.IO) {
+            scope.launch {
                 try {
-                    val logs = logHistory.logEntries.value
-                    val exportDir = File(context.cacheDir, "awl-debug").apply { mkdirs() }
-                    val logFile = File(exportDir, filename)
-
-                    logFile.writer(StandardCharsets.UTF_8).use { writer ->
-                        logs.forEach { logEntry ->
-                            writer.write(logEntry.toExportString())
-                            writer.write("\n")
-                            writer.write("\n")
-                        }
-                    }
-
-                    val authority = "${context.packageName}.awldebug.fileprovider"
-                    val logUri = FileProvider.getUriForFile(context, authority, logFile)
-
-                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                        type = "text/plain"
-                        putExtra(Intent.EXTRA_STREAM, logUri)
-                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                    }
-
-                    withContext(Dispatchers.Main) {
-                        context.startActivity(
-                            Intent.createChooser(shareIntent, "Share Logs")
-                        )
-                    }
+                    val text = logHistory.logEntries.value.joinToString(separator = "") { "${it.toExportString()}\n\n" }
+                    shareTextFile(context, filename, text, chooserTitle = "Share Logs")
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
