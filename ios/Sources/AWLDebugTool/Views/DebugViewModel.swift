@@ -102,9 +102,4 @@ class DebugViewModel: ObservableObject {
     @AppStorage(DebugView.Keys.preferredFontSize)
     var preferredFontSize: DebugView.AppFontSize = .system
 
-    @Published var isShowingDeleteUserDefaults = false
-
-    func showDeleteUserDefaultsAlert() {
-        isShowingDeleteUserDefaults = true
-    }
 }

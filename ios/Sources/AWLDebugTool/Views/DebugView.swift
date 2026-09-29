@@ -46,8 +46,7 @@ public struct DebugView: View {
 
                 DeeplinksView(manager: deeplinksManager)
 
-                UserDefaultsView(isShowingDeleteUserDefaults: $vm.isShowingDeleteUserDefaults,
-                                 showDeleteUserDefaultsAlert: vm.showDeleteUserDefaultsAlert)
+                UserDefaultsView(appGroupIdentifiers: debugTool.appGroupIdentifiers)
                 
                 PermissionsView(manager: permissionsManager)
                 

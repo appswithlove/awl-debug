@@ -5,6 +5,7 @@
 //  Created by Alain Stulz on 21.03.2024.
 //
 
+import Security
 import SwiftUI
 import UserNotifications
 
@@ -101,6 +102,21 @@ struct DebugPanelView: View {
                 }
             } header: {
                 Text("Custom section header 1")
+            }
+
+            Section {
+                Button("Save keychain test item") {
+                    let item: [CFString: Any] = [kSecClass: kSecClassGenericPassword, kSecAttrAccount: "example-item",
+                                                 kSecValueData: Data("secret".utf8)]
+                    SecItemDelete(item as CFDictionary)
+                    print("Keychain save:", SecItemAdd(item as CFDictionary, nil))
+                }
+                Button("Check keychain test item") {
+                    let query: [CFString: Any] = [kSecClass: kSecClassGenericPassword, kSecAttrAccount: "example-item"]
+                    print("Keychain item found:", SecItemCopyMatching(query as CFDictionary, nil) == errSecSuccess)
+                }
+            } header: {
+                Text("Clear app data test")
             }
 
             Section {
