@@ -18,7 +18,7 @@ final class LogsListViewModel: ObservableObject {
         let date = Date.now
         let df = DateFormatter()
         df.dateFormat = "yyyy-MM-dd_HH.mm.ss"
-        return "NL\(df.string(from: date)).txt"
+        return "awl-debug-network-\(df.string(from: date)).txt"
     }()
 
     private let networkLogger: NetworkLogger
@@ -30,7 +30,8 @@ final class LogsListViewModel: ObservableObject {
     var filteredLogs: [NetworkLog] {
         let searched = searchText.isEmpty ? networkLogger.networkTraffic : networkLogger.networkTraffic.filter {
             $0.method.localizedCaseInsensitiveContains(searchText) ||
-            $0.url.localizedCaseInsensitiveContains(searchText)
+            $0.url.localizedCaseInsensitiveContains(searchText) ||
+            "\($0.statusCode)".contains(searchText)
         }
 
         let filteredByRequestMethods = searched.filter { log in
@@ -53,6 +54,10 @@ final class LogsListViewModel: ObservableObject {
                 return log1.date > log2.date
             }
         }
+    }
+
+    var slowRequestThresholdMs: Int {
+        networkLogger.config.slowRequestThresholdMs
     }
 
     var networkLogsLimit: Int {
@@ -101,11 +106,8 @@ final class LogsListViewModel: ObservableObject {
     }
 
     private func fetchNetworkLogsAsString() -> String {
-        let df = DateFormatter()
-        df.dateFormat = Constants.Date.dateFormatSecondary
-
-        return networkLogger.networkTraffic
-            .map { "\(df.string(from: $0.date)) \($0.method) (\($0.statusCode)) \($0.duration)ms - \($0.url)" }
-            .joined(separator: "\n")
+        filteredLogs
+            .map(\.exportText)
+            .joined(separator: "\n\n")
     }
 }

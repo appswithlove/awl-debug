@@ -20,12 +20,13 @@ public class AWLDebugTool: ObservableObject {
     ///   - isScreenRecordingOn: Initial value for screen recording.
     ///     Can be changed later from the debug panel.
     ///   - deeplinks: help to test deeplinks
-    public static func start(isScreenRecordingOn: Bool = false, deeplinks: DeepLinkStartModel? = nil, tokens: [AWLDebugTool.TokenDebugModel] = []) {
+    ///   - config: Network capture and redaction options.
+    public static func start(isScreenRecordingOn: Bool = false, deeplinks: DeepLinkStartModel? = nil, tokens: [AWLDebugTool.TokenDebugModel] = [], config: AWLDebugConfig = AWLDebugConfig()) {
         shared.cpuMonitor.start()
         shared.ramMonitor.start()
         shared.mainThreadMonitor.start()
         
-        shared.networkLogger.start()
+        shared.networkLogger.start(config: config.network)
         shared.screenRecorder.initialise(isScreenRecordingOn: isScreenRecordingOn)
         
         if let deeplinks {

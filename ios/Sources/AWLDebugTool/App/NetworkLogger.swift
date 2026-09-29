@@ -3,6 +3,8 @@ import SwiftUI
 
 public class NetworkLogger: ObservableObject {
     var filtersStorage = FiltersStorage()
+    /// Set once in `start(config:)`, before the URL protocol is registered.
+    private(set) var config = AWLDebugConfig.NetworkConfig()
     
     @Published var didStart = false
     @Published var networkTraffic: [NetworkLog] = []
@@ -119,7 +121,8 @@ public class NetworkLogger: ObservableObject {
         }
     }
     
-    func start() {
+    func start(config: AWLDebugConfig.NetworkConfig) {
+        self.config = config
         didStart = true
         URLSessionConfiguration.setupSwizzle()
     }
@@ -127,13 +130,7 @@ public class NetworkLogger: ObservableObject {
     // MARK: - Network logs
     
     @MainActor
-    func appendNetworkLog(requestInfo: AWLDebugURLProtocol.RequestInfo) {
-        let log = NetworkLog(id: UUID(),
-                             method: requestInfo.method ?? "-",
-                             url: requestInfo.url,
-                             date: requestInfo.date,
-                             duration: requestInfo.duration ?? 0,
-                             statusCode: requestInfo.stausCode)
+    func appendNetworkLog(_ log: NetworkLog) {
         networkTraffic.append(log)
         cleanNetworkTrafficForLimit()
     }

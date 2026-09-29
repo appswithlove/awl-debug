@@ -13,14 +13,14 @@ enum LS {
         static let unknownValue = "n/a"
         static let emptyString = ""
         static let fatalErrorMsg = "Don't worry be happy."
-        static let searchLogs = "Search logs"
+        static let searchLogs = "Search requests"
         static let tracking = "Track network logs"
         static let trackingInfo = "Add AWLDebugTool.start() into AppDelegate/App init() to enable this."
         static let stopTracking = "stop tracking network logs"
         static let startTracking = "start tracking network logs"
-        static let logs = "Logs"
+        static let logs = "Network"
         static let numberOfLogs = "Number of requests: "
-        static let emptyListOfLogs = "There is no logs"
+        static let emptyListOfLogs = "No requests yet"
         static let filters = "Filters"
     }
     
@@ -37,14 +37,14 @@ enum LS {
         static let settings = "Settings"
         static let requestMethods = "Request Methods"
         static let responseCodes = "Response Codes"
-        static let endpoints = "Endpoints"
+        static let endpoints = "Hosts"
         static let session = "Session"
     }
     
     struct Alert {
         // MARK: - Logs
-        static let deleteNLTitle = "Deleting network logs"
-        static let deleteNLMessage = "Are you sure you want to delete all network logs?"
+        static let deleteNLTitle = "Delete network logs?"
+        static let deleteNLMessage = "All captured requests will be removed."
         
         // MARK: - UserDefaults
         static let deleteUDTitle = "Deleting UserDefaults data"
@@ -106,8 +106,8 @@ enum LS {
     }
     
     struct Buttons {
-        static let deselectAllBtn: String = "DeselectAll"
-        static let selectAllBtn: String = "SelectAll"
+        static let deselectAllBtn: String = "Deselect all"
+        static let selectAllBtn: String = "Select all"
         static let enable: String = "Enable"
         static let unavailable: String = "Unavailable"
         static let settings: String = "Settings"
@@ -135,6 +135,39 @@ enum LS {
         }
     }
 
+    struct Network {
+        static let copyCurl = "Copy cURL"
+        static let copyUrl = "Copy URL"
+        static let copyResponse = "Copy response"
+        static let share = "Share"
+        static let slow = "slow"
+        static let noBody = "(no body)"
+        static let failed = "Failed"
+        static let raw = "Raw"
+        static let overview = "Overview"
+        static let requestHeaders = "Request Headers"
+        static let requestBody = "Request Body"
+        static let responseHeaders = "Response Headers"
+        static let responseBody = "Response Body"
+        static let url = "URL"
+        static let method = "Method"
+        static let status = "Status"
+        static let start = "Start"
+        static let duration = "Duration"
+        static let requestSize = "Request size"
+        static let responseSize = "Response size"
+        static let error = "Error"
+        static let streamNotCaptured = "(stream, not captured)"
+        
+        static func redactedCount(_ count: Int) -> String {
+            "\(count) values redacted"
+        }
+        
+        static func truncated(_ originalBytes: Int) -> String {
+            "(truncated, \(originalBytes) bytes in total)"
+        }
+    }
+    
     struct Session {
         static let notSetup = "No tokens configured. Pass tokens in AWLDebugTool.start()."
     }

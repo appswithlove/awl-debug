@@ -83,7 +83,7 @@ class AWLDebugURLProtocol: URLProtocol {
         session = URLSession(configuration: makeSessionConfiguration(), delegate: self, delegateQueue: nil)
         sessionTask = session?.dataTask(with: newRequest as URLRequest)
         sessionTask?.resume()
-        currentRequest = RequestInfo(request: newRequest)
+        currentRequest = RequestInfo(request: newRequest, config: AWLDebugTool.shared.networkLogger.config)
     }
     
     override public func stopLoading() {
@@ -95,17 +95,13 @@ class AWLDebugURLProtocol: URLProtocol {
             currentRequest?.duration = Int(Date().timeIntervalSince(startDate) * 1000)
         }
         
+        // Redact here, so unredacted values never leave the running request.
+        let log = currentRequest?.makeLog()
+        currentRequest = nil
+        
         DispatchQueue.main.async {
-            if let currentRequest = self.currentRequest {
-                AWLDebugTool.shared.networkLogger.appendNetworkLog(requestInfo: currentRequest)
-                // print(currentRequest.url)
-                // print(currentRequest.headers)
-                // print(currentRequest.date)
-                // print(currentRequest.stausCode)
-                // print(currentRequest.duration)
-                // print(currentRequest.responseHeaders)
-                // print(currentRequest.errorDescription)
-                // self.currentRequest?.dataResponse
+            if let log = log {
+                AWLDebugTool.shared.networkLogger.appendNetworkLog(log)
             }
             
             self.session?.invalidateAndCancel()
@@ -144,12 +140,8 @@ extension AWLDebugURLProtocol: URLSessionDataDelegate {
     public func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
         performOnClientThread { [self] in
             client?.urlProtocol(self, didLoad: data)
+            currentRequest?.appendResponse(data)
         }
-//        if currentRequest?.dataResponse == nil {
-//            currentRequest?.dataResponse = data
-//        } else {
-//            currentRequest?.dataResponse?.append(data)
-//        }
     }
     
     public func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive response: URLResponse, completionHandler: @escaping (URLSession.ResponseDisposition) -> Void) {
@@ -273,32 +265,103 @@ extension AWLDebugURLProtocol: URLAuthenticationChallengeSender {
 //}
 
 extension AWLDebugURLProtocol {
-    class RequestInfo: Codable {
+    /// Unredacted capture of the running request. Only the redacted result of `makeLog()` is stored.
+    final class RequestInfo {
         
         let url: String
         let date: Date
         let method: String?
-//        var headers: [String: String]?
-//        var httpBody: Data?
+        let requestHeaders: [NetworkLog.Header]
+        let requestBody: Data?
+        let isRequestBodyStream: Bool
         var stausCode: Int
-//        var responseHeaders: [String: String]?
-//        var dataResponse: Data?
+        var responseHeaders: [NetworkLog.Header] = []
         var errorDescription: String?
         var duration: Int?
         
-        init(request: NSURLRequest) {
+        private let redactor: NetworkRedactor
+        private var responseData = Data()
+        private var responseBytes = 0
+        private var isResponseStream = false
+        private var responseCaptureLimit = 0
+        
+        init(request: NSURLRequest, config: AWLDebugConfig.NetworkConfig) {
             url = request.url?.absoluteString ?? ""
             date = Date()
             method = request.httpMethod
-//            headers = request.allHTTPHeaderFields
-//            httpBody = request.httpBody
+            requestHeaders = Self.sortedHeaders(request.allHTTPHeaderFields ?? [:])
+            requestBody = request.httpBody
+            // Streams are forwarded untouched: reading one here would consume the body the server needs.
+            isRequestBodyStream = request.httpBody == nil && request.httpBodyStream != nil
             stausCode = 0
+            redactor = NetworkRedactor(config: config)
         }
         
         func initResponse(response: URLResponse) {
             guard let responseHttp = response as? HTTPURLResponse else {return}
             stausCode = responseHttp.statusCode
-//            responseHeaders = responseHttp.allHeaderFields as? [String: String]
+            responseHeaders = Self.sortedHeaders(Dictionary(uniqueKeysWithValues: responseHttp.allHeaderFields.map { ("\($0.key)", "\($0.value)") }))
+            
+            let contentType = responseHttp.value(forHTTPHeaderField: "Content-Type")
+            let mediaType = NetworkRedactor.mediaType(of: contentType)
+            isResponseStream = redactor.isStreamResponse(statusCode: responseHttp.statusCode, contentType: contentType)
+            let config = redactor.config
+            if !config.captureBodies || isResponseStream {
+                responseCaptureLimit = 0
+            } else if NetworkRedactor.isJSON(mediaType) || mediaType == "application/x-www-form-urlencoded" {
+                // Redaction needs the whole document; larger ones are reported as too large to redact.
+                responseCaptureLimit = max(config.maxBodyBytes, NetworkRedactor.maxRedactableBytes)
+            } else {
+                responseCaptureLimit = config.maxBodyBytes
+            }
+        }
+        
+        func appendResponse(_ data: Data) {
+            responseBytes += data.count
+            let remaining = responseCaptureLimit - responseData.count
+            if remaining > 0 {
+                responseData.append(data.prefix(remaining))
+            }
+        }
+        
+        func makeLog() -> NetworkLog {
+            var redactedCount = 0
+            var log = NetworkLog(id: UUID(),
+                                 method: method ?? "-",
+                                 url: redactor.redact(url: url, count: &redactedCount),
+                                 date: date,
+                                 duration: duration ?? 0,
+                                 statusCode: stausCode)
+            log.requestHeaders = redactor.redact(headers: requestHeaders, count: &redactedCount)
+            log.responseHeaders = redactor.redact(headers: responseHeaders, count: &redactedCount)
+            log.requestBytes = requestBody?.count ?? 0
+            log.responseBytes = responseBytes
+            log.errorDescription = errorDescription
+            
+            if redactor.config.captureBodies {
+                let requestContentType = Self.value(of: "Content-Type", in: requestHeaders)
+                let responseContentType = Self.value(of: "Content-Type", in: responseHeaders)
+                if isRequestBodyStream {
+                    log.requestBody = NetworkRedactor.placeholderBody(LS.Network.streamNotCaptured, contentType: requestContentType, totalBytes: 0)
+                } else if let requestBody = requestBody {
+                    log.requestBody = redactor.redact(body: requestBody, totalBytes: requestBody.count, contentType: requestContentType, count: &redactedCount)
+                }
+                if isResponseStream {
+                    log.responseBody = NetworkRedactor.placeholderBody(LS.Network.streamNotCaptured, contentType: responseContentType, totalBytes: responseBytes)
+                } else {
+                    log.responseBody = redactor.redact(body: responseData, totalBytes: responseBytes, contentType: responseContentType, count: &redactedCount)
+                }
+            }
+            log.redactedCount = redactedCount
+            return log
+        }
+        
+        private static func sortedHeaders(_ headers: [String: String]) -> [NetworkLog.Header] {
+            headers.map { NetworkLog.Header(name: $0.key, value: $0.value) }.sorted { $0.name.lowercased() < $1.name.lowercased() }
+        }
+        
+        private static func value(of name: String, in headers: [NetworkLog.Header]) -> String? {
+            headers.first { $0.name.caseInsensitiveCompare(name) == .orderedSame }?.value
         }
     }
 }

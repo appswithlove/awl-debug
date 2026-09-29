@@ -54,7 +54,8 @@ final class LocalHTTPServer {
         connection.start(queue: queue)
         connection.receive(minimumIncompleteLength: 1, maximumLength: 1 << 20) { [weak self] data, _, _, _ in
             guard let self = self, let data = data, let requestText = String(data: data, encoding: .utf8) else { return }
-            let path = requestText.split(separator: " ").dropFirst().first.map(String.init) ?? "/"
+            let target = requestText.split(separator: " ").dropFirst().first.map(String.init) ?? "/"
+            let path = target.components(separatedBy: "?")[0]
             self.hits[path, default: 0] += 1
             
             let route = self.routes[path] ?? Response()

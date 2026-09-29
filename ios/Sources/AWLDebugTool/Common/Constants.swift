@@ -13,10 +13,6 @@ enum Constants {
         static let defaultLogLimit = 750
     }
     
-    struct Date {
-        static let dateFormatSecondary = "yyyy-MM-dd HH:mm:ss.SSS"
-    }
-    
     enum SortingOrder: String, CaseIterable, Identifiable {
         case ascending = "Ascending"
         case descending = "Descending"
