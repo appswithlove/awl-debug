@@ -15,6 +15,7 @@ final class SentConfirmationPresenter {
     func show(in scene: UIWindowScene, message: String, systemImage: String) {
         window?.isHidden = true
         let window = PassthroughWindow(windowScene: scene)
+        window.accessibilityIdentifier = "AWLDebugWindow" // Not in screen recordings.
         window.windowLevel = .alert + 1
         let host = UIHostingController(rootView: SentConfirmation(message: message, systemImage: systemImage) { [weak self, weak window] in
             window?.isHidden = true
