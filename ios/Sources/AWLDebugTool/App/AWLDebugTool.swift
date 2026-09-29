@@ -37,3 +37,37 @@ public class AWLDebugTool: ObservableObject {
     }
 }
 
+// MARK: - Panel
+
+public extension AWLDebugTool {
+    /// Whether the debug panel is shown.
+    @MainActor static var isOpen: Bool {
+        DebugPanelPresenter.shared.isOpen
+    }
+
+    /// Opens the debug panel above everything the app shows, including sheets and full-screen covers.
+    /// Does nothing while it is open.
+    @MainActor static func open() {
+        DebugPanelPresenter.shared.open()
+    }
+
+    /// Closes the debug panel. Does nothing while it is closed.
+    @MainActor static func close() {
+        DebugPanelPresenter.shared.close()
+    }
+
+    @MainActor static func toggle() {
+        isOpen ? close() : open()
+    }
+
+    /// Entry point for UIKit apps, instead of `includeDebugTool()`: opens the panel on the given events in all
+    /// windows of `scene`. Call it after the scene's window is visible.
+    @MainActor static func install(in scene: UIWindowScene,
+                                   fcmToken: String? = nil,
+                                   showDebugToolEvents: [DebugToolViewModifier.ShowDebugToolEvents] = [.threeTaps]) {
+        let presenter = DebugPanelPresenter.shared
+        presenter.events = showDebugToolEvents
+        presenter.content.fcmToken = fcmToken
+        presenter.install(in: scene)
+    }
+}

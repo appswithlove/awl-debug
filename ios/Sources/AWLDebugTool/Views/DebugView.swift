@@ -19,8 +19,6 @@ public struct DebugView: View {
     
     @StateObject private var vm = DebugViewModel()
 
-    @Environment(\.dismiss) var dismiss
-    
     private var fcmToken: String?
     private let customView: (() -> any View)?
 
@@ -30,7 +28,7 @@ public struct DebugView: View {
     }
     
     public var body: some View {
-        NavigationView {
+        NavigationStack {
             Form {
                 AboutView(internetAccesStatusIcon: networkReachabilityManager.connectionStatusIcon.name,
                           internetAccesStatusColor: networkReachabilityManager.connectionStatusIcon.color)
@@ -98,7 +96,7 @@ public struct DebugView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
-                        dismiss()
+                        AWLDebugTool.close()
                     } label: {
                         Text(LS.Headers.btnClose)
                     }

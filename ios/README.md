@@ -66,7 +66,11 @@ func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive respo
 }
 ```
 
-3. Open AWLDebugTool inside app by clicking 3 times on screen (or by taking a screenshot, if `.userDidTakeScreenshot` is included in `showDebugToolEvents`)
+3. Open AWLDebugTool inside app by clicking 3 times on screen (or by taking a screenshot, if `.userDidTakeScreenshot` is included in `showDebugToolEvents`). The panel opens in a window of its own, above the app's sheets and full-screen covers.
+
+From code, for example from a custom module: `AWLDebugTool.open()`, `AWLDebugTool.close()`, `AWLDebugTool.toggle()`, `AWLDebugTool.isOpen`.
+
+UIKit apps without a SwiftUI root call `AWLDebugTool.install(in: windowScene)` instead of `includeDebugTool()`, after the scene's window is visible (for example at the end of `scene(_:willConnectTo:options:)`).
 
 ## Usage
 <b>Functionalities</b>
