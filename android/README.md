@@ -278,7 +278,7 @@ Values are redacted on the device before anything is stored:
 - `Authorization`, `Proxy-Authorization`, `Cookie`, `Set-Cookie` and userinfo in URLs (`https://[REDACTED]@host`), always.
 - Header names in `redactHeaders` (case-insensitive).
 - JSON fields at any depth, form fields and multipart fields in `redactJsonFields`. Matching ignores case, `_` and `-`.
-- Query parameters in `redactQueryParams`.
+- Query parameters in `redactQueryParams`, matched the same way.
 
 Bodies are cut off after `maxBodyBytes` (default 256 KiB), after redaction. Only text bodies are stored; binary content, files in multipart bodies, one-shot and duplex request bodies, streams (`text/event-stream`, `application/x-ndjson` and `streamContentTypes`) and bodies over 1 MiB are replaced with a short placeholder. `captureBodies = false` stores no bodies at all.
 
@@ -286,7 +286,7 @@ Bodies are cut off after `maxBodyBytes` (default 256 KiB), after redaction. Only
 DevHttpLogInterceptor(
     DevNetworkConfig(
         redactHeaders = setOf("X-Api-Key"),
-        redactJsonFields = setOf("password", "accessToken", "pin"),
+        redactJsonFields = DevNetworkConfig().redactJsonFields + "pin",
         slowRequestThresholdMs = 2_000,
     )
 )
@@ -297,8 +297,8 @@ DevHttpLogInterceptor(
 | `captureBodies` | `true` |
 | `maxBodyBytes` | `256 * 1024` |
 | `redactHeaders` | empty |
-| `redactJsonFields` | `password`, `accessToken`, `refreshToken`, `idToken`, `clientSecret` |
-| `redactQueryParams` | `access_token`, `token`, `api_key` |
+| `redactJsonFields` | `password`, `secret`, `token`, `accessToken`, `refreshToken`, `idToken`, `credential`, `apiKey`, `clientSecret` |
+| `redactQueryParams` | same as `redactJsonFields` |
 | `slowRequestThresholdMs` | `1_000` |
 | `streamContentTypes` | empty (`text/event-stream` and `application/x-ndjson` are always skipped) |
 

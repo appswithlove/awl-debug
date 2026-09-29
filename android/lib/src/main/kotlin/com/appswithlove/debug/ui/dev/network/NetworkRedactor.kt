@@ -26,7 +26,7 @@ internal class NetworkRedactor(config: DevNetworkConfig) {
 
     private val headerNames = (ALWAYS_REDACTED_HEADERS + config.redactHeaders).mapTo(mutableSetOf()) { it.lowercase() }
     private val fieldNames = config.redactJsonFields.mapTo(mutableSetOf(), ::normalizeFieldName)
-    private val queryNames = config.redactQueryParams.mapTo(mutableSetOf()) { it.lowercase() }
+    private val queryNames = config.redactQueryParams.mapTo(mutableSetOf(), ::normalizeFieldName)
 
     fun headers(headers: Headers, counter: Counter): List<Pair<String, String>> =
         headers.map { (name, value) ->
@@ -45,7 +45,7 @@ internal class NetworkRedactor(config: DevNetworkConfig) {
             counter.increment()
             base = schemePrefix + REDACTED + base.substring(base.indexOf('@', schemePrefix.length))
         }
-        val query = url.encodedQuery?.let { "?" + redactPairs(it, counter) { name -> name.lowercase() in queryNames } }
+        val query = url.encodedQuery?.let { "?" + redactPairs(it, counter) { name -> normalizeFieldName(name) in queryNames } }
         val fragment = url.encodedFragment?.let { "#$it" }
         return base + query.orEmpty() + fragment.orEmpty()
     }
