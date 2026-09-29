@@ -87,6 +87,8 @@ import com.appswithlove.debug.ui.dev.sheet.modules.performance.PerformanceModule
 import com.appswithlove.debug.ui.dev.sheet.modules.permissions.PermissionsModule
 import com.appswithlove.debug.ui.dev.sheet.modules.accessibility.AccessibilityModule
 import com.appswithlove.debug.ui.dev.sheet.modules.TestCrashesModule
+import com.appswithlove.debug.ui.dev.sheet.modules.ClearAppDataModule
+import com.appswithlove.debug.ui.dev.sheet.modules.clearAppData
 import com.appswithlove.debug.ui.dev.sheet.modules.VersionOverlay
 import com.appswithlove.debug.ui.dev.sheet.modules.deeplinks.DeeplinksModule
 import com.appswithlove.debug.ui.dev.sheet.modules.session.SessionDetailModule
@@ -593,6 +595,18 @@ private fun DevSheetContent(
                     }
                 }
 
+                    DevSheetPage.ClearAppData -> {
+                    ModuleDetail(swipeToDismiss = swipeToDismiss) {
+                        ModuleDetailNavBar(
+                            title = "Clear App Data",
+                            onBack = { currentPage = DevSheetPage.Home },
+                            onClose = { hideBottomSheet() },
+                        )
+
+                        ClearAppDataModule(onClear = { clearAppData(context) })
+                    }
+                }
+
                     DevSheetPage.TestCrashes -> {
                     ModuleDetail(swipeToDismiss = swipeToDismiss) {
                         ModuleDetailNavBar(
@@ -744,6 +758,14 @@ private fun DevSheetContent(
                             NavItem(
                                 text = "Test Crashes",
                                 onCLick = { currentPage = DevSheetPage.TestCrashes },
+                            )
+                        }
+
+                        if (modulesConfig.showClearAppDataModule) {
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                            NavItem(
+                                text = "Clear App Data",
+                                onCLick = { currentPage = DevSheetPage.ClearAppData },
                             )
                         }
 
@@ -930,7 +952,7 @@ private fun DevSheetDarkPreview() {
 }
 
 private enum class DevSheetPage {
-    Home, Logs, Network, NetworkFilters, NetworkDetail, Performance, Permissions, Accessibility, Deeplinks, Session, TestCrashes;
+    Home, Logs, Network, NetworkFilters, NetworkDetail, Performance, Permissions, Accessibility, Deeplinks, Session, TestCrashes, ClearAppData;
 
     val parent: DevSheetPage
         get() = when (this) {

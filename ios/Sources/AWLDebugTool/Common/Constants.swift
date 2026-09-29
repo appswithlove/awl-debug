@@ -55,6 +55,9 @@ enum Constants {
         static let networkLogsEducationalMode = prefix + "networkLogsEducationalMode"
         static let screenRecordingIsOn = prefix + "screenRecordingIsOn"
         static let screenRecordingMaxVideoDuration = prefix + "screenRecordingMaxVideoDuration"
+        static let appLogsRecording = prefix + "appLogsRecording"
+        static let appLogsLimit = prefix + "appLogsLimit"
+        static let versionOverlayVisible = prefix + "versionOverlayVisible"
         static let performanceMeasuring = prefix + "performanceMeasuring"
     }
     

@@ -166,6 +166,7 @@ DevSheet(
 | `showSessionModule` / `sessionProviders` | `true` / empty | [Session](#session), hidden when the list is empty |
 | `showFcmPushTokenModule` / `fcmTokenProvider` | `true` / `null` | [FCM push token](#fcm-push-token), hidden when `null` |
 | `showTestCrashesModule` | `true` | Test crashes |
+| `showClearAppDataModule` | `true` | Clear App Data: after a confirmation, `ActivityManager.clearApplicationUserData()` deletes all app data (including AWL Debug settings and runtime permissions) and ends the process |
 
 ### Deeplinks
 

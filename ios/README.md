@@ -78,12 +78,15 @@ UIKit apps without a SwiftUI root call `AWLDebugTool.install(in: windowScene)` i
 ### 1. About
 - user can see general data about underlying app
 (device, app name, app version and build number, current time, internet access)
-- app version and build number are also always visible in a small overlay in the top-left corner of the screen
+- app version and build number are also visible in a small overlay in the top-left corner of the screen, above sheets too; testers switch it off with "Show version overlay" (stored per device), apps with `AWLDebugConfig.showVersionOverlay = false`
 
 ### 2. Network logging
 - user can record network logs.
 - user can see network logs in real time and filter them.
 - user can export network logs.
+
+#### App logs
+The Logs module shows the app's own unified-log entries (`os_log`, `Logger`, Kermit's `OSLogWriter`) without any code in the app, plus entries added with `AWLDebugTool.log("message", level: .warn, tag: "Auth", error: error)`. Apple's own subsystems (`com.apple.*`) are left out; `AWLDebugConfig(logs: .init(subsystems: ["com.example.app"]))` shows only the listed ones. `Bearer` and `Basic` credentials are redacted before an entry is stored. Search and level filters also apply to "Export logs".
 
 ### 3. UserDefaults
 - user can clear UserDefaults for underlying app.

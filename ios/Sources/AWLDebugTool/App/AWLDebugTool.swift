@@ -12,6 +12,8 @@ public class AWLDebugTool: ObservableObject {
     @MainActor lazy var performance = PerformanceController(monitors: self)
     let deeplinksManager = DeeplinksManager()
     let sessionManager = SessionManager()
+    @MainActor lazy var appLogs = AppLogsStore()
+    private(set) var appGroupIdentifiers: [String] = []
 
     /// Main initializer.
     ///
@@ -29,6 +31,14 @@ public class AWLDebugTool: ObservableObject {
         }
         
         shared.networkLogger.start(config: config.network)
+        Task { @MainActor in
+            shared.appLogs.config = config.logs
+        }
+        shared.appGroupIdentifiers = config.appGroupIdentifiers
+        Task { @MainActor in
+            VersionOverlayPresenter.shared.isAvailable = config.showVersionOverlay
+            VersionOverlayPresenter.shared.update()
+        }
         shared.screenRecorder.initialise(isScreenRecordingOn: isScreenRecordingOn)
         
         if let deeplinks {
@@ -36,6 +46,19 @@ public class AWLDebugTool: ObservableObject {
         }
 
         shared.sessionManager.tokens = tokens
+    }
+}
+
+// MARK: - Logs
+
+public extension AWLDebugTool {
+    /// Adds an entry to the Logs module. Safe to call from any thread; `Bearer`/`Basic` credentials are redacted.
+    static func log(_ message: String, level: AWLDebugLogLevel = .info, tag: String? = nil, error: Error? = nil) {
+        let entry = AppLogEntry(date: Date(), level: level, tag: tag, message: message.redactingCredentials(),
+                                errorDescription: error.map { "\(String(reflecting: type(of: $0))): \(String(describing: $0))".redactingCredentials() })
+        Task { @MainActor in
+            shared.appLogs.append(entry)
+        }
     }
 }
 
@@ -71,6 +94,7 @@ public extension AWLDebugTool {
         presenter.events = showDebugToolEvents
         presenter.content.fcmToken = fcmToken
         presenter.install(in: scene)
+        VersionOverlayPresenter.shared.update(in: scene)
         presenter.applyAppearance(DebugView.AppColorScheme.stored)
     }
 }
