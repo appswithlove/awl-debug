@@ -85,6 +85,8 @@ From code, for example from a custom module: `AWLDebugTool.open()`, `AWLDebugToo
 UIKit apps without a SwiftUI root call `AWLDebugTool.install(in: windowScene)` instead of `includeDebugTool()`, after the scene's window is visible (for example at the end of `scene(_:willConnectTo:options:)`).
 
 ## Usage
+The panel opens on a start page with App Info and the modules in a fixed order, the same as on Android: Logs, Network, Performance, Permissions, Accessibility, Deeplinks, Session, FCM push token, Screen Recording, Clear App Data, Test Crashes. A green dot marks a module that records or measures. Each module opens its own page with Back and Close. Sections passed as `customView` come last.
+
 <b>Functionalities</b>
 
 ### 1. About
