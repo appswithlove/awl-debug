@@ -35,7 +35,7 @@ internal fun ClearAppDataModule(onClear: () -> Unit) {
         Text(
             text = "All app data, including AWL Debug settings, will be deleted and the app will close.",
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         DevOutlinedButton(
             modifier = Modifier.fillMaxWidth(),

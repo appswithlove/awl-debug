@@ -20,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import com.appswithlove.debug.ui.component.DevEmptyState
 import com.appswithlove.debug.ui.component.DevOutlinedButton
 import com.appswithlove.debug.ui.component.DevSectionTitle
 import com.appswithlove.debug.ui.dev.network.NetworkUiState
@@ -100,15 +101,11 @@ private fun <T> FilterGroup(
             Text(
                 text = it,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         if (values.isEmpty()) {
-            Text(
-                modifier = Modifier.padding(vertical = 8.dp),
-                text = "No requests yet",
-                color = MaterialTheme.colorScheme.onSurface,
-            )
+            DevEmptyState(text = "No requests yet")
         }
         values.forEach { value ->
             // One toggle per option, so TalkBack reads the label with the checkbox state.

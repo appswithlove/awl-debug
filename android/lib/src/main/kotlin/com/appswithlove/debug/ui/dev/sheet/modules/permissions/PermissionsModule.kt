@@ -28,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import com.appswithlove.debug.ui.component.DevEmptyState
 import com.appswithlove.debug.ui.component.DevGroupLabel
 import com.appswithlove.debug.ui.theme.DevTheme
 
@@ -75,14 +76,7 @@ internal fun PermissionsModule(modifier: Modifier = Modifier) {
             contentPadding = PaddingValues(4.dp),
         ) {
             if (grouped.isEmpty()) {
-                item {
-                    Text(
-                        text = "No permissions declared",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.padding(4.dp),
-                    )
-                }
+                item { DevEmptyState(text = "No permissions declared", modifier = Modifier.padding(horizontal = 4.dp)) }
             } else {
                 listOf(
                     PermissionOrigin.App,
@@ -127,7 +121,7 @@ private fun PermissionRow(
 ) {
     Column(
         modifier = Modifier
-            .clickable(onClick = onClick)
+            .clickable(onClickLabel = if (expanded) "Hide description" else "Show description", onClick = onClick)
             .padding(vertical = 4.dp, horizontal = 4.dp),
     ) {
         Row(
@@ -147,7 +141,7 @@ private fun PermissionRow(
                 color = if (item.isGranted)
                     MaterialTheme.colorScheme.onSurface
                 else
-                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                    MaterialTheme.colorScheme.onSurfaceVariant,
                 fontWeight = if (item.isGranted) FontWeight.Bold else FontWeight.Normal,
             )
         }
@@ -155,7 +149,7 @@ private fun PermissionRow(
             Text(
                 text = item.description ?: "No description available.",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 2.dp, bottom = 2.dp),
             )
         }
