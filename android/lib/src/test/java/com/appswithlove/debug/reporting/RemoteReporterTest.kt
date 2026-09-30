@@ -30,6 +30,7 @@ import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import okhttp3.mockwebserver.SocketPolicy
 import org.junit.After
+import org.junit.BeforeClass
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -44,8 +45,8 @@ import java.util.zip.GZIPInputStream
 
 /**
  * Builds real batches from requests captured by `DevHttpLogInterceptor`. Every batch is also written
- * to `build/contract/` for a local schema check:
- * `uvx --from check-jsonschema check-jsonschema --schemafile <session-batch.v1.schema.json> lib/build/contract/<file>.json` for each file
+ * to `lib/build/contract/` for a local schema check:
+ * `uvx --from check-jsonschema check-jsonschema --schemafile <session-batch.v1.schema.json>` with every file in `lib/build/contract/`
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -102,11 +103,9 @@ class RemoteReporterTest {
 
     private fun ReportingBuffer.batches(): List<JsonObject> = sealedBatches().map { file ->
         val text = GZIPInputStream(file.inputStream()).bufferedReader().readText()
-        contractDir().resolve("${javaClass.simpleName}-${file.name.removeSuffix(".gz")}").writeText(text)
+        CONTRACT_DIR.apply { mkdirs() }.resolve(file.name.removeSuffix(".gz")).writeText(text)
         Json.parseToJsonElement(text).jsonObject
     }
-
-    private fun contractDir(): File = File("build/contract").apply { mkdirs() }
 
     private fun JsonObject.array(key: String): JsonArray = this[key]?.jsonArray ?: JsonArray(emptyList())
     private fun JsonObject.string(key: String): String? = this[key]?.jsonPrimitive?.content
@@ -255,5 +254,15 @@ class RemoteReporterTest {
 
         RemoteReporting.reporter.shouldBeNull()
         RemoteReporting.bufferDir(context).exists() shouldBe false
+    }
+
+    companion object {
+        private val CONTRACT_DIR = File("build/contract")
+
+        @JvmStatic
+        @BeforeClass
+        fun clearContractDir() {
+            CONTRACT_DIR.deleteRecursively()
+        }
     }
 }
