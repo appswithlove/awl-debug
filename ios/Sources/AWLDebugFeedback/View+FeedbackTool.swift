@@ -7,17 +7,15 @@ import SwiftUI
 import UIKit
 
 public extension View {
-    /// Opens the feedback tool when the user takes a system screenshot or, unless
-    /// `shakeToReport` is off, shakes the device.
-    /// Attach once, at the root of the app. A `nil` config leaves the view untouched.
+    /// Opens the feedback tool on the gestures in `FeedbackConfig.triggers`, from `AWLFeedback.start()` and from
+    /// "Send feedback" in the `AWLDebugTool` panel. Attach once, at the root of the app. A `nil` config leaves
+    /// the view untouched.
     func feedbackTool(config: FeedbackConfig?) -> some View {
         modifier(FeedbackToolModifier(config: config))
     }
 }
 
 private struct FeedbackToolModifier: ViewModifier {
-    static let triggersNotification = Notification.Name("AWLDebugFeedbackTriggers")
-
     let config: FeedbackConfig?
     private let screenshotTaken = NotificationCenter.default
         .publisher(for: UIApplication.userDidTakeScreenshotNotification)
@@ -27,24 +25,29 @@ private struct FeedbackToolModifier: ViewModifier {
             content
                 .onAppear {
                     FeedbackQueueRunner.shared.start()
-                    if config.shakeToReport {
+                    if config.triggers.contains(.shake) {
                         ShakeDetector.install()
                     }
-                    // AWLDebugTool leaves these triggers to feedback instead of opening its panel as well.
-                    NotificationCenter.default.post(name: Self.triggersNotification, object: nil,
-                                                    userInfo: ["triggers": config.shakeToReport ? ["screenshot", "shake"] : ["screenshot"]])
+                    FeedbackPresenter.shared.register(config)
+                }
+                .onDisappear {
+                    FeedbackPresenter.shared.unregister()
                 }
                 .onReceive(screenshotTaken) { _ in
-                    FeedbackPresenter.shared.present(config: config)
+                    trigger(.screenshot, config: config)
                 }
                 .onReceive(NotificationCenter.default.publisher(for: ShakeDetector.notification)) { _ in
-                    guard config.shakeToReport else {
-                        return
-                    }
-                    FeedbackPresenter.shared.present(config: config)
+                    trigger(.shake, config: config)
                 }
         } else {
             content
         }
+    }
+
+    private func trigger(_ trigger: FeedbackTrigger, config: FeedbackConfig) {
+        guard config.triggers.contains(trigger) else {
+            return
+        }
+        FeedbackPresenter.shared.present(config: config)
     }
 }

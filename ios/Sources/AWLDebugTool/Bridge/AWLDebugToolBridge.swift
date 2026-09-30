@@ -20,6 +20,14 @@ final class AWLDebugToolBridge: NSObject {
         }
     }
 
+    /// Closes the panel so it is not in the feedback screenshot, then calls `completion` on the main thread.
+    @objc(closePanel:)
+    static func closePanel(_ completion: @escaping () -> Void) {
+        Task { @MainActor in
+            DebugPanelPresenter.shared.close(completion: completion)
+        }
+    }
+
     /// `true` when the current or the previous run's screen recording has frames.
     @objc static var hasRecording: Bool {
         let storage = RecordingStorage()

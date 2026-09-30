@@ -107,6 +107,37 @@ struct FeedbackRequestTests {
         #expect(object["reporter"] as? [String: String] == ["name": "Tester"])
     }
 
+    /// The service validates with zod `z.email()` and rejects the whole report for any other address.
+    @Test(arguments: [
+        ("tester@example.com", true),
+        ("first.last+tag@mail.example.co.uk", true),
+        ("o'brien@example.ch", true),
+        ("tester@example.c", false),
+        ("tester.@example.com", false),
+        (".tester@example.com", false),
+        ("te..ster@example.com", false),
+        ("müller@example.ch", false),
+        ("tester@-example.com", false),
+        ("tester@localhost", false),
+        ("tester@example.com\n", false),
+    ])
+    func emailFollowsTheServiceRule(email: String, isValid: Bool) {
+        #expect(FeedbackMetadata.isValidEmail(email) == isValid)
+    }
+
+    /// The service counts string lengths in UTF-16 units, so characters outside the BMP count twice.
+    @Test
+    func metadataCapsCountUTF16UnitsLikeTheService() {
+        let emoji = String(repeating: "😀", count: 300)
+
+        let metadata = metadata(extra: [FeedbackMetadata.screenKey: emoji, "note": emoji], appVersion: emoji)
+
+        #expect(metadata.appVersion.utf16.count == FeedbackMetadata.maxStringLength)
+        #expect(metadata.screen?.utf16.count == FeedbackMetadata.maxStringLength)
+        #expect(metadata.extra["note"]?.utf16.count == FeedbackMetadata.maxValueLength)
+        #expect(metadata.extra["note"]?.allSatisfy { $0 == "😀" } == true)
+    }
+
     @Test
     func metadataCapsStringsAtServiceLimit() {
         let long = String(repeating: "s", count: 600)
@@ -168,6 +199,7 @@ struct FeedbackRequestTests {
 
     @Test(arguments: [
         (400, nil, FeedbackError.invalidRequest),
+        (422, nil, .invalidRequest),
         (401, nil, .unauthorized),
         (413, nil, .tooLarge),
         (415, nil, .unsupportedMediaType),
@@ -186,6 +218,15 @@ struct FeedbackRequestTests {
         #expect(FeedbackError(urlError: URLError(.notConnectedToInternet)) == .offline)
         #expect(FeedbackError(urlError: URLError(.timedOut)) == .network)
         #expect(FeedbackError.rateLimited(retryAfterSeconds: 30)
-            .message == "Too many reports. Try again in 30 seconds.")
+            .message == "Too many reports. Please try again in 30 seconds.")
+    }
+
+    /// A store build's report (422) or an invalid one (400) cannot succeed later: no "try again" in the text.
+    @Test
+    func rejectedReportIsFinal() {
+        let error = FeedbackError(statusCode: 422, retryAfter: nil)
+
+        #expect(!error.isRetryable)
+        #expect(error.message == "The feedback service rejected the report.")
     }
 }

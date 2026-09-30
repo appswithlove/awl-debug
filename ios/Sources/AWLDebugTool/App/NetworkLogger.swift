@@ -131,6 +131,7 @@ public class NetworkLogger: ObservableObject {
     
     @MainActor
     func appendNetworkLog(_ log: NetworkLog) {
+        RemoteReporting.shared.record(log)
         networkTraffic.append(log)
         cleanNetworkTrafficForLimit()
     }

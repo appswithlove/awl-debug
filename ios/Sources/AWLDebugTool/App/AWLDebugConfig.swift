@@ -32,6 +32,8 @@ public struct AWLDebugConfig {
 
     /// Shows "AWL <version> (<build>)" at the top left over the app. Testers can still switch it off in the panel.
     public var showVersionOverlay: Bool = true
+    /// Sends sessions, requests and performance samples to the feedback service. Off when `nil`.
+    public var remoteReporting: RemoteReportingConfig?
     /// Defaults of the Screen Recording module; testers can change both in the panel.
     public var screenRecording = ScreenRecordingConfig()
 

@@ -47,14 +47,19 @@ struct FeedbackClient {
     }
 
     static let idempotencyHeader = "Idempotency-Key"
+    /// Checked by AWLDebugTool's network capture: the SDK's own requests never show up in the Network module.
+    static let skipCaptureProperty = "AWLDebugSkipCapture"
+
     /// The service reads at most 32 MiB per report.
     static let maxBodyBytes = 32 * 1024 * 1024
 
     /// Sends one attempt of a report built by `makeRequest`.
     static func send(_ request: URLRequest, session: URLSession) async throws(FeedbackFailure) {
+        let marked = (request as NSURLRequest).mutableCopy() as! NSMutableURLRequest
+        URLProtocol.setProperty(true, forKey: skipCaptureProperty, in: marked)
         let response: URLResponse
         do {
-            (_, response) = try await session.data(for: request)
+            (_, response) = try await session.data(for: marked as URLRequest)
         } catch let error as URLError {
             throw FeedbackFailure(error: FeedbackError(urlError: error))
         } catch {

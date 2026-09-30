@@ -37,7 +37,8 @@ import kotlinx.coroutines.flow.asStateFlow
 
 /**
  * Records the resumed activity's window as JPEG frames, 3 per second, only while testers interact:
- * during a touch or with the keyboard open, for one second after that, plus two more frames. Nothing is
+ * during a touch, while they type, or when the keyboard opens or closes, for one second after that, plus two
+ * more frames. An idle screen records nothing, also with the keyboard open. Nothing is
  * recorded while the panel is open or the app is in the background. The main thread only collects mask
  * areas and starts a `PixelCopy`; masking, touch circles, encoding and file access run on a worker thread,
  * and a frame is skipped while the previous one is still being encoded.
@@ -82,6 +83,8 @@ internal object ScreenRecorder {
     private var isLoopRunning = false
     private var lastActivityAt = 0L
     private var trailingFrames = 0
+    private var wasKeyboardVisible = false
+    private var typedTextFingerprint = 0
 
     /** Reused between frames; only touched while [isEncoding] is held. */
     private var frameBitmap: Bitmap? = null
@@ -191,18 +194,42 @@ internal object ScreenRecorder {
             return
         }
         val now = SystemClock.uptimeMillis()
-        if (isKeyboardVisible(activity)) lastActivityAt = now
+        noteKeyboardActivity(activity, now)
         val isIdle = now - lastActivityAt >= ACTIVITY_WINDOW_MS
         if (isIdle) trailingFrames++
-        captureFrame(activity)
-        if (isIdle && trailingFrames >= TRAILING_FRAMES) {
+        if (trailingFrames <= TRAILING_FRAMES) captureFrame(activity)
+        // An open keyboard is still watched for typing and closing, without taking frames.
+        if (isIdle && trailingFrames >= TRAILING_FRAMES && !wasKeyboardVisible) {
             isLoopRunning = false
         } else {
             mainHandler.postDelayed(tick, FRAME_INTERVAL_MS)
         }
     }
 
-    /** Typing happens in the keyboard's own window, so an open keyboard counts as interaction. */
+    /**
+     * Typing happens in the keyboard's own window, where no touch reaches the recorder. So the keyboard opening
+     * or closing and text changing while it is open count as interaction; an open keyboard alone does not.
+     */
+    private fun noteKeyboardActivity(activity: Activity, now: Long) {
+        val isKeyboardVisible = isKeyboardVisible(activity)
+        val fingerprint = if (isKeyboardVisible) {
+            try {
+                editableTextFingerprint(activity.window.decorView)
+            } catch (e: RuntimeException) {
+                Log.w(TAG, "Could not read the text fields", e)
+                typedTextFingerprint
+            }
+        } else {
+            0
+        }
+        if (isKeyboardVisible != wasKeyboardVisible || fingerprint != typedTextFingerprint) {
+            wasKeyboardVisible = isKeyboardVisible
+            typedTextFingerprint = fingerprint
+            lastActivityAt = now
+            trailingFrames = 0
+        }
+    }
+
     private fun isKeyboardVisible(activity: Activity): Boolean =
         ViewCompat.getRootWindowInsets(activity.window.decorView)?.isVisible(WindowInsetsCompat.Type.ime()) == true
 

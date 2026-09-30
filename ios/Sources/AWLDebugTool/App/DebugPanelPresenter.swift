@@ -13,15 +13,13 @@ final class DebugPanelPresenter: NSObject {
         var customView: (() -> any View)?
     }
 
-    /// AWLDebugFeedback posts this with `userInfo["triggers"]` (`[String]`) for the triggers it handles.
-    static let feedbackTriggersNotification = Notification.Name("AWLDebugFeedbackTriggers")
-
     let content = Content()
     var triggers: Set<AWLDebugTrigger> = [.threeFingerTap] {
         didSet { updateRecognizers() }
     }
     var isAlwaysActive = false
-    private(set) var feedbackTriggers: Set<AWLDebugTrigger> = []
+    /// Triggers AWLDebugFeedback handles; they start feedback instead of opening the panel.
+    var feedbackTriggers: () -> Set<AWLDebugTrigger> = { FeedbackBridge.current?.triggers ?? [] }
     private var warnedConflicts: Set<AWLDebugTrigger> = []
 
     private var window: UIWindow?
@@ -39,8 +37,6 @@ final class DebugPanelPresenter: NSObject {
         center.addObserver(self, selector: #selector(userDidTakeScreenshot),
                            name: UIApplication.userDidTakeScreenshotNotification, object: nil)
         center.addObserver(self, selector: #selector(deviceDidShake), name: PanelShakeDetector.notification, object: nil)
-        center.addObserver(self, selector: #selector(feedbackDidAnnounceTriggers(_:)),
-                           name: Self.feedbackTriggersNotification, object: nil)
     }
 
     func configure(triggers: Set<AWLDebugTrigger>, isAlwaysActive: Bool) {
@@ -56,17 +52,12 @@ final class DebugPanelPresenter: NSObject {
         trigger(.shake)
     }
 
-    @objc private func feedbackDidAnnounceTriggers(_ notification: Notification) {
-        let names = notification.userInfo?["triggers"] as? [String] ?? []
-        feedbackTriggers = Set(names.compactMap(AWLDebugTrigger.init(feedbackName:)))
-    }
-
     /// Opens the panel if `trigger` is configured and the tool is activated. Never closes it.
     func trigger(_ trigger: AWLDebugTrigger) {
         guard triggers.contains(trigger), isAlwaysActive || AWLDebugTool.isActivated else {
             return
         }
-        if feedbackTriggers.contains(trigger) {
+        if feedbackTriggers().contains(trigger) {
             if warnedConflicts.insert(trigger).inserted {
                 AWLDebugTool.log("Trigger \(trigger) is configured for the panel and for feedback; it opens feedback only.",
                                  level: .warn, tag: "AWLDebug")
@@ -101,8 +92,10 @@ final class DebugPanelPresenter: NSObject {
         root.present(host, animated: true)
     }
 
-    func close() {
+    /// `completion` runs once the panel is gone, right away if it is closed.
+    func close(completion: (() -> Void)? = nil) {
         guard let window = window else {
+            completion?()
             return
         }
         self.window = nil
@@ -110,6 +103,7 @@ final class DebugPanelPresenter: NSObject {
         window.rootViewController?.dismiss(animated: true) {
             window.isHidden = true
             previousKeyWindow?.makeKey()
+            completion?()
         }
     }
 

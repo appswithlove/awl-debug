@@ -18,7 +18,7 @@ enum LogsAttachment {
 
     /// `nil` without `AWLDebugTool` in the app or before `AWLDebugTool.start`.
     static var toolSource: Source? {
-        guard let bridge = NSClassFromString("AWLDebugToolBridge"),
+        guard let bridge = NSClassFromString(ToolBridge.className),
               let isAvailable = classMethod(of: bridge, "isAvailable", as: IsAvailable.self),
               isAvailable(bridge, NSSelectorFromString("isAvailable")),
               let attachment = classMethod(of: bridge, "feedbackLogsAttachment:", as: FeedbackLogsAttachment.self) else {
@@ -70,10 +70,7 @@ enum LogsAttachment {
     private typealias IsAvailable = @convention(c) (AnyClass, Selector) -> Bool
     private typealias FeedbackLogsAttachment = @convention(c) (AnyClass, Selector, @escaping @convention(block) (Data?) -> Void) -> Void
 
-    private static func classMethod<Function>(of type: AnyClass, _ selector: String, as _: Function.Type) -> Function? {
-        guard let method = class_getClassMethod(type, NSSelectorFromString(selector)) else {
-            return nil
-        }
-        return unsafeBitCast(method_getImplementation(method), to: Function.self)
+    private static func classMethod<Function>(of type: AnyClass, _ selector: String, as function: Function.Type) -> Function? {
+        ToolBridge.classMethod(of: type, selector, as: function)
     }
 }

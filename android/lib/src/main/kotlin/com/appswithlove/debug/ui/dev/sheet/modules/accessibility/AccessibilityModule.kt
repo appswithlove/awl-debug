@@ -20,12 +20,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.appswithlove.debug.ui.component.DevOutlinedButton
+import com.appswithlove.debug.ui.component.DevSectionTitle
 import com.appswithlove.debug.ui.component.DevSlider
-import com.appswithlove.debug.ui.component.DevSwitch
+import com.appswithlove.debug.ui.component.DevSwitchRow
 import com.appswithlove.debug.ui.theme.AppTheme
 import com.appswithlove.debug.ui.theme.DevTheme
 import kotlin.math.abs
@@ -46,32 +46,22 @@ internal fun AccessibilityModule(
     Column(
         modifier = modifier
             .verticalScroll(rememberScrollState())
-            .padding(vertical = 12.dp),
+            .padding(bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         SectionTitle("Font size")
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = "Use system font size (${systemFontScale.asPercent()})",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            DevSwitch(
-                checked = settings.useSystemFontScale,
-                onCheckedChange = { useSystem ->
-                    onSettingsChanged(
-                        settings.copy(
-                            useSystemFontScale = useSystem,
-                            fontScale = if (useSystem) settings.fontScale else systemFontScale,
-                        )
+        DevSwitchRow(
+            text = "Use system font size (${systemFontScale.asPercent()})",
+            checked = settings.useSystemFontScale,
+            onCheckedChange = { useSystem ->
+                onSettingsChanged(
+                    settings.copy(
+                        useSystemFontScale = useSystem,
+                        fontScale = if (useSystem) settings.fontScale else systemFontScale,
                     )
-                },
-            )
-        }
+                )
+            },
+        )
 
         if (!settings.useSystemFontScale) {
             OptionChips(
@@ -125,7 +115,7 @@ internal fun AccessibilityModule(
             text = "Applies to app content inside the debug container only. " +
                 "On Android 12 and later, the appearance applies to the whole app.",
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
@@ -153,11 +143,7 @@ internal fun AccessibilityModule(
 
 @Composable
 private fun SectionTitle(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-        color = MaterialTheme.colorScheme.onSurface,
-    )
+    DevSectionTitle(text = text)
 }
 
 @Composable

@@ -13,14 +13,6 @@ class NetworkReachabilityManager: ObservableObject {
     private let workerQueue = DispatchQueue(label: "Monitor")
 
     @Published public internal(set) var isConnected = true
-    
-    var connectionStatusIcon: (name: String, color: Color)  {
-        if isConnected {
-            return ("wifi", .blue)
-        } else {
-            return ("wifi.slash", .gray)
-        }
-    }
 
     public init() {
         networkMonitor.pathUpdateHandler = { path in
