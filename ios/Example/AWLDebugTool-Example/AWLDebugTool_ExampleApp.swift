@@ -2,8 +2,6 @@
 //  AWLDebugTool_ExampleApp.swift
 //  AWLDebugTool-Example
 //
-//  Created by Alain Stulz on 21.03.2024.
-//
 
 import Security
 import SwiftUI
