@@ -30,6 +30,8 @@ import com.appswithlove.debug.api.DevScreenRecordingConfig
 import com.appswithlove.debug.api.bridge.AwlDebugInternalApi
 import com.appswithlove.debug.api.bridge.DevBridge
 import com.appswithlove.debug.api.bridge.RecordingExport
+import com.appswithlove.debug.api.extension.DevRecordingExport
+import com.appswithlove.debug.api.extension.DevRecordingExportOptions
 import java.io.File
 import java.lang.ref.WeakReference
 import java.util.Locale
@@ -38,6 +40,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 /**
@@ -79,6 +83,7 @@ internal object ScreenRecorder {
     private val mainHandler = Handler(Looper.getMainLooper())
     private val touches = TouchTracker()
     private val isEncoding = AtomicBoolean(false)
+    private val exportLock = Mutex()
 
     private var prefs: SharedPreferences? = null
     private lateinit var buffer: RecordingBuffer
@@ -149,17 +154,30 @@ internal object ScreenRecorder {
     /** Folder for exported files, inside the file provider's `cacheDir/awl-debug`; `null` before the first start. */
     fun exportDir(name: String): File? = if (prefs == null) null else File(cacheRoot, name)
 
-    /** Lets feedback attach the recording as the parts `video`, `frames` and `timeline`. */
-    @OptIn(AwlDebugInternalApi::class)
-    private fun registerFeedbackBridge() {
-        DevBridge.hasRecording = { _currentFrameCount.value > 0 || _lastRecording.value != null }
-        DevBridge.lastRecording = {
+    /** `true` while frames of this or the previous run exist. */
+    fun hasRecording(): Boolean = _currentFrameCount.value > 0 || _lastRecording.value != null
+
+    /**
+     * Exports this run's frames within [options], or the previous run's when this one has none, into the same
+     * folder each time. Returns `null` before the first start or without frames.
+     */
+    suspend fun export(options: DevRecordingExportOptions): DevRecordingExport? {
+        if (prefs == null) return null
+        return exportLock.withLock {
             withContext(Dispatchers.IO) {
                 val source = if (_currentFrameCount.value > 0) buffer.currentDir else buffer.lastDir
-                RecordingExporter.exportForFeedback(source, File(cacheRoot, "recording-feedback"))?.let {
-                    RecordingExport(video = it.files?.video, frames = it.files?.frames, timeline = it.files?.timeline)
-                }
+                RecordingExporter.export(source, File(cacheRoot, "recording-extension"), options)
             }
+        }
+    }
+
+    /** Legacy bridge for the feedback artifact, with the limits of the feedback service. */
+    @OptIn(AwlDebugInternalApi::class)
+    private fun registerFeedbackBridge() {
+        DevBridge.hasRecording = ::hasRecording
+        DevBridge.lastRecording = {
+            export(DevRecordingExportOptions(lastSeconds = 60, maxVideoBytes = 25L * 1024 * 1024, maxTimelineBytes = 256 * 1024))
+                ?.let { RecordingExport(video = it.video, frames = it.frames, timeline = it.timeline) }
         }
     }
 

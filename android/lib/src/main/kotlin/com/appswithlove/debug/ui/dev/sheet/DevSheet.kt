@@ -117,6 +117,8 @@ import com.appswithlove.debug.api.DevTrigger
 import com.appswithlove.debug.api.bridge.AwlDebugInternalApi
 import com.appswithlove.debug.api.bridge.DevBridge
 import com.appswithlove.debug.api.bridge.FeedbackEntry
+import com.appswithlove.debug.api.extension.AwlDebugExtensions
+import com.appswithlove.debug.api.extension.DevExtensionSection
 import com.appswithlove.debug.ui.component.ScreenshotTrigger
 import com.appswithlove.debug.ui.component.ShakeTrigger
 import com.appswithlove.debug.ui.component.devTriggerGestures
@@ -151,7 +153,7 @@ import kotlinx.coroutines.launch
  * @param modulesConfig A [com.appswithlove.debug.api.DevModulesConfig] that controls which built-in modules are shown in the
  * `DevSheet`. All modules are enabled by default.
  * @param triggers The gestures that open the `DevSheet`. Defaults to [DevTrigger.ThreeFingerTap].
- * A trigger never closes an open sheet. Triggers that a `FeedbackHost` uses start feedback instead.
+ * A trigger never closes an open sheet. Triggers that a registered extension section claims are left to it.
  * @param customModules A composable lambda that allows you to add your own custom modules to the
  * `DevSheet`.
  * @param isAlwaysActive If set to `true`, the [triggers] work even while the dev tool is
@@ -239,8 +241,11 @@ internal fun DevSheet(
         onDispose { DeeplinkDispatcher.setHandler(null) }
     }
 
+    val extensionSections by AwlDebugExtensions.sections.collectAsStateWithLifecycle()
     val feedbackEntry by feedbackEntryState()
-    val panelTriggers = remember(triggers, feedbackEntry) { panelTriggers(triggers, feedbackEntry) }
+    val panelTriggers = remember(triggers, extensionSections, feedbackEntry) {
+        panelTriggers(triggers, extensionSections.claimedTriggers() + feedbackEntry?.triggers.orEmpty())
+    }
     val canTrigger = state.value.isActive || state.value.isAlwaysActive
     val openFromTrigger = { viewModel.submitAction(DevAction.ShowDevSheet(show = true)) }
     if (canTrigger && DevTrigger.Shake in panelTriggers) ShakeTrigger(onShake = openFromTrigger)
@@ -291,6 +296,7 @@ internal fun DevSheet(
                 logHistory = logHistory,
                 actioner = { action -> viewModel.submitAction(action) },
                 customModules = customModules,
+                extensionSections = extensionSections,
                 feedbackEntry = feedbackEntry,
                 swipeToDismiss = swipeToDismiss,
                 onTrackLogsChanged = { viewModel.setTrackLogs(it) },
@@ -324,6 +330,7 @@ private fun DevSheetContent(
     modulesConfig: DevModulesConfig = DevModulesConfig(),
     actioner: (DevAction) -> Unit,
     customModules: @Composable ColumnScope.() -> Unit = {},
+    extensionSections: List<DevExtensionSection> = emptyList(),
     feedbackEntry: FeedbackEntry? = null,
     swipeToDismiss: Boolean = false,
     onTrackLogsChanged: (Boolean) -> Unit,
@@ -373,13 +380,15 @@ private fun DevSheetContent(
         }
     }
 
-    fun hideBottomSheet() {
+    /** Hides the sheet, then runs [then]. */
+    fun hideBottomSheet(then: () -> Unit = {}) {
         coroutineScope.launch {
             sheetState.hide()
         }.invokeOnCompletion {
             if (!sheetState.isVisible) {
                 actioner(DevAction.ShowDevSheet(show = false))
             }
+            then()
         }
     }
 
@@ -780,6 +789,12 @@ private fun DevSheetContent(
                             onShowVersionOverlayChanged = onShowVersionOverlayChanged,
                         )
 
+                        ExtensionSections(
+                            sections = extensionSections,
+                            onLink = { action -> hideBottomSheet(then = action) },
+                            onCopy = ::copyToClipboard,
+                        )
+
                         RemoteReportingModule()
 
                         feedbackEntry?.let { entry ->
@@ -909,7 +924,7 @@ private fun DevSheetContent(
                             )
                         }
 
-                        if (modulesConfig.hasAnyModuleEnabled || feedbackEntry != null) {
+                        if (modulesConfig.hasAnyModuleEnabled || feedbackEntry != null || extensionSections.isNotEmpty()) {
                             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                         }
                         customModules()
@@ -1025,11 +1040,11 @@ private fun NavBarSwitch(label: String, checked: Boolean, onCheckedChange: (Bool
 @Composable
 private fun feedbackEntryState(): State<FeedbackEntry?> = DevBridge.feedbackLauncher.collectAsStateWithLifecycle()
 
-/** [triggers] without those that start feedback; a trigger configured for both starts feedback only. */
-internal fun panelTriggers(triggers: Set<DevTrigger>, feedbackEntry: FeedbackEntry?): Set<DevTrigger> {
-    val shared = triggers intersect feedbackEntry?.triggers.orEmpty()
+/** [triggers] without those an extension claims; a trigger configured for both is left to the extension. */
+internal fun panelTriggers(triggers: Set<DevTrigger>, claimed: Set<DevTrigger>): Set<DevTrigger> {
+    val shared = triggers intersect claimed
     if (shared.isEmpty()) return triggers
-    Log.w("AwlDebug", "Triggers $shared start feedback, not the DevSheet")
+    Log.w("AwlDebug", "Triggers $shared are handled by an extension, not by the DevSheet")
     return triggers - shared
 }
 

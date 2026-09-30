@@ -22,6 +22,8 @@ internal data class NetworkEntry(
     val error: String?,
     val redactedCount: Int,
     val isSlow: Boolean,
+    /** Why the request failed (`timeout`, `dns`, `tls`, `cancelled`, `connection`); `null` with a response. */
+    val errorCode: String? = error?.let(::networkErrorCode),
 ) {
     val isFailed: Boolean get() = status == 0
 }
@@ -36,3 +38,19 @@ internal data class CapturedBody(
     /** `false` when [text] is a placeholder instead of the body content. */
     val isContent: Boolean = true,
 )
+
+/**
+ * Short error code for a failed request: `timeout`, `dns`, `tls`, `cancelled` or `connection`.
+ * [error] is the `toString()` of the exception, so it starts with the class name.
+ */
+internal fun networkErrorCode(error: String?): String {
+    val type = error?.substringBefore(':')?.trim().orEmpty()
+    val message = error?.substringAfter(':', "")?.trim().orEmpty()
+    return when {
+        type.endsWith("SocketTimeoutException") || type.endsWith("InterruptedIOException") && message == "timeout" -> "timeout"
+        type.endsWith("UnknownHostException") -> "dns"
+        type.startsWith("javax.net.ssl.") || type.contains("SSL") -> "tls"
+        message.equals("Canceled", ignoreCase = true) -> "cancelled"
+        else -> "connection"
+    }
+}

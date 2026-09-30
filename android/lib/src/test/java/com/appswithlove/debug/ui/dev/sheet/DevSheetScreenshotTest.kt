@@ -5,11 +5,17 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import com.appswithlove.debug.api.DevConfig
+import com.appswithlove.debug.api.extension.AwlDebugExtensions
+import com.appswithlove.debug.api.extension.DevExtensionAction
+import com.appswithlove.debug.api.extension.DevExtensionItem
+import com.appswithlove.debug.api.extension.DevExtensionSection
+import com.appswithlove.debug.api.extension.DevTextStyle
 import com.appswithlove.debug.domain.storage.DevStore
 import com.appswithlove.debug.ui.dev.log.LogHistory
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import com.github.takahirom.roborazzi.captureScreenRoboImage
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.runBlocking
 import org.junit.Rule
 import org.junit.Test
@@ -46,6 +52,35 @@ class DevSheetScreenshotTest {
     fun homeLargeFont() {
         openPanel()
         captureScreenRoboImage("src/test/screenshots/DevSheet_home_font200.png")
+    }
+
+    @Test
+    fun homeWithExtensionSections() {
+        val status = DevExtensionSection(
+            id = "status",
+            order = 10,
+            items = MutableStateFlow(
+                listOf(
+                    DevExtensionItem.Title("Demo extension: On", DevExtensionAction("Run now") {}),
+                    DevExtensionItem.Text("Last run failed.", DevTextStyle.Error),
+                    DevExtensionItem.Text("12 waiting · Last run 10:15:30"),
+                    DevExtensionItem.Text("ID: 3f2a9c1e", DevTextStyle.Monospace, copyValue = "3f2a9c1e"),
+                    DevExtensionItem.Switch("Enabled on this device", checked = true) {},
+                ),
+            ),
+        )
+        val link = DevExtensionSection(
+            id = "link",
+            order = 20,
+            items = MutableStateFlow(listOf(DevExtensionItem.Link("Open demo", badge = "2 waiting") {})),
+        )
+        val registrations = listOf(AwlDebugExtensions.register(status), AwlDebugExtensions.register(link))
+        try {
+            openPanel()
+            captureScreenRoboImage("src/test/screenshots/DevSheet_home_extensions.png")
+        } finally {
+            registrations.forEach(AutoCloseable::close)
+        }
     }
 
     @Test

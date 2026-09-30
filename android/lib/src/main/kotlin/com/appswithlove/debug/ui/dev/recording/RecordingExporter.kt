@@ -1,5 +1,7 @@
 package com.appswithlove.debug.ui.dev.recording
 
+import com.appswithlove.debug.api.extension.DevRecordingExport
+import com.appswithlove.debug.api.extension.DevRecordingExportOptions
 import com.appswithlove.debug.ui.dev.recording.RecordingBuffer.Companion.frameTimeMillis
 import java.io.File
 import java.text.SimpleDateFormat
@@ -11,19 +13,13 @@ import java.util.zip.ZipOutputStream
 /** `recording.mp4` with its optional contact sheet and timeline. */
 internal data class RecordingFiles(val video: File, val frames: File?, val timeline: File?)
 
-/** Result of preparing a recording for feedback; [files] is `null` when the video stayed too large. */
-internal data class FeedbackRecording(val files: RecordingFiles?)
-
 /**
  * Turns the frames of a recording folder into `recording.mp4`, `frames.jpg` and `timeline.md`, either all frames as a
- * ZIP to share or the last minute for feedback (within the feedback service limits). Blocking, call it off the main thread.
+ * ZIP to share or as files within the limits a caller sets. Blocking, call it off the main thread.
  */
 internal object RecordingExporter {
     const val FPS = 3
     const val MAX_VIDEO_LONG_EDGE = 1280
-    const val FEEDBACK_MAX_FRAMES = 60 * FPS
-    const val FEEDBACK_MAX_VIDEO_BYTES = 25L * 1024 * 1024
-    const val TIMELINE_MAX_BYTES = 256 * 1024
     const val VIDEO_FILE = "recording.mp4"
     const val FRAMES_FILE = "frames.jpg"
     const val TIMELINE_FILE = "timeline.md"
@@ -51,24 +47,29 @@ internal object RecordingExporter {
     }
 
     /**
-     * Writes the last [FEEDBACK_MAX_FRAMES] frames of [recordingDir] into [outputDir]. A video above
-     * [FEEDBACK_MAX_VIDEO_BYTES] is encoded once more at half the size; if it is still too large, no files are
-     * returned. Returns `null` when the recording has no readable frame.
+     * Writes the frames of [recordingDir] within [options] into [outputDir], replacing earlier files there. A video
+     * above `maxVideoBytes` is encoded once more at half the size; if it is still too large, all files are `null`.
+     * Returns `null` when the recording has no readable frame.
      */
-    fun exportForFeedback(recordingDir: File, outputDir: File): FeedbackRecording? {
+    fun export(recordingDir: File, outputDir: File, options: DevRecordingExportOptions): DevRecordingExport? {
         outputDir.deleteRecursively()
         outputDir.mkdirs()
-        val frames = RecordingBuffer.frameFiles(recordingDir).takeLast(FEEDBACK_MAX_FRAMES)
+        val allFrames = RecordingBuffer.frameFiles(recordingDir)
+        val frames = options.lastSeconds?.let { seconds -> allFrames.takeLast((seconds * FPS).coerceAtLeast(0)) } ?: allFrames
+        val maxVideoBytes = options.maxVideoBytes ?: Long.MAX_VALUE
+        val maxTimelineBytes = options.maxTimelineBytes?.toLong() ?: Long.MAX_VALUE
         var longEdge = MAX_VIDEO_LONG_EDGE
         repeat(2) {
             val files = writeFiles(frames, recordingDir, outputDir, longEdge) ?: return null
-            if (files.video.length() <= FEEDBACK_MAX_VIDEO_BYTES) {
-                return FeedbackRecording(files.copy(timeline = files.timeline?.takeIf { it.length() <= TIMELINE_MAX_BYTES }))
+            if (files.video.length() <= maxVideoBytes) {
+                val timeline = files.timeline?.takeIf { it.length() <= maxTimelineBytes }
+                if (timeline == null) files.timeline?.delete()
+                return DevRecordingExport(video = files.video, frames = files.frames, timeline = timeline)
             }
             longEdge /= 2
         }
         outputDir.deleteRecursively()
-        return FeedbackRecording(files = null)
+        return DevRecordingExport(video = null, frames = null, timeline = null)
     }
 
     private fun writeFiles(frames: List<File>, recordingDir: File, outputDir: File, maxLongEdge: Int): RecordingFiles? {

@@ -7,6 +7,7 @@ import android.media.MediaExtractor
 import android.media.MediaFormat
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.appswithlove.debug.api.extension.DevRecordingExportOptions
 import java.io.File
 import java.util.Locale
 import java.util.zip.ZipFile
@@ -51,15 +52,14 @@ class RecordingExporterTest {
     }
 
     @Test
-    fun exportForFeedback_keepsTheLastMinuteWithinTheContractLimits() {
+    fun export_keepsTheLastSecondsWithinTheLimits() {
         writeFrames(count = 200, width = 1080, height = 2340)
 
-        val files = RecordingExporter.exportForFeedback(recording, File(root, "feedback"))?.files
+        val export = RecordingExporter.export(recording, File(root, "export"), limits)
 
-        assertNotNull(files)
-        val video = files!!.video
+        val video = export!!.video!!
         assertEquals("ftyp", String(video.readBytes().copyOfRange(4, 8), Charsets.US_ASCII))
-        assertTrue(video.length() <= RecordingExporter.FEEDBACK_MAX_VIDEO_BYTES)
+        assertTrue(video.length() <= limits.maxVideoBytes!!)
         val format = videoFormat(video)
         val width = format.getInteger(MediaFormat.KEY_WIDTH)
         val height = format.getInteger(MediaFormat.KEY_HEIGHT)
@@ -67,17 +67,58 @@ class RecordingExporterTest {
         assertTrue("$width x $height", maxOf(width, height) <= 1280 && width % 2 == 0 && height % 2 == 0)
         assertEquals(180, sampleCount(video))
 
-        val sheet = BitmapFactory.decodeFile(files.frames!!.path)
+        val sheet = BitmapFactory.decodeFile(export.frames!!.path)
         assertEquals(4 * 270, sheet.width)
-        assertTrue(files.frames.length() <= 5 * 1024 * 1024)
-        val timeline = files.timeline!!.readText()
+        assertTrue(export.frames!!.length() <= 5 * 1024 * 1024)
+        val timeline = export.timeline!!.readText()
         assertTrue(timeline, timeline.contains("· frames: 180 · fps: 3"))
     }
 
     @Test
-    fun exportForFeedback_withoutFrames_returnsNull() {
-        assertNull(RecordingExporter.exportForFeedback(recording, File(root, "feedback")))
+    fun export_tooLargeVideo_isEncodedAgainAtHalfSize() {
+        writeFrames(count = 30, width = 1080, height = 2340)
+        val fullSize = RecordingExporter.export(recording, File(root, "full"), DevRecordingExportOptions())!!.video!!.length()
+
+        val export = RecordingExporter.export(recording, File(root, "export"), DevRecordingExportOptions(maxVideoBytes = fullSize - 1))
+
+        val video = export!!.video!!
+        assertTrue(video.length() < fullSize)
+        val format = videoFormat(video)
+        assertTrue(maxOf(format.getInteger(MediaFormat.KEY_WIDTH), format.getInteger(MediaFormat.KEY_HEIGHT)) <= 640)
+        assertNotNull(export.frames)
+        assertNotNull(export.timeline)
     }
+
+    @Test
+    fun export_videoStillTooLargeAtHalfSize_returnsNoFiles() {
+        writeFrames(count = 30, width = 1080, height = 2340)
+        val output = File(root, "export")
+
+        val export = RecordingExporter.export(recording, output, DevRecordingExportOptions(maxVideoBytes = 1))
+
+        assertNotNull(export)
+        assertNull(export!!.video)
+        assertNull(export.frames)
+        assertNull(export.timeline)
+        assertTrue(output.listFiles().isNullOrEmpty())
+    }
+
+    @Test
+    fun export_tooLargeTimeline_isLeftOut() {
+        writeFrames(count = 12, width = 1080, height = 2340)
+
+        val export = RecordingExporter.export(recording, File(root, "export"), DevRecordingExportOptions(maxTimelineBytes = 1))
+
+        assertNotNull(export!!.video)
+        assertNull(export.timeline)
+    }
+
+    @Test
+    fun export_withoutFrames_returnsNull() {
+        assertNull(RecordingExporter.export(recording, File(root, "export"), limits))
+    }
+
+    private val limits = DevRecordingExportOptions(lastSeconds = 60, maxVideoBytes = 25L * 1024 * 1024, maxTimelineBytes = 256 * 1024)
 
     private fun writeFrames(count: Int, width: Int, height: Int) {
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
