@@ -5,7 +5,8 @@ import Network
 /// `queue`, one task at a time, so callers never block on disk access.
 ///
 /// A session starts with the first foreground (or the first captured request, if earlier) and ends
-/// when the app goes to the background; returning within `sessionTimeout` continues it.
+/// when the app goes to the background; returning within `sessionTimeout` continues it. Switching sending
+/// off ends the session; while it is off, no session starts.
 ///
 /// Batches go out every `flushInterval` in the foreground, when the app goes to the background, when the
 /// network comes back and on `flush`.
@@ -25,14 +26,18 @@ final class RemoteReporter {
     private let maxBodyBytes: Int
     private let now: () -> Int64
     private let uptime: () -> TimeInterval
-    private var sampler: ReportingMetricsSampler?
+    private(set) var sampler: ReportingMetricsSampler?
     private var userIdentifier: String?
     private(set) var session: ReportingSession?
     private var backgroundSince: TimeInterval?
+    private var isForeground = false
     let uploader: ReportingUploader?
     private var flushTimer: DispatchSourceTimer?
+    private let monitorsNetwork: Bool
     private var pathMonitor: NWPathMonitor?
     private var path: NWPath?
+    /// Neither expensive nor constrained; `nil` until the path monitor's first update.
+    private var isUnmeteredNetwork: Bool?
     /// The panel's "Send session data" switch.
     private var isEnabled = true
     /// Called on `queue` whenever the session or the upload state changes.
@@ -45,11 +50,13 @@ final class RemoteReporter {
          // Keeps counting while the device sleeps, unlike `systemUptime`, so a locked phone still ends the session.
          uptime: @escaping () -> TimeInterval = { TimeInterval(clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW)) / 1_000_000_000 },
          samplesMetrics: Bool = true,
-         uploads: Bool = true) {
+         uploads: Bool = true,
+         monitorsNetwork: Bool = true) {
         self.config = config
         self.buffer = buffer
         self.now = now
         self.uptime = uptime
+        self.monitorsNetwork = monitorsNetwork
         var endpoint = config.endpoint.absoluteString
         while endpoint.hasSuffix("/") {
             endpoint.removeLast()
@@ -73,19 +80,26 @@ final class RemoteReporter {
             for session in buffer.load() {
                 buffer.seal(sessionId: session.id, finish: true)
             }
-            if uploader != nil {
+            if uploader != nil, monitorsNetwork {
                 startPathMonitor()
             }
             uploader?.send(ignoringBackoff: true)
         }
     }
 
-    /// The panel's "Send session data" switch: off records and sends nothing.
+    /// The panel's "Send session data" switch. Off ends the session, stops sampling, records and sends nothing;
+    /// on again starts a new session in the foreground and sends what is left.
     func setEnabled(_ enabled: Bool) {
         queue.async { [self] in
+            guard enabled != isEnabled else { return }
             isEnabled = enabled
             if enabled {
+                if isForeground, isRecording {
+                    beginSession(backgroundSince: nil)
+                }
                 uploader?.send(ignoringBackoff: true)
+            } else {
+                endSession()
             }
         }
     }
@@ -96,35 +110,61 @@ final class RemoteReporter {
 
     private var canSend: Bool {
         guard isEnabled else { return false }
-        guard config.onlyOnUnmeteredNetwork, let path else { return true }
-        return !path.isExpensive && !path.isConstrained
+        guard config.onlyOnUnmeteredNetwork else { return true }
+        // Unknown until the path monitor's first update: wait rather than send over a metered network.
+        return isUnmeteredNetwork == true
     }
 
     func onForeground() {
         queue.async { [self] in
             let since = backgroundSince
             backgroundSince = nil
-            if let current = session, since.map({ uptime() - $0 < Self.sessionTimeout }) ?? true {
-                if current.endedAtMillis != nil {
-                    var resumed = current
-                    resumed.endedAtMillis = nil
-                    update(resumed)
-                }
-            } else {
-                if let current = session {
-                    buffer.seal(sessionId: current.id, finish: true)
-                }
-                newSession()
+            isForeground = true
+            if isRecording {
+                beginSession(backgroundSince: since)
             }
-            sampler?.start()
-            startFlushTimer()
         }
+    }
+
+    /// Continues the session after less than `sessionTimeout` in the background, otherwise starts a new one, and
+    /// starts sampling and the flush timer.
+    private func beginSession(backgroundSince since: TimeInterval?) {
+        if let current = session, since.map({ uptime() - $0 < Self.sessionTimeout }) ?? true {
+            if current.endedAtMillis != nil {
+                var resumed = current
+                resumed.endedAtMillis = nil
+                update(resumed)
+            }
+        } else {
+            if let current = session {
+                buffer.seal(sessionId: current.id, finish: true)
+            }
+            newSession()
+        }
+        sampler?.start()
+        startFlushTimer()
+    }
+
+    /// Sending was switched off: the session ends now and goes out with the next send once it is on again.
+    private func endSession() {
+        sampler?.stop()
+        flushTimer?.cancel()
+        flushTimer = nil
+        guard var current = session else { return }
+        if current.endedAtMillis == nil {
+            current.endedAtMillis = now()
+            update(current)
+        }
+        buffer.seal(sessionId: current.id, finish: true)
+        session = nil
+        publish()
     }
 
     /// Ends the session and sends what is left; `completion` runs on `queue` once nothing is in flight.
     func onBackground(completion: (() -> Void)? = nil) {
         queue.async { [self] in
             backgroundSince = uptime()
+            isForeground = false
             sampler?.stop()
             flushTimer?.cancel()
             flushTimer = nil
@@ -199,19 +239,27 @@ final class RemoteReporter {
         flushTimer = timer
     }
 
-    /// Sends right away when the device gets a (different) network again, e.g. after flight mode.
     private func startPathMonitor() {
         let monitor = NWPathMonitor()
         monitor.pathUpdateHandler = { [weak self] path in
             guard let self else { return }
-            let previous = self.path
+            let isOtherPath = self.path.map { path != $0 } ?? true
             self.path = path
-            if let previous, path.status == .satisfied, path != previous {
-                self.send(ignoringBackoff: true, completion: nil)
-            }
+            self.networkChanged(isSatisfied: path.status == .satisfied,
+                                isUnmetered: !path.isExpensive && !path.isConstrained,
+                                isOtherPath: isOtherPath)
         }
         monitor.start(queue: queue)
         pathMonitor = monitor
+    }
+
+    /// Call on `queue`. Sends right away when the device gets a (different) network again, e.g. after flight mode,
+    /// and on the first update when only unmetered networks may be used, because sending waited for it.
+    func networkChanged(isSatisfied: Bool, isUnmetered: Bool, isOtherPath: Bool) {
+        let isFirstUpdate = isUnmeteredNetwork == nil
+        isUnmeteredNetwork = isUnmetered
+        guard isSatisfied, isOtherPath, !isFirstUpdate || config.onlyOnUnmeteredNetwork else { return }
+        send(ignoringBackoff: true, completion: nil)
     }
 
     private func publish() {

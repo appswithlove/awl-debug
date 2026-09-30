@@ -29,11 +29,12 @@ final class RemoteReportingTests: XCTestCase {
     // MARK: - Helpers
 
     private func makeReporter(config: RemoteReportingConfig? = nil, maxBytes: Int = ReportingBuffer.defaultMaxBytes,
-                              appUserId: String? = nil, samplesMetrics: Bool = false, uploads: Bool = false) -> RemoteReporter {
+                              appUserId: String? = nil, samplesMetrics: Bool = false, uploads: Bool = false,
+                              monitorsNetwork: Bool = true) -> RemoteReporter {
         let buffer = ReportingBuffer(root: directory, maxBytes: maxBytes) { [unowned self] in now }
         let reporter = RemoteReporter(config: config ?? self.config, buffer: buffer, appUserId: appUserId,
                                       now: { [unowned self] in now }, uptime: { [unowned self] in uptime },
-                                      samplesMetrics: samplesMetrics, uploads: uploads)
+                                      samplesMetrics: samplesMetrics, uploads: uploads, monitorsNetwork: monitorsNetwork)
         reporter.start()
         return reporter
     }
@@ -384,6 +385,7 @@ final class RemoteReportingTests: XCTestCase {
         let server = try LocalHTTPServer()
         defer { server.stop() }
         let reporter = uploadingReporter(to: server)
+        let first = try XCTUnwrap(reporter.queue.sync { reporter.session })
         reporter.setEnabled(false)
         reporter.record(metric(at: now))
         flushAndWait(reporter)
@@ -392,10 +394,70 @@ final class RemoteReportingTests: XCTestCase {
         reporter.setEnabled(true)
         reporter.record(metric(at: now + 5_000))
         flushAndWait(reporter)
-        XCTAssertEqual(server.hitCount("/v1/sessions/batch"), 1)
+        // The session that was on when sending was switched off ends with its own batch; a new one has the metric.
+        XCTAssertEqual(server.hitCount("/v1/sessions/batch"), 2)
         let body = try XCTUnwrap(server.receivedBody("/v1/sessions/batch").flatMap(gunzip))
         let batch = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
         XCTAssertEqual((batch["metrics"] as? [Any])?.count, 1)
+        XCTAssertNotEqual((batch["session"] as? [String: Any])?["id"] as? String, first.id)
+    }
+
+    func testSendingSwitchOffEndsTheSessionAndStartsNoNewOne() throws {
+        let reporter = makeReporter(samplesMetrics: true)
+        reporter.onForeground()
+        reporter.record(metric(at: now))
+        now += 2_000
+        reporter.setEnabled(false)
+        drain(reporter)
+        XCTAssertNil(reporter.session)
+        XCTAssertFalse(reporter.queue.sync { reporter.sampler?.isRunning ?? true })
+        let ended = try batches(reporter)
+        XCTAssertEqual(ended.count, 1)
+        XCTAssertEqual((ended.first?["session"] as? [String: Any])?["endedAt"] as? String, ReportingJSON.timestamp(now))
+
+        for _ in 0..<3 {
+            uptime += 31 * 60
+            reporter.onForeground()
+            reporter.record(metric(at: now))
+            reporter.onBackground()
+        }
+        drain(reporter)
+        XCTAssertNil(reporter.session)
+        XCTAssertFalse(reporter.queue.sync { reporter.sampler?.isRunning ?? true })
+        XCTAssertEqual(try batches(reporter).count, 1, "no new session or batch while sending is off")
+    }
+
+    func testSendingSwitchedOffBeforeTheFirstForegroundSealsNothing() throws {
+        let reporter = makeReporter(samplesMetrics: true)
+        reporter.setEnabled(false)
+        for _ in 0..<3 {
+            reporter.onForeground()
+            reporter.onBackground()
+        }
+        drain(reporter)
+        XCTAssertNil(reporter.session)
+        XCTAssertTrue(reporter.buffer.sealedBatches().isEmpty)
+    }
+
+    func testUnmeteredOnlyWaitsForTheFirstNetworkUpdate() throws {
+        let server = try LocalHTTPServer()
+        defer { server.stop() }
+        var config = config
+        config.endpoint = server.url("/")
+        config.onlyOnUnmeteredNetwork = true
+        let reporter = makeReporter(config: config, uploads: true, monitorsNetwork: false)
+        reporter.onForeground()
+        reporter.record(metric(at: now))
+        flushAndWait(reporter)
+        XCTAssertEqual(server.hitCount("/v1/sessions/batch"), 0, "network type still unknown")
+
+        reporter.queue.sync { reporter.networkChanged(isSatisfied: true, isUnmetered: false, isOtherPath: true) }
+        flushAndWait(reporter)
+        XCTAssertEqual(server.hitCount("/v1/sessions/batch"), 0, "metered network")
+
+        reporter.queue.sync { reporter.networkChanged(isSatisfied: true, isUnmetered: true, isOtherPath: true) }
+        flushAndWait(reporter)
+        XCTAssertEqual(server.hitCount("/v1/sessions/batch"), 1)
     }
 
     func testRetryAfterParsing() {
