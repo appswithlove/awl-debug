@@ -17,6 +17,8 @@ final class ScreenRecorder: NSObject {
     private var isEncoding = false
     private var maxFrames = 300 * framesPerSecond
     private var isLandscape: Bool?
+    /// `true` while the keyboard is up for one of the SDK's own windows.
+    private var isKeyboardForSDK = false
     private var recognizers: [ObjectIdentifier: (window: Weak<UIWindow>, recognizer: RecordingTouchRecognizer)] = [:]
 
     /// `true` while the panel is open; no frames are taken then.
@@ -71,6 +73,7 @@ final class ScreenRecorder: NSObject {
         timer = nil
         touches = [:]
         isLandscape = nil
+        isKeyboardForSDK = false
         NotificationCenter.default.removeObserver(self)
         for entry in recognizers.values {
             entry.window.value?.removeGestureRecognizer(entry.recognizer)
@@ -138,11 +141,23 @@ final class ScreenRecorder: NSObject {
     }
 
     @objc private func keyboardWillShow() {
-        noteEvent("keyboard shown")
+        isKeyboardForSDK = !Self.isKeyboardForApp(keyWindow: Self.activeScene()?.keyWindow)
+        if !isKeyboardForSDK {
+            noteEvent("keyboard shown")
+        }
     }
 
     @objc private func keyboardDidHide() {
-        noteEvent("keyboard hidden")
+        if !isKeyboardForSDK {
+            noteEvent("keyboard hidden")
+        }
+        isKeyboardForSDK = false
+    }
+
+    /// The keyboard types into the key window. Typing a report in the SDK's own windows (e.g. the feedback form) is not
+    /// the app being used: that keyboard takes no frames of the screen below and adds no timeline rows.
+    static func isKeyboardForApp(keyWindow: UIWindow?) -> Bool {
+        keyWindow.map(RecordingFrameRenderer.isAppWindow) ?? true
     }
 
     private func noteEvent(_ text: String, at date: Date = Date()) {

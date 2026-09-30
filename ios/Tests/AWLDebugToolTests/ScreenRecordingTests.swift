@@ -173,6 +173,17 @@ final class ScreenRecordingTests: XCTestCase {
         XCTAssertFalse(ScreenRecorder.isTypingInApp(Notification(name: UITextField.textDidChangeNotification, object: UITextField())))
     }
 
+    func testKeyboardCountsForAppWindowsOnly() {
+        let appWindow = UIWindow(frame: CGRect(x: 0, y: 0, width: 300, height: 400))
+        let feedbackWindow = UIWindow(frame: CGRect(x: 0, y: 0, width: 300, height: 400))
+        feedbackWindow.accessibilityIdentifier = RecordingFrameRenderer.sdkWindowIdentifier
+
+        XCTAssertTrue(ScreenRecorder.isKeyboardForApp(keyWindow: appWindow))
+        XCTAssertFalse(ScreenRecorder.isKeyboardForApp(keyWindow: feedbackWindow),
+                       "the feedback form's keyboard is no activity and no timeline row")
+        XCTAssertTrue(ScreenRecorder.isKeyboardForApp(keyWindow: nil))
+    }
+
     // AK-REC-5: after a crash the frames of the previous run are the last recording.
     func testRotationKeepsThePreviousRunAsLastRecording() throws {
         let root = FileManager.default.temporaryDirectory.appending(path: "recording-\(UUID().uuidString)")
