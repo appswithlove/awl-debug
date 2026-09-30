@@ -103,12 +103,7 @@ public struct DebugView: View {
 
                 FCMPushTokenView(fcmToken: fcmToken)
 
-                ScreenRecordingView(isScreenRecordingOn: $screenRecorder.isScreenRecordingOn,
-                                    isScreenRecordingOnByDefault: $screenRecorder.isScreenRecordingOnByDefault,
-                                    exportLastVideo: screenRecorder.exportLastVideo,
-                                    isExportingVideo: screenRecorder.isExportingVideo,
-                                    exportCurrentVideo: screenRecorder.exportCurrentVideo,
-                                    maxVideoDuration: $screenRecorder.maxVideoDuration)
+                ScreenRecordingView(model: screenRecorder)
 
                 UserDefaultsView(appGroupIdentifiers: debugTool.appGroupIdentifiers)
 

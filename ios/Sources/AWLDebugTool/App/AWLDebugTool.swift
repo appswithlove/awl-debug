@@ -21,21 +21,25 @@ public class AWLDebugTool: ObservableObject {
     /// `AWLDebugTool.processDeeplinkNotificationIfNeeded()`.
     ///
     /// - Parameters:
-    ///   - isScreenRecordingOn: Initial value for screen recording.
-    ///     Can be changed later from the debug panel.
     ///   - deeplinks: help to test deeplinks
-    ///   - config: Network capture, redaction and session provider options.
-    public static func start(isScreenRecordingOn: Bool = false, deeplinks: DeepLinkStartModel? = nil, config: AWLDebugConfig = AWLDebugConfig()) {
-        start(isScreenRecordingOn: isScreenRecordingOn, deeplinks: deeplinks, sessionProviders: config.sessionProviders, config: config)
+    ///   - config: Network capture, redaction, screen recording and session provider options.
+    public static func start(deeplinks: DeepLinkStartModel? = nil, config: AWLDebugConfig = AWLDebugConfig()) {
+        start(deeplinks: deeplinks, sessionProviders: config.sessionProviders, config: config)
+    }
+
+    @available(*, deprecated, message: "Set AWLDebugConfig.screenRecording.isOnByDefault")
+    public static func start(isScreenRecordingOn: Bool, deeplinks: DeepLinkStartModel? = nil, config: AWLDebugConfig = AWLDebugConfig()) {
+        start(deeplinks: deeplinks, sessionProviders: config.sessionProviders,
+              config: config.recordingOnByDefault(isScreenRecordingOn))
     }
 
     @available(*, deprecated, message: "Pass AWLTokenProvider in AWLDebugConfig.sessionProviders")
     public static func start(isScreenRecordingOn: Bool = false, deeplinks: DeepLinkStartModel? = nil, tokens: [AWLDebugTool.TokenDebugModel], config: AWLDebugConfig = AWLDebugConfig()) {
-        start(isScreenRecordingOn: isScreenRecordingOn, deeplinks: deeplinks,
-              sessionProviders: tokens.map(\.provider) + config.sessionProviders, config: config)
+        start(deeplinks: deeplinks, sessionProviders: tokens.map(\.provider) + config.sessionProviders,
+              config: config.recordingOnByDefault(isScreenRecordingOn))
     }
 
-    private static func start(isScreenRecordingOn: Bool, deeplinks: DeepLinkStartModel?, sessionProviders: [any AWLSessionProvider], config: AWLDebugConfig) {
+    private static func start(deeplinks: DeepLinkStartModel?, sessionProviders: [any AWLSessionProvider], config: AWLDebugConfig) {
         Task { @MainActor in
             shared.performance.updateSampling()
             shared.sessionManager.providers = sessionProviders
@@ -51,11 +55,21 @@ public class AWLDebugTool: ObservableObject {
             VersionOverlayPresenter.shared.isAvailable = config.showVersionOverlay
             VersionOverlayPresenter.shared.update()
         }
-        shared.screenRecorder.initialise(isScreenRecordingOn: isScreenRecordingOn)
+        Task { @MainActor in
+            shared.screenRecorder.initialise(config: config.screenRecording)
+        }
         
         if let deeplinks {
             shared.deeplinksManager.start(with: deeplinks)
         }
+    }
+}
+
+private extension AWLDebugConfig {
+    func recordingOnByDefault(_ isOn: Bool) -> AWLDebugConfig {
+        var config = self
+        config.screenRecording.isOnByDefault = config.screenRecording.isOnByDefault || isOn
+        return config
     }
 }
 

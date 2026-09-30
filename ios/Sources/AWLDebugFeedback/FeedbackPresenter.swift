@@ -73,6 +73,7 @@ final class FeedbackPresenter {
         let root = UIViewController()
         root.view.backgroundColor = .clear
         let window = UIWindow(windowScene: scene)
+        window.accessibilityIdentifier = "AWLDebugWindow" // Not in screen recordings.
         window.windowLevel = .alert + 1
         window.rootViewController = root
         window.makeKeyAndVisible()

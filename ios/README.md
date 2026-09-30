@@ -30,13 +30,13 @@ struct MyApp: App {
     init() {
 #if DEBUG || STAGING
         AWLDebugTool.start(
-            isScreenRecordingOn: false, // 1. Enable screen recording
             deeplinks: .init(               // optional, lets you fire/pre-configure deeplinks from the debug panel
                 deeplinks: [AWLDeeplink(title: "Home", url: "myapp://home")],
                 handler: .uiApplicationSharedOpen // or .custom { url in ... } if you don't use URL schemes
             ),
             config: {
                 var config = AWLDebugConfig()
+                config.screenRecording.isOnByDefault = false // screen recording, see 12.
                 // optional, shows session tokens and lets testers edit, invalidate, log in and out
                 config.sessionProviders = [
                     AWLTokenProvider(label: "Access Token",
@@ -138,16 +138,32 @@ The Logs module shows the app's own unified-log entries (`os_log`, `Logger`, Ker
 - CPU is the process's share of all cores (0–100 %), battery level comes from `UIDevice`, and a main-thread ping waiting longer than 700 ms counts as a UI freeze
 
 ### 12. Screen recording
-- you can switch ON/OFF recording via debug panel. (default state you can set by AWLDebugTool.start(isScreenRecordingOn: true))
-- it is possible to share last video: if app crashes, the video contains steps to reproduce crash.
-- it is possible to share current video: if you found a bug you can attach the video. Last frame of the video contains the app version.
-- you can limit duration of videos. By default it is 5 minutes.
+- Records the app's own windows (sheets and alerts included, not the debug panel, feedback or the keyboard) as frames, 3 per second and only while the app is used: up to one second after a touch, keyboard or orientation change, plus two frames after that. Touches show as circles (green where they begin, red where they end).
+- Switch it on or off in the panel; the choice is kept on the device. Defaults come from `AWLDebugConfig.screenRecording`:
+  ```swift
+  config.screenRecording = .init(isOnByDefault: false, maxDuration: .seconds(300)) // 30 s, 1, 5 or 10 min
+  ```
+  `AWLDebugTool.start(isScreenRecordingOn:)` still works but is deprecated.
+- While recording is on, the version overlay shows a red dot. Nothing is recorded while the panel is open or the app is in the background.
+- Frames are kept in `Library/Caches/AWLDebug/recording/current/` and moved to `last/` on the next start, so after a crash the panel shows "Last recording available ({date})" and "Export last recording" contains the steps before the crash.
+- Masking: secure text fields (`UITextField.isSecureTextEntry`, SwiftUI `SecureField`) are always covered with a black rectangle, in the same frame. Mark other views with `.awlDebugMasked()` (SwiftUI) or `view.awlDebugMasked = true` (UIKit). Store builds do not link the SDK, so wrap the marker in your app:
+  ```swift
+  extension View {
+      @ViewBuilder func debugMasked() -> some View {
+  #if AWL_DEBUG
+          awlDebugMasked()
+  #else
+          self
+  #endif
+      }
+  }
+  ```
+- Touches are observed by a gesture recognizer on each app window that never recognises, so the app receives every touch unchanged; nothing is swizzled.
+- Only drawing the windows runs on the main thread; masks, circles, JPEG encoding and file access run in the background, and a frame is skipped while the previous one is still being encoded.
+- The video's time axis is compressed (only active frames), not real time.
 
 NOTES:
-- IMPORTANT: be careful, videos can contain your password!
-- process of recording can be a reason of short FREEZES or PERFORMANCE issues!
-- the video consists of a set of user actions and is not tied to real time.
-- Usually videos have small size, so it is easy to attach to a task.
+- Recordings can contain personal data. Mask sensitive views that are not secure text fields.
 
 ### 13. Settings
 - user can adjust settings for DebugTool

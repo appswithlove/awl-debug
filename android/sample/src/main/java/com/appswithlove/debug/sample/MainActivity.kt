@@ -51,6 +51,7 @@ class MainActivity : ComponentActivity() {
         Timber.plant(DevLogTree())
         openedDeeplink.value = intent?.dataString
         enableEdgeToEdge()
+        logSlowFrames()
         setContent { App(openedDeeplink.value) }
     }
 
@@ -114,6 +115,7 @@ private fun App(openedDeeplink: String? = null) {
                                     Text("CPU load 5 s")
                                 }
                                 FeedbackLauncher(modifier = Modifier.width(IntrinsicSize.Max))
+                                RecordingDemo()
                             }
                             Switch(
                                 modifier = Modifier.align(Alignment.BottomCenter),
