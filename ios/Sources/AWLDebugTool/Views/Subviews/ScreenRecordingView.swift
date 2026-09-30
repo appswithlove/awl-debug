@@ -9,6 +9,13 @@ import SwiftUI
 
 struct ScreenRecordingView: View {
     @ObservedObject var model: ScreenRecorderModel
+    /// The export the tester started, so only its row shows the spinner.
+    @State private var runningExport: Export?
+
+    private enum Export {
+        case last
+        case current
+    }
 
     var body: some View {
         Form {
@@ -49,16 +56,22 @@ struct ScreenRecordingView: View {
                     icon: .export,
                     iconColor: IconColor.action,
                     isDisabled: model.isExportingVideo,
-                    action: model.exportLastVideo
-                )
+                    isInProgress: model.isExportingVideo && runningExport == .last
+                ) {
+                    runningExport = .last
+                    model.exportLastVideo()
+                }
 
                 ProprietaryActionButton(
                     text: LS.Actions.screenRecorderExportCurrent,
                     icon: .export,
                     iconColor: IconColor.action,
                     isDisabled: model.isExportingVideo,
-                    action: model.exportCurrentVideo
-                )
+                    isInProgress: model.isExportingVideo && runningExport == .current
+                ) {
+                    runningExport = .current
+                    model.exportCurrentVideo()
+                }
             }
         }
         .panelPage(LS.Headers.screenRecording)

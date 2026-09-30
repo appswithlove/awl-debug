@@ -16,6 +16,14 @@ struct MainThreadView: View {
     }
 
     var body: some View {
+        if vm.history.isEmpty {
+            CollectingDataRow(title: LS.Performance.freeze, systemImage: "clock.badge.exclamationmark")
+        } else {
+            metrics
+        }
+    }
+
+    private var metrics: some View {
         VStack(alignment: .leading, spacing: 8) {
             Label(latencyTitle, systemImage: "clock.badge.exclamationmark")
             Text(LS.Performance.freezes(count: vm.freezeCount, longestMs: Int(vm.longestFreezeMs)))

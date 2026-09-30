@@ -49,13 +49,9 @@ public struct LogsListView: View {
 
     @ViewBuilder var EmptyLogsList: some View {
         if !networkLogger.didStart {
-            Text(LS.Strings.trackingInfo)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .padding()
+            PanelEmptyState(text: LS.Strings.trackingInfo, systemImage: "network.slash")
         } else if viewModel.filteredLogs.isEmpty {
-            Text(LS.Strings.emptyListOfLogs)
-                .foregroundStyle(.secondary)
+            PanelEmptyState(text: LS.Strings.emptyListOfLogs, systemImage: "network")
         }
     }
 

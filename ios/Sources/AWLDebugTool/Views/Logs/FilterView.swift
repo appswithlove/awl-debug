@@ -44,9 +44,13 @@ struct FilterView: View {
     @ViewBuilder private var RequestMethodsSection: some View {
         Section {
             if filtersStorage.isRequestMethodsContentShown {
-                ActionButtonsSection(deselectAction: networkLogger.deselectAllMethods,
-                                     selectAction: networkLogger.selectAllMethods)
-                RequestMethodsList
+                if networkLogger.methods.isEmpty {
+                    NoValuesYet
+                } else {
+                    ActionButtonsSection(deselectAction: networkLogger.deselectAllMethods,
+                                         selectAction: networkLogger.selectAllMethods)
+                    RequestMethodsList
+                }
             }
         } header: {
             FilterHeader(title: LS.Headers.requestMethods,
@@ -84,9 +88,13 @@ struct FilterView: View {
     @ViewBuilder private var ResponseCodesSection: some View {
         Section {
             if filtersStorage.isResponseCodesContentShown {
-                ActionButtonsSection(deselectAction: networkLogger.deselectAllCodes,
-                                     selectAction: networkLogger.selectAllCodes)
-                ResponseCodesList
+                if networkLogger.codes.isEmpty {
+                    NoValuesYet
+                } else {
+                    ActionButtonsSection(deselectAction: networkLogger.deselectAllCodes,
+                                         selectAction: networkLogger.selectAllCodes)
+                    ResponseCodesList
+                }
             }
         } header: {
             FilterHeader(title: LS.Headers.responseCodes,
@@ -124,9 +132,13 @@ struct FilterView: View {
     @ViewBuilder private var EndpointsSection: some View {
         Section {
             if filtersStorage.isEndpointsContentShown {
-                ActionButtonsSection(deselectAction: networkLogger.deselectAllEndpoints,
-                                     selectAction: networkLogger.selectAllEndpoints)
-                EndpointsList
+                if networkLogger.endpoints.isEmpty {
+                    NoValuesYet
+                } else {
+                    ActionButtonsSection(deselectAction: networkLogger.deselectAllEndpoints,
+                                         selectAction: networkLogger.selectAllEndpoints)
+                    EndpointsList
+                }
             }
         } header: {
             FilterHeader(title: LS.Headers.endpoints,
@@ -157,6 +169,12 @@ struct FilterView: View {
     }
     
     // MARK: - Filter Subviews
+
+    /// Values come from the captured traffic; without requests there is nothing to filter yet.
+    private var NoValuesYet: some View {
+        Text(LS.Strings.emptyListOfLogs)
+            .foregroundStyle(.secondary)
+    }
     
     /// The whole header toggles the group; VoiceOver reads it as one button with its state.
     @ViewBuilder

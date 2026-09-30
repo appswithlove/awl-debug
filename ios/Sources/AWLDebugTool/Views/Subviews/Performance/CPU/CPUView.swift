@@ -17,6 +17,14 @@ struct CPUView: View {
     }
     
     var body: some View {
+        if vm.history.isEmpty {
+            CollectingDataRow(title: LS.Performance.cpu, systemImage: "cpu")
+        } else {
+            metrics
+        }
+    }
+
+    private var metrics: some View {
         VStack(alignment: .leading, spacing: 8) {
             Label(String(format: "\(LS.Performance.cpu): %.1f%%", vm.currentCPUTotalUsage), systemImage: "cpu")
             

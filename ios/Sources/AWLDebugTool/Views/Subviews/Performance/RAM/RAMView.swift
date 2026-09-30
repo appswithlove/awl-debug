@@ -16,8 +16,16 @@ struct RAMView: View {
     }
 
     var body: some View {
+        if vm.history.isEmpty {
+            CollectingDataRow(title: LS.Performance.ram, systemImage: "memorychip")
+        } else {
+            metrics
+        }
+    }
+
+    private var metrics: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Label("RAM: \(Self.fmt(vm.current?.footprint ?? 0))", systemImage: "memorychip")
+            Label("\(LS.Performance.ram): \(Self.fmt(vm.current?.footprint ?? 0))", systemImage: "memorychip")
 
             if let snap = vm.current {
                 // App

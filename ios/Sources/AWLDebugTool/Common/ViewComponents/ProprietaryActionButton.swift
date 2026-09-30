@@ -27,18 +27,22 @@ struct ProprietaryActionButton: View {
     let icon: Image.AppIcon
     let iconColor: IconColor
     let isDisabled: Bool
+    /// Shows a spinner instead of the icon while the action runs.
+    let isInProgress: Bool
     let action: () -> Void
     
     init(text: String,
          icon: Image.AppIcon,
          iconColor: IconColor,
          isDisabled: Bool = false,
+         isInProgress: Bool = false,
          action: @escaping () -> Void
     ) {
         self.text = text
         self.icon = icon
         self.iconColor = iconColor
         self.isDisabled = isDisabled
+        self.isInProgress = isInProgress
         self.action = action
     }
     
@@ -47,13 +51,17 @@ struct ProprietaryActionButton: View {
             HStack {
                 Text(text)
                 Spacer()
-                Image.with(icon: icon)
-                    .foregroundStyle(iconColor.color)
-                    .opacity(isDisabled ? Constants.Values.disabledBtnOpacity : Constants.Values.enabledBtnOpacity)
-                    .accessibilityHidden(true)
+                if isInProgress {
+                    ProgressView()
+                } else {
+                    Image.with(icon: icon)
+                        .foregroundStyle(iconColor.color)
+                        .opacity(isDisabled ? Constants.Values.disabledBtnOpacity : Constants.Values.enabledBtnOpacity)
+                        .accessibilityHidden(true)
+                }
             }
         }
-        .disabled(isDisabled)
+        .disabled(isDisabled || isInProgress)
     }
 }
 #Preview {
