@@ -164,7 +164,8 @@ private fun SwipeToDelete(onDelete: () -> Unit, content: @Composable () -> Unit)
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(imageVector = TablerIcons.Trash, contentDescription = "Delete", tint = MaterialTheme.colorScheme.onError)
+                // Decorative: the row itself offers "Delete" to TalkBack.
+                Icon(imageVector = TablerIcons.Trash, contentDescription = null, tint = MaterialTheme.colorScheme.onError)
             }
         },
     ) {
