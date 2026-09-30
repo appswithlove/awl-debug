@@ -19,8 +19,13 @@ internal fun DevButtonRow(
 ) {
     Layout(content = content, modifier = modifier) { measurables, constraints ->
         if (measurables.isEmpty()) return@Layout layout(0, 0) {}
-        val width = constraints.maxWidth
         val spacingPx = spacing.roundToPx()
+        // Without a width limit (e.g. in a horizontal scroll) the buttons sit side by side, as wide as the widest one.
+        val width = if (constraints.hasBoundedWidth) {
+            constraints.maxWidth
+        } else {
+            measurables.size * measurables.maxOf { it.maxIntrinsicWidth(Constraints.Infinity) } + spacingPx * (measurables.size - 1)
+        }
         val itemWidth = (width - spacingPx * (measurables.size - 1)) / measurables.size
         val fitsSideBySide = measurables.all { it.maxIntrinsicWidth(Constraints.Infinity) <= itemWidth }
         if (fitsSideBySide) {
