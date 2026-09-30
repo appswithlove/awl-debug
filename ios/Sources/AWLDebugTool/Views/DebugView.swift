@@ -33,8 +33,7 @@ public struct DebugView: View {
     public var body: some View {
         NavigationStack {
             Form {
-                AboutView(internetAccesStatusIcon: networkReachabilityManager.connectionStatusIcon.name,
-                          internetAccesStatusColor: networkReachabilityManager.connectionStatusIcon.color)
+                AboutView(isOnline: networkReachabilityManager.isConnected)
 
                 if VersionOverlayPresenter.shared.isAvailable {
                     Section {

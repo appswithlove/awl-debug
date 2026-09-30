@@ -17,7 +17,6 @@ enum LS {
         static let appName = "AWL Debug"
         static let unknownValue = "n/a"
         static let emptyString = ""
-        static let fatalErrorMsg = "Don't worry be happy."
         static let searchLogs = "Search requests"
         static let trackingInfo = "Add AWLDebugTool.start() into AppDelegate/App init() to enable this."
         static let stopTracking = "stop tracking network logs"
@@ -48,7 +47,6 @@ enum LS {
         static let deleteNLTitle = "Delete network logs?"
         static let deleteNLMessage = "All captured requests will be removed."
         
-        static let btnOK = "OK"
         static let btnCancel = "Cancel"
         static let btnDelete = "Delete"
     }
@@ -95,11 +93,6 @@ enum LS {
         static let screenRecorderLastAvailable = "Last recording available (%@)"
         static let screenRecorderEmpty = "No recording yet"
         static let screenRecorderWarning = "Recordings can contain personal data. Secure text fields are masked."
-        
-        // MARK: - Firebase Action
-        static let simulateCrash = "Simulate crash"
-        static let explicitCrash = " - explicit fatal error"
-        static let implicitCrash = " - implicit fatal error"
 
         // MARK: - Session
         static let copy = "Copy"
@@ -196,6 +189,27 @@ enum LS {
         static let provisional = "Provisional"
         static let unknown = "Unknown"
         static let empty = "No permissions declared"
+    }
+
+    struct TestCrashes {
+        static let runtime = "Simulate crash - Runtime exception"
+        static let indexOutOfBounds = "Simulate crash - Index out of bounds"
+        static let confirmTitle = "Crash the app now?"
+        static let confirm = "Crash"
+        static let message = "AWL Debug test crash"
+    }
+
+    struct AppInfo {
+        static let app = "App"
+        static let version = "Version"
+        static let build = "Build"
+        static let device = "Device"
+        static let os = "OS"
+        static let locale = "Locale"
+        static let time = "Time"
+        static let internet = "Internet"
+        static let online = "Online"
+        static let offline = "Offline"
     }
 
     struct ClearData {
