@@ -139,7 +139,7 @@ The Logs module shows the app's own unified-log entries (`os_log`, `Logger`, Ker
 - CPU is the process's share of all cores (0–100 %), battery level comes from `UIDevice`, and a main-thread ping waiting longer than 700 ms counts as a UI freeze
 
 ### 12. Screen recording
-- Records the app's own windows (sheets and alerts included, not the debug panel, feedback or the keyboard) as frames, 3 per second and only while the app is used: up to one second after a touch, typing, a keyboard or orientation change, plus two frames after that. Touches show as circles (green where they begin, red where they end).
+- Records the app's own windows (sheets and alerts included, not the debug panel, feedback or the keyboard) and the version overlay as frames, 3 per second and only while the app is used: up to one second after a touch, typing, a keyboard or orientation change, plus two frames after that. Touches show as circles (green where they begin, red where they end).
 - Switch it on or off in the panel; the choice is kept on the device. Defaults come from `AWLDebugConfig.screenRecording`:
   ```swift
   config.screenRecording = .init(isOnByDefault: false, maxDuration: .seconds(300)) // 30 s, 1, 5 or 10 min
