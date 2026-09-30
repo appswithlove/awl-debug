@@ -115,7 +115,7 @@ internal fun AccessibilityModule(
             text = "Applies to app content inside the debug container only. " +
                 "On Android 12 and later, the appearance applies to the whole app.",
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))

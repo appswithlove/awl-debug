@@ -386,6 +386,9 @@ private fun DevSheetContent(
             modifier = Modifier.statusBarsPadding(),
             onDismissRequest = { hideBottomSheet() },
             containerColor = AppTheme.colors.background,
+            // Text without an explicit color (e.g. a log tag) would otherwise be black on the dark sheet when the
+            // host theme is inherited, because the sheet color is not part of the host color scheme.
+            contentColor = MaterialTheme.colorScheme.onSurface,
             sheetState = sheetState,
             sheetGesturesEnabled = swipeToDismiss,
             dragHandle = if (swipeToDismiss) {

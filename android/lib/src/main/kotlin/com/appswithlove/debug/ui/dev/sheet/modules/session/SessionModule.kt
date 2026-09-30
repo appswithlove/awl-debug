@@ -89,7 +89,7 @@ internal fun ProviderStatusRow(state: SessionManager.ProviderState) {
         Text(
             text = state.provider.label,
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }

@@ -149,16 +149,14 @@ internal fun LogsModule(
                             Text(
                                 text = listTimeFormat.format(Date(entry.timestamp)),
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                             Text(
                                 text = buildAnnotatedString {
                                     if (entry.severity != null) {
                                         val tagColor = when (entry.severity) {
                                             DevLogSeverity.DEBUG -> {
-                                                MaterialTheme.colorScheme.onSurface.copy(
-                                                    alpha = 0.5f,
-                                                )
+                                                MaterialTheme.colorScheme.onSurfaceVariant
                                             }
 
                                             DevLogSeverity.INFO -> AppTheme.colors.info
@@ -234,7 +232,7 @@ internal fun LogsModule(
             )
             Text(
                 text = maxLogsSize.value.toString(),
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Icon(
                 painter = painterResource(R.drawable.ic_chevron_right),
