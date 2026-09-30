@@ -27,7 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.appswithlove.debug.R
 import com.appswithlove.debug.api.DevScreenRecordingConfig
-import com.appswithlove.debug.ui.component.DevSwitch
+import com.appswithlove.debug.ui.component.DevSwitchRow
 import com.appswithlove.debug.ui.component.SelectionDialog
 import com.appswithlove.debug.ui.component.findActivity
 import com.appswithlove.debug.ui.component.shareFile
@@ -55,13 +55,10 @@ internal fun ScreenRecordingModule(modifier: Modifier = Modifier) {
     val isExporting = remember { mutableStateOf(false) }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val secondaryColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+    val secondaryColor = MaterialTheme.colorScheme.onSurfaceVariant
 
-    Column(modifier = modifier.padding(vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text(text = "Screen recording", modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurface)
-            DevSwitch(checked = isOn, onCheckedChange = ScreenRecorder::setOn)
-        }
+    Column(modifier = modifier.padding(bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        DevSwitchRow(text = "Screen recording", checked = isOn, onCheckedChange = ScreenRecorder::setOn)
         Row(
             modifier = Modifier
                 .fillMaxWidth()

@@ -37,6 +37,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
+import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import java.io.File
 
@@ -187,6 +188,19 @@ class FeedbackDialogTest {
         val center = uploaded.getPixel(uploaded.width / 2, uploaded.height / 2)
         (Color.red(center) + Color.green(center) + Color.blue(center) <= 36) shouldBe true
         uploaded.getPixel(0, 0) shouldBe Color.WHITE
+    }
+
+    @Test
+    @Config(qualifiers = "w411dp-h914dp-xxhdpi", fontScale = 2f)
+    fun largeFontKeepsAllToolsAndStacksReporterFields() {
+        openDialog(reporter = null)
+
+        // The toolbar switches to two columns instead of hiding undo and clear below the fold.
+        compose.onNodeWithContentDescription(string(R.string.feedback_undo)).assertIsDisplayed()
+        compose.onNodeWithContentDescription(string(R.string.feedback_clear)).assertIsDisplayed()
+        val name = compose.onNode(hasSetTextAction() and hasText(string(R.string.feedback_reporter_prompt))).fetchSemanticsNode().boundsInRoot
+        val email = compose.onNode(hasSetTextAction() and hasText(string(R.string.feedback_reporter_email))).fetchSemanticsNode().boundsInRoot
+        (email.top >= name.bottom) shouldBe true
     }
 
     private fun openDialog(reporter: FeedbackReporter? = FeedbackReporter(name = "Test User")) {

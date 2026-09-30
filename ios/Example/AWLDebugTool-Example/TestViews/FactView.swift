@@ -40,7 +40,9 @@ struct FactView: View {
     
     private func loadFact() async throws {
         let url = URL(string: "https://catfact.ninja/fact")!
-        let request = URLRequest(url: url)
+        var request = URLRequest(url: url)
+        // Redacted in the Network module and in remote reporting.
+        request.setValue("Bearer example-token", forHTTPHeaderField: "Authorization")
         let (data, _) = try await URLSession(configuration: .ephemeral).data(for: request)
         let decoder = JSONDecoder()
         let fact = try? decoder.decode(Fact.self, from: data)

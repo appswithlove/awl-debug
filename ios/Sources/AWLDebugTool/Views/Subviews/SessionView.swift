@@ -11,16 +11,14 @@ struct SessionView: View {
 
     var body: some View {
         if !sessionManager.entries.isEmpty {
-            Section {
-                NavigationLink {
-                    SessionDetailView(sessionManager: sessionManager)
-                } label: {
-                    HStack {
-                        Text(LS.Headers.session)
-                        Spacer()
-                        ForEach(sessionManager.entries) { entry in
-                            SessionStatusDot(entry: entry)
-                        }
+            NavigationLink {
+                SessionDetailView(sessionManager: sessionManager)
+            } label: {
+                HStack {
+                    Text(LS.Headers.session)
+                    Spacer()
+                    ForEach(sessionManager.entries) { entry in
+                        SessionStatusDot(entry: entry)
                     }
                 }
             }
@@ -56,8 +54,7 @@ struct SessionDetailView: View {
                 }
             }
         }
-        .navigationTitle(LS.Headers.session)
-        .navigationBarTitleDisplayMode(.inline)
+        .panelPage(LS.Headers.session)
     }
 }
 

@@ -42,6 +42,8 @@ class AWLDebugURLProtocol: URLProtocol {
     
     struct Constants {
         static let RequestHandledKey = "AWLDebugURLProtocolRequestHandled"
+        /// Set on the SDK's own requests to the feedback service; they are never captured.
+        static let SkipCaptureKey = "AWLDebugSkipCapture"
     }
     
     var session: URLSession?
@@ -61,7 +63,8 @@ class AWLDebugURLProtocol: URLProtocol {
     
     override public class func canInit(with request: URLRequest) -> Bool {
         
-        if AWLDebugURLProtocol.property(forKey: Constants.RequestHandledKey, in: request) != nil {
+        if AWLDebugURLProtocol.property(forKey: Constants.RequestHandledKey, in: request) != nil
+            || AWLDebugURLProtocol.property(forKey: Constants.SkipCaptureKey, in: request) != nil {
             return false
         }
         return true

@@ -72,6 +72,10 @@ final class LogsListViewModel: ObservableObject {
         networkLogger.sortingOrder == .ascending ? .sortAscending : .sortDescending
     }
 
+    var sortingOrderTitle: String {
+        networkLogger.sortingOrder == .ascending ? LS.Network.oldestFirst : LS.Network.newestFirst
+    }
+
     var isDeleteLogsButtonDisabled: Bool {
         networkLogger.networkTraffic.isEmpty
     }

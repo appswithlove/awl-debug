@@ -29,8 +29,9 @@ final class VersionOverlayPresenter {
         guard window == nil, let scene = scene ?? Self.activeScene() else {
             return
         }
+        // Not tagged as one of the SDK's windows: like the app, it is in screen recordings and feedback screenshots,
+        // so they show which build it was.
         let window = PassthroughWindow(windowScene: scene)
-        window.accessibilityIdentifier = RecordingFrameRenderer.sdkWindowIdentifier
         // Above the app and its presentations, below the debug panel and the feedback tool.
         window.windowLevel = .statusBar
         window.isUserInteractionEnabled = false
