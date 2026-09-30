@@ -14,8 +14,8 @@ public struct DebugView: View {
     @ObservedObject private var screenRecorder = AWLDebugTool.shared.screenRecorder
     @ObservedObject private var deeplinksManager = AWLDebugTool.shared.deeplinksManager
     @ObservedObject private var sessionManager = AWLDebugTool.shared.sessionManager
-    @ObservedObject private var permissionsManager = PermissionsManager()
-    @ObservedObject private var networkReachabilityManager = NetworkReachabilityManager()
+    @StateObject private var permissionsManager = PermissionsManager()
+    @StateObject private var networkReachabilityManager = NetworkReachabilityManager()
     @ObservedObject private var appLogs = AWLDebugTool.shared.appLogs
     @ObservedObject private var performance = AWLDebugTool.shared.performance
     
@@ -33,8 +33,9 @@ public struct DebugView: View {
     public var body: some View {
         NavigationStack {
             Form {
-                AboutView(internetAccesStatusIcon: networkReachabilityManager.connectionStatusIcon.name,
-                          internetAccesStatusColor: networkReachabilityManager.connectionStatusIcon.color)
+                AboutView(isOnline: networkReachabilityManager.isConnected)
+
+                RemoteReportingView(state: RemoteReporting.shared.panel)
 
                 if VersionOverlayPresenter.shared.isAvailable {
                     Section {
@@ -49,84 +50,51 @@ public struct DebugView: View {
                 // Deeplinks, Session, FCM, Screen Recording, Clear App Data, Test Crashes, custom modules.
 
                 Section {
-                    NavigationLink {
+                    PanelModuleRow(title: LS.AppLogs.title, isActive: appLogs.isRecording) {
                         AppLogsView(store: appLogs)
-                    } label: {
-                        HStack {
-                            Text(LS.AppLogs.title)
-                            if appLogs.isRecording {
-                                Circle()
-                                    .fill(.green)
-                                    .frame(width: 8, height: 8)
-                                    .accessibilityHidden(true)
-                            }
-                        }
                     }
+                    PanelModuleRow(title: LS.Strings.logs, isActive: networkLogger.didStart) {
+                        LogsListView()
+                    }
+                    PanelModuleRow(title: LS.Performance.performanceSectionTitle,
+                                   isActive: performance.isMeasuring || vm.isPerformanceWidgetVisible) {
+                        PerformanceView(performance: performance,
+                                        isOverlayVisible: $vm.isPerformanceWidgetVisible,
+                                        debugTool: debugTool)
+                    }
+                    PanelModuleRow(title: LS.Headers.permissions) {
+                        PermissionsView(manager: permissionsManager)
+                    }
+                    PanelModuleRow(title: LS.Settings.accessibility,
+                                   isActive: vm.preferredColorScheme != .auto || vm.preferredFontSize != .system) {
+                        AccessibilityView(preferredColorScheme: $vm.preferredColorScheme,
+                                          preferredFontSize: $vm.preferredFontSize)
+                    }
+                    PanelModuleRow(title: LS.Deeplinks.sectionTitle) {
+                        DeeplinksView(manager: deeplinksManager)
+                    }
+                    SessionView(sessionManager: sessionManager)
                 }
-
-                LogsView(networkLogger: networkLogger)
-
-                Section {
-                    Toggle(LS.Performance.measure, isOn: $performance.isMeasuring)
-                    Toggle(LS.Performance.showPerformanceOverlay, isOn: $vm.isPerformanceWidgetVisible)
-                        .onChange(of: vm.isPerformanceWidgetVisible) { _ in
-                            performance.updateSampling()
-                        }
-
-                    BatteryView(monitor: debugTool.batteryMonitor)
-                        
-                    CPUView(cpuMonitor: debugTool.cpuMonitor)
-                        .padding(.top, 24)
-                        // .listRowSeparator(.hidden)
-                    
-                    RAMView(ramMonitor: debugTool.ramMonitor)
-                        .padding(.top, 24)
-                        .listRowSeparator(.hidden)
-                    
-                    MainThreadView(monitor: debugTool.mainThreadMonitor)
-                        .padding(.top, 24)
-                        .listRowSeparator(.hidden)
-                } header: {
-                    Text(LS.Performance.performanceSectionTitle)
-                }
-
-                PermissionsView(manager: permissionsManager)
-
-                ColorSchemeSectionView(preferredColorScheme: $vm.preferredColorScheme)
-                FontSizeSectionView(preferredFontSize: $vm.preferredFontSize)
-
-                DeeplinksView(manager: deeplinksManager)
-
-                SessionView(sessionManager: sessionManager)
 
                 FCMPushTokenView(fcmToken: fcmToken)
 
-                ScreenRecordingView(isScreenRecordingOn: $screenRecorder.isScreenRecordingOn,
-                                    isScreenRecordingOnByDefault: $screenRecorder.isScreenRecordingOnByDefault,
-                                    exportLastVideo: screenRecorder.exportLastVideo,
-                                    isExportingVideo: screenRecorder.isExportingVideo,
-                                    exportCurrentVideo: screenRecorder.exportCurrentVideo,
-                                    maxVideoDuration: $screenRecorder.maxVideoDuration)
-
-                UserDefaultsView(appGroupIdentifiers: debugTool.appGroupIdentifiers)
-
-                FirebaseView()
-
-                if customView != nil {
-                    AnyView(customView!())
-                }
-            }
-            .navigationBarTitleDisplayMode(.inline)
-            .navigationTitle(LS.Strings.appName)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        AWLDebugTool.close()
-                    } label: {
-                        Text(LS.Headers.btnClose)
+                Section {
+                    PanelModuleRow(title: LS.Headers.screenRecording, isActive: screenRecorder.isOn) {
+                        ScreenRecordingView(model: screenRecorder)
+                    }
+                    PanelModuleRow(title: LS.ClearData.title) {
+                        UserDefaultsView(appGroupIdentifiers: debugTool.appGroupIdentifiers)
+                    }
+                    PanelModuleRow(title: LS.Headers.testCrashes) {
+                        FirebaseView()
                     }
                 }
+
+                if let customView {
+                    AnyView(customView())
+                }
             }
+            .panelPage(LS.Strings.appName)
         }
         .task(id: sessionManager.entries.map(\.id)) {
             // Live while the panel is open: login, refresh and logout show up without reopening.

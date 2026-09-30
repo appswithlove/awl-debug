@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -58,13 +59,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogWindowProvider
@@ -123,6 +131,9 @@ import com.appswithlove.debug.ui.dev.sheet.modules.network.NetworkFiltersModule
 import com.appswithlove.debug.ui.dev.sheet.modules.network.NetworkModule
 import com.appswithlove.debug.ui.component.shareTextFile
 import com.appswithlove.debug.ui.dev.log.LogHistory
+import com.appswithlove.debug.ui.dev.recording.ScreenRecorder
+import com.appswithlove.debug.ui.dev.recording.ScreenRecordingEffect
+import com.appswithlove.debug.ui.dev.recording.ScreenRecordingModule
 import com.appswithlove.debug.ui.theme.AppTheme
 import com.appswithlove.debug.ui.theme.DevTheme
 import kotlinx.coroutines.CancellationException
@@ -216,6 +227,11 @@ internal fun DevSheet(
 
     val savedVersionOverlay by devStore.versionOverlayVisible.collectAsStateWithLifecycle(initialValue = null)
     val showVersionOverlay = savedVersionOverlay ?: modulesConfig.showVersionOverlay
+    if (modulesConfig.showScreenRecordingModule) {
+        ScreenRecordingEffect(config = modulesConfig.screenRecording, isPanelOpen = state.value.isShown)
+    }
+    val isRecording = modulesConfig.showScreenRecordingModule &&
+        ScreenRecorder.isOn.collectAsStateWithLifecycle().value
 
     DisposableEffect(modulesConfig.deeplinkHandler) {
         DeeplinkDispatcher.setHandler(modulesConfig.deeplinkHandler)
@@ -240,8 +256,8 @@ internal fun DevSheet(
     ) {
         AccessibilityOverride(settings = accessibility, content = content)
 
-        if (showVersionOverlay && devConfig != null) {
-            VersionOverlay(devConfig = devConfig)
+        if ((showVersionOverlay && devConfig != null) || isRecording) {
+            VersionOverlay(devConfig = devConfig.takeIf { showVersionOverlay }, isRecording = isRecording)
         }
 
         DevTheme(
@@ -327,6 +343,8 @@ private fun DevSheetContent(
         }
     }
     var currentPage by rememberSaveable { mutableStateOf(DevSheetPage.Home) }
+    // Kept outside the page transition, so returning from a module restores the position on the home page.
+    val homeScrollState = rememberScrollState()
     LaunchedEffect(openPerformanceRequests) {
         if (openPerformanceRequests > 0 && performanceMonitor != null) currentPage = DevSheetPage.Performance
     }
@@ -379,6 +397,9 @@ private fun DevSheetContent(
             modifier = Modifier.statusBarsPadding(),
             onDismissRequest = { hideBottomSheet() },
             containerColor = AppTheme.colors.background,
+            // Text without an explicit color (e.g. a log tag) would otherwise be black on the dark sheet when the
+            // host theme is inherited, because the sheet color is not part of the host color scheme.
+            contentColor = MaterialTheme.colorScheme.onSurface,
             sheetState = sheetState,
             sheetGesturesEnabled = swipeToDismiss,
             dragHandle = if (swipeToDismiss) {
@@ -442,11 +463,7 @@ private fun DevSheetContent(
                             onBack = { currentPage = DevSheetPage.Home },
                             onClose = { hideBottomSheet() },
                             actions = {
-                                DevSwitch(
-                                    checked = trackLogs,
-                                    onCheckedChange = onTrackLogsChanged,
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
+                                NavBarSwitch(label = "Record logs", checked = trackLogs, onCheckedChange = onTrackLogsChanged)
                             },
                         )
 
@@ -473,11 +490,11 @@ private fun DevSheetContent(
                             onBack = { currentPage = DevSheetPage.Home },
                             onClose = { hideBottomSheet() },
                             actions = {
-                                DevSwitch(
+                                NavBarSwitch(
+                                    label = "Track network logs",
                                     checked = networkState.isTracking,
                                     onCheckedChange = { networkViewModel.setTracking(it) },
                                 )
-                                Spacer(modifier = Modifier.width(8.dp))
                             },
                         )
 
@@ -561,11 +578,11 @@ private fun DevSheetContent(
                             onBack = { currentPage = DevSheetPage.Home },
                             onClose = { hideBottomSheet() },
                             actions = {
-                                DevSwitch(
+                                NavBarSwitch(
+                                    label = "Measure performance",
                                     checked = isTracking,
                                     onCheckedChange = { monitor.setTracking(it) },
                                 )
-                                Spacer(modifier = Modifier.width(8.dp))
                             },
                         )
 
@@ -683,6 +700,18 @@ private fun DevSheetContent(
                     }
                 }
 
+                    DevSheetPage.ScreenRecording -> {
+                    ModuleDetail(swipeToDismiss = swipeToDismiss) {
+                        ModuleDetailNavBar(
+                            title = "Screen Recording",
+                            onBack = { currentPage = DevSheetPage.Home },
+                            onClose = { hideBottomSheet() },
+                        )
+
+                        ScreenRecordingModule(modifier = Modifier.weight(1f))
+                    }
+                }
+
                     DevSheetPage.ClearAppData -> {
                     ModuleDetail(swipeToDismiss = swipeToDismiss) {
                         ModuleDetailNavBar(
@@ -713,38 +742,35 @@ private fun DevSheetContent(
                             .fillMaxSize()
                             .padding(horizontal = 24.dp)
                             .padding(
-                                top = if (swipeToDismiss) 0.dp else 16.dp,
+                                top = if (swipeToDismiss) 0.dp else 10.dp,
                             ),
                     ) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(bottom = 12.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
+                                .padding(bottom = 6.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(
-                                text = "Debug Drawer",
-                                style = MaterialTheme.typography.titleMedium.copy(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .semantics { heading() },
+                                text = "AWL Debug",
+                                style = MaterialTheme.typography.titleLarge.copy(
                                     fontWeight = FontWeight.Bold,
                                 ),
                                 color = MaterialTheme.colorScheme.onSurface,
                             )
-                            Icon(
-                                modifier = Modifier
-                                    .clip(CircleShape)
-                                    .clickable { hideBottomSheet() }
-                                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
-                                    .padding(4.dp)
-                                    .size(28.dp),
+                            HeaderButton(
+                                modifier = Modifier.offset(x = HeaderButtonInset),
                                 imageVector = TablerIcons.ArrowNarrowDownDashed,
                                 contentDescription = "Close",
-                                tint = MaterialTheme.colorScheme.onSurface,
+                                onClick = { hideBottomSheet() },
                             )
                         }
 
                         Column(
-                            modifier = Modifier.verticalScroll(rememberScrollState()),
+                            modifier = Modifier.verticalScroll(homeScrollState),
                             verticalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
                         AppInfoModule(
@@ -836,7 +862,7 @@ private fun DevSheetContent(
                                 .collectAsStateWithLifecycle(initialValue = null).value
                             FcmPushTokenModule(
                                 token = fcmToken,
-                                onLongPress = {
+                                onCopy = {
                                     coroutineScope.launch {
                                         clipboard.setClipEntry(
                                             ClipEntry(
@@ -851,6 +877,16 @@ private fun DevSheetContent(
                                 onRevoke = fcmProvider.onRevoke?.let { revoke ->
                                     { coroutineScope.launch { revoke() } }
                                 },
+                            )
+                        }
+
+                        if (modulesConfig.showScreenRecordingModule) {
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                            val recordingActive by ScreenRecorder.isOn.collectAsStateWithLifecycle()
+                            NavItem(
+                                text = "Screen Recording",
+                                onCLick = { currentPage = DevSheetPage.ScreenRecording },
+                                active = recordingActive,
                             )
                         }
 
@@ -896,7 +932,7 @@ private fun ModuleDetail(
         modifier = modifier
             .fillMaxSize()
             .padding(horizontal = 24.dp)
-            .padding(top = if (swipeToDismiss) 0.dp else 16.dp),
+            .padding(top = if (swipeToDismiss) 0.dp else 10.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         content()
@@ -911,39 +947,75 @@ private fun ModuleDetailNavBar(
     actions: @Composable RowScope.() -> Unit = {},
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Icon(
-            modifier = Modifier
-                .clip(CircleShape)
-                .clickable { onBack() }
-                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
-                .padding(4.dp)
-                .size(28.dp),
+        HeaderButton(
+            modifier = Modifier.offset(x = -HeaderButtonInset),
             imageVector = TablerIcons.ChevronLeft,
             contentDescription = "Back",
-            tint = MaterialTheme.colorScheme.onSurface,
+            onClick = onBack,
         )
-        Spacer(modifier = Modifier.width(8.dp))
+        // Takes the remaining width, so actions and the close button stay visible with long titles and large fonts.
         Text(
+            modifier = Modifier
+                .weight(1f)
+                .semantics { heading() },
             text = title,
             style = MaterialTheme.typography.titleMedium.copy(
                 fontWeight = FontWeight.Bold,
             ),
             color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
         )
-        Spacer(modifier = Modifier.weight(1f))
         actions()
-        Icon(
-            modifier = Modifier
-                .clip(CircleShape)
-                .clickable { onClose() }
-                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
-                .padding(4.dp)
-                .size(28.dp),
+        HeaderButton(
+            modifier = Modifier.offset(x = HeaderButtonInset),
             imageVector = TablerIcons.ArrowNarrowDownDashed,
             contentDescription = "Close",
+            onClick = onClose,
+        )
+    }
+}
+
+/** How far the 48dp touch target reaches past the 36dp circle, so the circle lines up with the content edge. */
+private val HeaderButtonInset = 6.dp
+
+/** Round header button: a 36dp circle inside a 48dp touch target. */
+@Composable
+private fun HeaderButton(
+    imageVector: ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .size(48.dp)
+            .clip(CircleShape)
+            .clickable(role = Role.Button, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            modifier = Modifier
+                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f), CircleShape)
+                .padding(4.dp)
+                .size(28.dp),
+            imageVector = imageVector,
+            contentDescription = contentDescription,
             tint = MaterialTheme.colorScheme.onSurface,
         )
     }
+}
+
+/** Switch in the page header; it has no visible label, so TalkBack gets [label]. */
+@Composable
+private fun NavBarSwitch(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    DevSwitch(
+        modifier = Modifier
+            .padding(start = 8.dp)
+            .semantics { contentDescription = label },
+        checked = checked,
+        onCheckedChange = onCheckedChange,
+    )
 }
 
 /** The feedback flow a `FeedbackHost` offers, or `null` without one. */
@@ -994,7 +1066,8 @@ private fun NavItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onCLick() }
+            .clickable(role = Role.Button, onClick = onCLick)
+            .semantics { if (active) stateDescription = "Active" }
             .padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -1092,7 +1165,7 @@ private fun DevSheetDarkPreview() {
 }
 
 private enum class DevSheetPage {
-    Home, Logs, Network, NetworkFilters, NetworkDetail, Performance, Permissions, Accessibility, Deeplinks, DeeplinkDetail, Session, TestCrashes, ClearAppData;
+    Home, Logs, Network, NetworkFilters, NetworkDetail, Performance, Permissions, Accessibility, Deeplinks, DeeplinkDetail, Session, ScreenRecording, TestCrashes, ClearAppData;
 
     val parent: DevSheetPage
         get() = when (this) {

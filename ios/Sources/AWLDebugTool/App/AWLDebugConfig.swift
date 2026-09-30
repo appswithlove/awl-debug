@@ -32,6 +32,23 @@ public struct AWLDebugConfig {
 
     /// Shows "AWL <version> (<build>)" at the top left over the app. Testers can still switch it off in the panel.
     public var showVersionOverlay: Bool = true
+    /// Sends sessions, requests and performance samples to the feedback service. Off when `nil`.
+    public var remoteReporting: RemoteReportingConfig?
+    /// Defaults of the Screen Recording module; testers can change both in the panel.
+    public var screenRecording = ScreenRecordingConfig()
+
+    public struct ScreenRecordingConfig {
+        /// Records from the first start. Off by default, because recordings can contain personal data.
+        public var isOnByDefault: Bool
+        /// Length of the recording kept on the device, counted in active frames (3 per second).
+        /// Rounded to 30 s, 1 min, 5 min or 10 min.
+        public var maxDuration: Duration
+
+        public init(isOnByDefault: Bool = false, maxDuration: Duration = .seconds(300)) {
+            self.isOnByDefault = isOnByDefault
+            self.maxDuration = maxDuration
+        }
+    }
 
     public struct NetworkConfig {
         /// Default field names redacted in JSON and form bodies and in query parameters.

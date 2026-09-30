@@ -28,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.appswithlove.debug.api.DeeplinkItem
 import com.appswithlove.debug.ui.component.DevOutlinedButton
+import com.appswithlove.debug.ui.component.DevSectionTitle
 import com.appswithlove.debug.ui.theme.AppTheme
 
 private val DELAYS_SECONDS = listOf(5, 10, 30)
@@ -50,7 +51,7 @@ internal fun DeeplinkDetailModule(
     Column(
         modifier = modifier
             .verticalScroll(rememberScrollState())
-            .padding(vertical = 12.dp),
+            .padding(bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text(
@@ -61,7 +62,7 @@ internal fun DeeplinkDetailModule(
         Text(
             text = item.url,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
@@ -127,7 +128,7 @@ internal fun DeeplinkDetailModule(
             text = "A local notification will fire after the delay. Close the app after scheduling to test cold start. " +
                 "Note: may be suppressed in Focus mode.",
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         message?.let {
             Text(
@@ -154,9 +155,5 @@ internal fun DeeplinkDetailModule(
 
 @Composable
 private fun SectionTitle(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-        color = MaterialTheme.colorScheme.onSurface,
-    )
+    DevSectionTitle(text = text)
 }

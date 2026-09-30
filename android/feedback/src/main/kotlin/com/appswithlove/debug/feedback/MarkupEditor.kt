@@ -11,6 +11,7 @@ import androidx.compose.foundation.gestures.calculatePan
 import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
@@ -63,6 +64,10 @@ import androidx.compose.ui.unit.toSize
 import kotlin.math.hypot
 
 private val MIN_TOUCH_TARGET = 48.dp
+private val TOOLBAR_SPACING = 4.dp
+
+/** Height of the one-column toolbar: 10 buttons, 11 gaps and two dividers with their padding. */
+private val SINGLE_COLUMN_HEIGHT = MIN_TOUCH_TARGET * 10 + TOOLBAR_SPACING * 11 + 18.dp
 private val SWATCH_SIZE = 28.dp
 private const val MIN_DRAG_LENGTH_PX = 24f
 private const val DISABLED_ALPHA = 0.38f
@@ -240,40 +245,72 @@ private fun MarkupCanvas(
     }
 }
 
+/**
+ * Tools, colors and undo/clear in one column; in two columns when one would not fit the height, for example on
+ * small screens or with a large font size, where the text fields leave less room.
+ */
 @Composable
 private fun MarkupToolbar(
     state: MarkupState,
     enabled: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier
-            .width(MIN_TOUCH_TARGET)
-            .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        MarkupTool.entries.forEach { tool ->
-            ToolToggle(tool = tool, selected = state.tool == tool, enabled = enabled, onSelect = { state.tool = tool })
+    @Composable
+    fun Tools() = MarkupTool.entries.forEach { tool ->
+        ToolToggle(tool = tool, selected = state.tool == tool, enabled = enabled, onSelect = { state.tool = tool })
+    }
+
+    @Composable
+    fun Colors() = Column(modifier = Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(TOOLBAR_SPACING)) {
+        MarkupColor.entries.forEach { color ->
+            // Redact is always black; the colors apply to Pen and Arrow only.
+            ColorSwatch(
+                color = color,
+                selected = state.color == color,
+                enabled = enabled && state.tool != MarkupTool.Redact,
+                onSelect = { state.color = color },
+            )
         }
-        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-        Column(modifier = Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            MarkupColor.entries.forEach { color ->
-                // Redact is always black; the colors apply to Pen and Arrow only.
-                ColorSwatch(
-                    color = color,
-                    selected = state.color == color,
-                    enabled = enabled && state.tool != MarkupTool.Redact,
-                    onSelect = { state.color = color },
-                )
-            }
-        }
-        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+    }
+
+    @Composable
+    fun History() {
         IconButton(onClick = state::undo, enabled = enabled && state.marks.isNotEmpty(), modifier = Modifier.size(MIN_TOUCH_TARGET)) {
             Icon(painter = painterResource(R.drawable.feedback_ic_undo), contentDescription = stringResource(R.string.feedback_undo))
         }
         IconButton(onClick = state.marks::clear, enabled = enabled && state.marks.isNotEmpty(), modifier = Modifier.size(MIN_TOUCH_TARGET)) {
             Icon(painter = painterResource(R.drawable.feedback_ic_delete), contentDescription = stringResource(R.string.feedback_clear))
+        }
+    }
+
+    @Composable
+    fun ToolbarColumn(content: @Composable () -> Unit) = Column(
+        modifier = Modifier
+            .fillMaxHeight()
+            .width(MIN_TOUCH_TARGET)
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(TOOLBAR_SPACING, Alignment.CenterVertically),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) { content() }
+
+    BoxWithConstraints(modifier = modifier) {
+        if (maxHeight >= SINGLE_COLUMN_HEIGHT) {
+            ToolbarColumn {
+                Tools()
+                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                Colors()
+                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                History()
+            }
+        } else {
+            Row(horizontalArrangement = Arrangement.spacedBy(TOOLBAR_SPACING)) {
+                ToolbarColumn {
+                    Tools()
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                    History()
+                }
+                ToolbarColumn { Colors() }
+            }
         }
     }
 }

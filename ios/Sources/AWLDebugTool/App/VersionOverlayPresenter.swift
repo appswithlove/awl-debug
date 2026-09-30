@@ -29,6 +29,8 @@ final class VersionOverlayPresenter {
         guard window == nil, let scene = scene ?? Self.activeScene() else {
             return
         }
+        // Not tagged as one of the SDK's windows: like the app, it is in screen recordings and feedback screenshots,
+        // so they show which build it was.
         let window = PassthroughWindow(windowScene: scene)
         // Above the app and its presentations, below the debug panel and the feedback tool.
         window.windowLevel = .statusBar
@@ -53,9 +55,17 @@ private final class PassthroughWindow: UIWindow {
 }
 
 private struct VersionOverlayView: View {
+    @ObservedObject var screenRecorder = AWLDebugTool.shared.screenRecorder
+
     var body: some View {
         VStack {
-            HStack {
+            HStack(spacing: 4) {
+                if screenRecorder.isOn {
+                    // Shows testers that the screen is being recorded.
+                    Circle()
+                        .fill(.red)
+                        .frame(width: 6, height: 6)
+                }
                 Text(VersionOverlayPresenter.text)
                     .font(.system(size: 8))
                     .foregroundStyle(Color(UIColor.label))

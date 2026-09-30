@@ -23,8 +23,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.appswithlove.debug.ui.component.DevEmptyState
 import com.appswithlove.debug.ui.component.DevOutlinedButton
-import com.appswithlove.debug.ui.component.DevSwitch
+import com.appswithlove.debug.ui.component.DevSwitchRow
 import com.appswithlove.debug.ui.component.icons.TablerIcons
 import com.appswithlove.debug.ui.theme.AppTheme
 import com.appswithlove.debug.ui.theme.DevTheme
@@ -71,21 +72,21 @@ internal fun PerformanceModule(
         modifier = modifier.verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                modifier = Modifier.weight(1f),
-                text = "Show performance overlay",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            DevSwitch(checked = isOverlayVisible.value, onCheckedChange = onOverlayVisibleChanged)
+        DevSwitchRow(
+            text = "Show performance overlay",
+            checked = isOverlayVisible.value,
+            onCheckedChange = onOverlayVisibleChanged,
+        )
+
+        if (!isTracking.value) {
+            DevEmptyState(text = "Measuring is off. Turn on the switch at the top to see CPU, RAM, battery and UI freezes.")
         }
 
         AnimatedVisibility(visible = isTracking.value && samples.value.isEmpty()) {
             Text(
                 text = "Collecting data...",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
 
@@ -173,7 +174,7 @@ private fun MetricBar(
             Text(
                 text = value,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         LinearProgressIndicator(

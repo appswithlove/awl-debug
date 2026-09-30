@@ -36,6 +36,10 @@ enum Constants {
             case .tenMinutes: return "10 min"
             }
         }
+
+        static func closest(toSeconds seconds: Int) -> Self {
+            allCases.min { abs($0.rawValue - seconds) < abs($1.rawValue - seconds) } ?? .fiveMinutes
+        }
     }
     
     struct Values {
@@ -60,6 +64,7 @@ enum Constants {
         static let appLogsLimit = prefix + "appLogsLimit"
         static let versionOverlayVisible = prefix + "versionOverlayVisible"
         static let performanceMeasuring = prefix + "performanceMeasuring"
+        static let remoteReportingEnabled = prefix + "remoteReportingEnabled"
     }
     
 }

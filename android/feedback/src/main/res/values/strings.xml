@@ -27,9 +27,10 @@
     <string name="feedback_sent">Feedback sent</string>
     <string name="feedback_queued">Saved. It will be sent when you are online.</string>
     <string name="feedback_pending">%1$d pending</string>
+    <string name="feedback_counter">%1$d/%2$d</string>
     <string name="feedback_speech_unavailable">Speech recognition is not available on this device. Please type instead.</string>
     <string name="feedback_speech_failed">Dictation failed. Check the microphone permission or type instead.</string>
-    <string name="feedback_error_unauthorized">This app is not registered with the feedback service (invalid app key).</string>
+    <string name="feedback_error_unauthorized">This app is not registered with the feedback service (invalid or disabled app key).</string>
     <string name="feedback_error_too_large">The report is too large to send.</string>
     <string name="feedback_error_unsupported_media">The screenshot format was rejected by the feedback service.</string>
     <string name="feedback_error_rate_limited">Too many reports. Please try again later.</string>

@@ -29,6 +29,11 @@ class DevModulesConfigTest {
     }
 
     @Test
+    fun hasAnyModuleEnabled_onlyScreenRecordingEnabled_isTrue() {
+        allDisabled().copy(showScreenRecordingModule = true).hasAnyModuleEnabled shouldBe true
+    }
+
+    @Test
     fun hasAnyModuleEnabled_sessionEnabledButNoProviders_isFalse() {
         allDisabled().copy(showSessionModule = true).hasAnyModuleEnabled shouldBe false
     }
@@ -65,6 +70,7 @@ class DevModulesConfigTest {
         showSessionModule = false,
         showNetworkModule = false,
         showClearAppDataModule = false,
+        showScreenRecordingModule = false,
     )
 
     private object FakeSessionProvider : SessionProvider {

@@ -1,6 +1,6 @@
 //
 //  ScreenRecordingView.swift
-//  
+//
 //
 //  Created by Hrvoje Hajduković on 20.09.2025..
 //
@@ -8,71 +8,68 @@
 import SwiftUI
 
 struct ScreenRecordingView: View {
-    let isScreenRecordingOn: Binding<Bool?>
-    let isScreenRecordingOnByDefault: Binding<Bool>
-    let exportLastVideo: () -> Void
-    let isExportingVideo: Bool
-    let exportCurrentVideo: () -> Void
-    let maxVideoDuration: Binding<Constants.MaxScreenVideoDuration>
-    
+    @ObservedObject var model: ScreenRecorderModel
+
     var body: some View {
-        Section {
-            Toggle(
-                LS.Actions.screenRecorderToole,
-                isOn: Binding(
-                    get: {
-                        if let userValue = isScreenRecordingOn.wrappedValue {
-                            return userValue
-                        } else {
-                            return isScreenRecordingOnByDefault.wrappedValue
-                        }
-                    },
-                    set: { newValue in
-                        isScreenRecordingOn.wrappedValue = newValue
-                    }
+        Form {
+            Section {
+                Toggle(
+                    LS.Actions.screenRecorderToole,
+                    isOn: Binding(
+                        get: { model.isOn },
+                        set: { model.isScreenRecordingOn = $0 }
+                    )
                 )
-            )
-            
-            ProprietaryActionButton(
-                text: LS.Actions.screenRecorderExportLast,
-                icon: .export,
-                iconColor: IconColor.action,
-                isDisabled: isExportingVideo,
-                action: exportLastVideo
-            )
-            
-            ProprietaryActionButton(
-                text: LS.Actions.screenRecorderExportCurrent,
-                icon: .export,
-                iconColor: IconColor.action,
-                isDisabled: isExportingVideo,
-                action: exportCurrentVideo
-            )
-            
-            HStack {
-                Text(LS.Actions.screenRecorderMaxVideoDuration)
-                
-                Picker(LS.Actions.screenRecorderMaxVideoDuration, selection: maxVideoDuration) {
+
+                Picker(LS.Actions.screenRecorderMaxVideoDuration, selection: $model.maxVideoDuration) {
                     ForEach(Constants.MaxScreenVideoDuration.allCases) { videoDuration in
                         Text(videoDuration.ls)
                             .tag(videoDuration)
                     }
                 }
-                .pickerStyle(.segmented)
+                .pickerStyle(.menu)
+            } footer: {
+                Text(LS.Actions.screenRecorderWarning)
             }
-        } header: {
-            Text(LS.Headers.screenRecording)
+
+            Section {
+                Group {
+                    if let date = model.lastRecordingDate {
+                        Text(String(format: LS.Actions.screenRecorderLastAvailable,
+                                    date.formatted(date: .abbreviated, time: .standard)))
+                    } else {
+                        Text(LS.Actions.screenRecorderEmpty)
+                    }
+                }
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+
+                ProprietaryActionButton(
+                    text: LS.Actions.screenRecorderExportLast,
+                    icon: .export,
+                    iconColor: IconColor.action,
+                    isDisabled: model.isExportingVideo,
+                    action: model.exportLastVideo
+                )
+
+                ProprietaryActionButton(
+                    text: LS.Actions.screenRecorderExportCurrent,
+                    icon: .export,
+                    iconColor: IconColor.action,
+                    isDisabled: model.isExportingVideo,
+                    action: model.exportCurrentVideo
+                )
+            }
+        }
+        .panelPage(LS.Headers.screenRecording)
+        .alert(LS.Actions.screenRecorderEmpty, isPresented: $model.isRecordingEmpty) {
+            Button(LS.Headers.btnDone, role: .cancel) {}
         }
     }
 }
 
 #Preview {
-    ScreenRecordingView(
-        isScreenRecordingOn: .constant(true),
-        isScreenRecordingOnByDefault: .constant(true),
-        exportLastVideo: {},
-        isExportingVideo: false,
-        exportCurrentVideo: {},
-        maxVideoDuration: .constant(.fiveMinutes)
-    )
+    NavigationStack {
+        ScreenRecordingView(model: ScreenRecorderModel())
+    }
 }

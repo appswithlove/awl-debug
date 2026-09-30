@@ -44,7 +44,6 @@ struct AWLDebugTool_ExampleApp: App {
         UNUserNotificationCenter.current().delegate = NotificationDelegate.shared
 #if DEBUG || STAGING
         AWLDebugTool.start(
-            isScreenRecordingOn: true,
             deeplinks: .init(
                 deeplinks: [
                     .init(title: "test1", url: "myapp://test1"),
@@ -58,9 +57,22 @@ struct AWLDebugTool_ExampleApp: App {
                 var config = AWLDebugConfig()
                 config.sessionProviders = [accessTokenProvider, refreshTokenProvider]
                 config.triggers = [.threeFingerTap, .tripleTap, .shake]
+                config.screenRecording = .init(isOnByDefault: true, maxDuration: .seconds(60))
+                // Set both in the scheme's environment to try remote reporting; never commit a key.
+                let environment = ProcessInfo.processInfo.environment
+                if let endpoint = environment["AWL_REPORTING_ENDPOINT"].flatMap(URL.init(string:)),
+                   let appKey = environment["AWL_REPORTING_APP_KEY"] {
+                    config.remoteReporting = RemoteReportingConfig(
+                        endpoint: endpoint,
+                        appKey: appKey,
+                        environment: "local",
+                        distribution: environment["AWL_REPORTING_DISTRIBUTION"].flatMap(RemoteReportingConfig.Distribution.init(rawValue:)) ?? .debug
+                    )
+                }
                 return config
             }()
         )
+        AWLDebugTool.setUserIdentifier("example-user")
         AWLDebugTool.log("Example app started", tag: "App")
         AWLDebugTool.log("Example warning", level: .warn, tag: "App")
 #endif

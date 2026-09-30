@@ -26,10 +26,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.appswithlove.debug.api.DeeplinkItem
+import com.appswithlove.debug.ui.component.DevButtonRow
+import com.appswithlove.debug.ui.component.DevEmptyState
+import com.appswithlove.debug.ui.component.DevGroupLabel
 import com.appswithlove.debug.ui.component.DevOutlinedButton
 import com.appswithlove.debug.ui.component.DevOutlinedTextField
 import com.appswithlove.debug.ui.component.icons.TablerIcons
@@ -59,8 +65,8 @@ internal fun DeeplinksModule(
 
     Column(
         modifier = modifier
-            .padding(vertical = 12.dp)
-            .verticalScroll(rememberScrollState()),
+            .verticalScroll(rememberScrollState())
+            .padding(bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         DevOutlinedTextField(
@@ -78,10 +84,9 @@ internal fun DeeplinksModule(
             isError = deeplinkError != null,
             errorText = deeplinkError,
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            val enabled = deeplinkText.isNotBlank() && deeplinkError == null
+        val enabled = deeplinkText.isNotBlank() && deeplinkError == null
+        DevButtonRow {
             DevOutlinedButton(
-                modifier = Modifier.weight(1f),
                 text = "Fire now",
                 enabled = enabled,
                 contentColor = MaterialTheme.colorScheme.onSurface,
@@ -90,7 +95,6 @@ internal fun DeeplinksModule(
                 },
             )
             DevOutlinedButton(
-                modifier = Modifier.weight(1f),
                 text = "Save",
                 enabled = enabled,
                 contentColor = MaterialTheme.colorScheme.onSurface,
@@ -104,12 +108,7 @@ internal fun DeeplinksModule(
         }
 
         if (predefined.isEmpty() && saved.isEmpty()) {
-            Text(
-                modifier = Modifier.padding(vertical = 8.dp),
-                text = "No deeplinks configured",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-            )
+            DevEmptyState(text = "No deeplinks configured")
         }
 
         if (predefined.isNotEmpty()) {
@@ -124,7 +123,15 @@ internal fun DeeplinksModule(
             SectionLabel("Saved")
             saved.forEach { item ->
                 SwipeToDelete(onDelete = { onDelete(item) }) {
-                    DeeplinkRow(item = item, icon = TablerIcons.User, onClick = { onOpen(item) })
+                    DeeplinkRow(
+                        // Swiping is not available with TalkBack; the same action is offered in its actions menu.
+                        modifier = Modifier.semantics {
+                            customActions = listOf(CustomAccessibilityAction("Delete") { onDelete(item); true })
+                        },
+                        item = item,
+                        icon = TablerIcons.User,
+                        onClick = { onOpen(item) },
+                    )
                 }
                 HorizontalDivider()
             }
@@ -134,12 +141,7 @@ internal fun DeeplinksModule(
 
 @Composable
 private fun SectionLabel(text: String) {
-    Text(
-        modifier = Modifier.padding(top = 8.dp),
-        text = text,
-        style = MaterialTheme.typography.labelMedium,
-        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-    )
+    DevGroupLabel(modifier = Modifier.padding(top = 8.dp), text = text)
 }
 
 @Composable
@@ -162,7 +164,8 @@ private fun SwipeToDelete(onDelete: () -> Unit, content: @Composable () -> Unit)
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(imageVector = TablerIcons.Trash, contentDescription = "Delete", tint = MaterialTheme.colorScheme.onError)
+                // Decorative: the row itself offers "Delete" to TalkBack.
+                Icon(imageVector = TablerIcons.Trash, contentDescription = null, tint = MaterialTheme.colorScheme.onError)
             }
         },
     ) {
@@ -171,9 +174,9 @@ private fun SwipeToDelete(onDelete: () -> Unit, content: @Composable () -> Unit)
 }
 
 @Composable
-private fun DeeplinkRow(item: DeeplinkItem, icon: ImageVector, onClick: () -> Unit) {
+private fun DeeplinkRow(item: DeeplinkItem, icon: ImageVector, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .background(AppTheme.colors.background)
             .clickable(onClick = onClick)
@@ -185,7 +188,7 @@ private fun DeeplinkRow(item: DeeplinkItem, icon: ImageVector, onClick: () -> Un
             modifier = Modifier.size(18.dp),
             imageVector = icon,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(
@@ -196,7 +199,7 @@ private fun DeeplinkRow(item: DeeplinkItem, icon: ImageVector, onClick: () -> Un
             Text(
                 text = item.url,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
