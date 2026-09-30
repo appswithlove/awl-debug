@@ -1,12 +1,10 @@
-package com.appswithlove.debug.reporting
+package com.appswithlove.debug.feedback.reporting
 
 import android.content.Context
 import android.os.BatteryManager
 import android.os.Debug
 import android.os.Process
 import android.os.SystemClock
-import com.appswithlove.debug.ui.dev.sheet.modules.performance.ChoreographerFrameSource
-import com.appswithlove.debug.ui.dev.sheet.modules.performance.FreezeTracker
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit

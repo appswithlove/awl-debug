@@ -1,7 +1,7 @@
-package com.appswithlove.debug.api
+package com.appswithlove.debug.feedback
 
 /**
- * How a build reaches its users. Sent with feedback so the service can tell test builds apart.
+ * How a build reaches its users. Sent with feedback and session data so the service can tell test builds apart.
  *
  * @property wireValue Value used in requests to AWL services.
  */

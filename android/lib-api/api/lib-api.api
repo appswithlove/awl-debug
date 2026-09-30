@@ -1,13 +1,3 @@
-public final class com/appswithlove/debug/api/AwlDistribution : java/lang/Enum {
-	public static final field Debug Lcom/appswithlove/debug/api/AwlDistribution;
-	public static final field Internal Lcom/appswithlove/debug/api/AwlDistribution;
-	public static final field Store Lcom/appswithlove/debug/api/AwlDistribution;
-	public static fun getEntries ()Lkotlin/enums/EnumEntries;
-	public final fun getWireValue ()Ljava/lang/String;
-	public static fun valueOf (Ljava/lang/String;)Lcom/appswithlove/debug/api/AwlDistribution;
-	public static fun values ()[Lcom/appswithlove/debug/api/AwlDistribution;
-}
-
 public final class com/appswithlove/debug/api/DeeplinkItem {
 	public fun <init> (Ljava/lang/String;Ljava/lang/String;)V
 	public final fun component1 ()Ljava/lang/String;
@@ -156,32 +146,6 @@ public final class com/appswithlove/debug/api/FcmTokenProvider$DefaultImpls {
 public abstract interface annotation class com/appswithlove/debug/api/bridge/AwlDebugInternalApi : java/lang/annotation/Annotation {
 }
 
-public final class com/appswithlove/debug/api/bridge/DevBridge {
-	public static final field INSTANCE Lcom/appswithlove/debug/api/bridge/DevBridge;
-	public static final field LOGS_ATTACHMENT_BODY_MAX_BYTES I
-	public final fun getFeedbackAttachments ()Lkotlin/jvm/functions/Function1;
-	public final fun getFeedbackLauncher ()Lkotlinx/coroutines/flow/MutableStateFlow;
-	public final fun getHasRecording ()Lkotlin/jvm/functions/Function0;
-	public final fun getLastRecording ()Lkotlin/jvm/functions/Function1;
-	public final fun setFeedbackAttachments (Lkotlin/jvm/functions/Function1;)V
-	public final fun setHasRecording (Lkotlin/jvm/functions/Function0;)V
-	public final fun setLastRecording (Lkotlin/jvm/functions/Function1;)V
-}
-
-public final class com/appswithlove/debug/api/bridge/FeedbackEntry {
-	public fun <init> (Ljava/util/Set;Lkotlinx/coroutines/flow/StateFlow;Lkotlin/jvm/functions/Function0;)V
-	public final fun getPendingCount ()Lkotlinx/coroutines/flow/StateFlow;
-	public final fun getStart ()Lkotlin/jvm/functions/Function0;
-	public final fun getTriggers ()Ljava/util/Set;
-}
-
-public final class com/appswithlove/debug/api/bridge/RecordingExport {
-	public fun <init> (Ljava/io/File;Ljava/io/File;Ljava/io/File;)V
-	public final fun getFrames ()Ljava/io/File;
-	public final fun getTimeline ()Ljava/io/File;
-	public final fun getVideo ()Ljava/io/File;
-}
-
 public final class com/appswithlove/debug/api/extension/AwlDebugExtensions {
 	public static final field INSTANCE Lcom/appswithlove/debug/api/extension/AwlDebugExtensions;
 	public final fun addNetworkListener (Lkotlin/jvm/functions/Function1;)Ljava/lang/AutoCloseable;
@@ -326,35 +290,6 @@ public final class com/appswithlove/debug/api/extension/DevTextStyle : java/lang
 	public static fun getEntries ()Lkotlin/enums/EnumEntries;
 	public static fun valueOf (Ljava/lang/String;)Lcom/appswithlove/debug/api/extension/DevTextStyle;
 	public static fun values ()[Lcom/appswithlove/debug/api/extension/DevTextStyle;
-}
-
-public final class com/appswithlove/debug/api/reporting/RemoteReportingConfig {
-	public static final field Companion Lcom/appswithlove/debug/api/reporting/RemoteReportingConfig$Companion;
-	public static final field MAX_BODY_BYTES I
-	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lcom/appswithlove/debug/api/AwlDistribution;ZIZ)V
-	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lcom/appswithlove/debug/api/AwlDistribution;ZIZILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public final fun component1 ()Ljava/lang/String;
-	public final fun component2 ()Ljava/lang/String;
-	public final fun component3 ()Ljava/lang/String;
-	public final fun component4 ()Lcom/appswithlove/debug/api/AwlDistribution;
-	public final fun component5 ()Z
-	public final fun component6 ()I
-	public final fun component7 ()Z
-	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lcom/appswithlove/debug/api/AwlDistribution;ZIZ)Lcom/appswithlove/debug/api/reporting/RemoteReportingConfig;
-	public static synthetic fun copy$default (Lcom/appswithlove/debug/api/reporting/RemoteReportingConfig;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lcom/appswithlove/debug/api/AwlDistribution;ZIZILjava/lang/Object;)Lcom/appswithlove/debug/api/reporting/RemoteReportingConfig;
-	public fun equals (Ljava/lang/Object;)Z
-	public final fun getAppKey ()Ljava/lang/String;
-	public final fun getCaptureBodies ()Z
-	public final fun getDistribution ()Lcom/appswithlove/debug/api/AwlDistribution;
-	public final fun getEndpoint ()Ljava/lang/String;
-	public final fun getEnvironment ()Ljava/lang/String;
-	public final fun getMaxBodyBytes ()I
-	public final fun getOnlyOnUnmeteredNetwork ()Z
-	public fun hashCode ()I
-	public fun toString ()Ljava/lang/String;
-}
-
-public final class com/appswithlove/debug/api/reporting/RemoteReportingConfig$Companion {
 }
 
 public final class com/appswithlove/debug/api/session/PollingSessionProvider : com/appswithlove/debug/api/session/SessionProvider {

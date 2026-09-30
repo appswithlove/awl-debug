@@ -1,15 +1,7 @@
-package com.appswithlove.debug.bridge
+package com.appswithlove.debug.feedback.attachments
 
-import com.appswithlove.debug.api.bridge.AwlDebugInternalApi
-import com.appswithlove.debug.api.bridge.DevBridge
-import com.appswithlove.debug.ui.dev.log.DevLogSeverity
-import com.appswithlove.debug.ui.dev.log.LogCollector
-import com.appswithlove.debug.ui.dev.log.LogEntry
-import com.appswithlove.debug.ui.dev.network.NetworkCollector
-import com.appswithlove.debug.ui.dev.network.NetworkEntry
-import com.appswithlove.debug.ui.dev.network.networkErrorCode
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import com.appswithlove.debug.api.extension.DevLogRecord
+import com.appswithlove.debug.api.extension.DevNetworkRecord
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -17,31 +9,15 @@ import java.util.TimeZone
 
 internal const val ATTACHMENT_MAX_LOGS = 500
 internal const val ATTACHMENT_MAX_REQUESTS = 50
+
+/** Room left in the 1 MiB `logs.txt` for its header. */
+internal const val LOGS_BODY_MAX_BYTES = LOGS_MAX_BYTES - 4 * 1024
 private const val INDENT = "    "
 
-/** Lets the feedback artifact attach logs and requests as the body of `logs.txt`. */
-@OptIn(AwlDebugInternalApi::class)
-internal object LogsAttachment {
-    fun register() {
-        DevBridge.feedbackAttachments = { withContext(Dispatchers.Default) { current().toByteArray(Charsets.UTF_8) } }
-    }
-
-    private fun current(): String {
-        val history = LogCollector.logHistory
-        return logsAttachmentBody(
-            logs = history.filteredSnapshot().takeLast(ATTACHMENT_MAX_LOGS),
-            filters = describeFilters(history.selectedSeverityTags.value, history.query.value),
-            requests = NetworkCollector.store.entries.value.takeLast(ATTACHMENT_MAX_REQUESTS),
-            maxBytes = DevBridge.LOGS_ATTACHMENT_BODY_MAX_BYTES,
-            timeZone = TimeZone.getDefault(),
-        )
-    }
-}
-
-/** `filters:` value, e.g. `severity=ERROR,WARN search="checkout"`, or `none`. */
-internal fun describeFilters(severities: List<DevLogSeverity>, query: String): String {
+/** `filters:` value, e.g. `severity=ERROR,WARN search="checkout"`, or `none`. [severities] come most severe first. */
+internal fun describeFilters(severities: List<String>, query: String): String {
     val parts = buildList {
-        if (severities.isNotEmpty()) add("severity=" + severities.sortedDescending().joinToString(","))
+        if (severities.isNotEmpty()) add("severity=" + severities.joinToString(","))
         if (query.isNotEmpty()) add("search=\"" + query.replace("\"", "\\\"") + "\"")
     }
     return parts.ifEmpty { listOf("none") }.joinToString(" ")
@@ -52,9 +28,9 @@ internal fun describeFilters(severities: List<DevLogSeverity>, query: String): S
  * When the text would exceed [maxBytes], the oldest logs are left out first, then the oldest requests.
  */
 internal fun logsAttachmentBody(
-    logs: List<LogEntry>,
+    logs: List<DevLogRecord>,
     filters: String,
-    requests: List<NetworkEntry>,
+    requests: List<DevNetworkRecord>,
     maxBytes: Int,
     timeZone: TimeZone,
 ): String {
@@ -93,25 +69,25 @@ private fun List<String>.newestWithin(budget: Int): List<String> {
     return kept
 }
 
-private fun LogEntry.attachmentText(formatter: SimpleDateFormat): String = buildString {
+private fun DevLogRecord.attachmentText(formatter: SimpleDateFormat): String = buildString {
     val lines = message.clean().lines()
-    append(formatter.format(Date(timestamp))).append(" | ").append(severity?.name ?: "-")
+    append(formatter.format(Date(timestampMillis))).append(" | ").append(severity ?: "-")
         .append(" | ").append(tag?.clean()?.ifBlank { null } ?: "-").append(" | ").append(lines.first()).append('\n')
     lines.drop(1).forEach { append(INDENT).append(it).append('\n') }
-    throwable?.let { error ->
-        error.stackTraceToString().clean().trimEnd().lines().forEach { line ->
+    throwable?.let { stackTrace ->
+        stackTrace.clean().trimEnd().lines().forEach { line ->
             append(INDENT).append(line.replace("\t", INDENT)).append('\n')
         }
     }
 }
 
-private fun NetworkEntry.attachmentText(formatter: SimpleDateFormat): String = buildString {
+private fun DevNetworkRecord.attachmentText(formatter: SimpleDateFormat): String = buildString {
     append(formatter.format(Date(startedAtMillis))).append(' ').append(method).append(' ')
-        .append(if (isFailed) "-" else status.toString()).append(' ').append(durationMs).append("ms ").append(url.clean())
+        .append(status?.toString() ?: "-").append(' ').append(durationMs).append("ms ").append(url.clean())
         .append('\n')
     requestHeaders.forEach { (name, value) -> append(INDENT).append("> ").append(name.lowercase()).append(": ").append(value.clean()).append('\n') }
     responseHeaders.forEach { (name, value) -> append(INDENT).append("< ").append(name.lowercase()).append(": ").append(value.clean()).append('\n') }
-    if (isFailed) append(INDENT).append("! ").append(errorCode ?: networkErrorCode(error)).append('\n')
+    if (status == null) append(INDENT).append("! ").append(errorCode ?: "connection").append('\n')
 }
 
 /** One line ending, no NUL bytes: the service rejects `logs.txt` with NUL bytes. */

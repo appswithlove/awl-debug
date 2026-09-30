@@ -1,12 +1,15 @@
 package com.appswithlove.debug.feedback.attachments
 
 import android.util.Log
-import com.appswithlove.debug.api.bridge.AwlDebugInternalApi
-import com.appswithlove.debug.api.bridge.DevBridge
+import com.appswithlove.debug.api.extension.AwlDebugExtensions
+import com.appswithlove.debug.api.extension.DevLogSnapshot
+import com.appswithlove.debug.api.extension.DevNetworkRecord
 import com.appswithlove.debug.feedback.DeviceInfo
 import com.appswithlove.debug.feedback.FeedbackConfig
 import com.appswithlove.debug.feedback.FeedbackPart
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -20,26 +23,36 @@ private const val LOG_TAG = "Feedback"
 internal fun logsPart(bytes: ByteArray) = FeedbackPart("logs", "logs.txt", "text/plain; charset=utf-8", bytes)
 
 /**
- * Builds `logs.txt`: the header written here, followed by logs and requests from the debug panel.
+ * Builds `logs.txt`: the header, then the newest logs (with the Logs module's filter) and requests of the debug panel.
  * Returns `null` without the debug panel, when it fails, or when the result would be too large.
  */
-@OptIn(AwlDebugInternalApi::class)
 internal suspend fun captureLogsAttachment(
     config: FeedbackConfig,
     device: DeviceInfo,
     generatedAt: Date,
-    source: (suspend () -> ByteArray?)? = DevBridge.feedbackAttachments,
     timeZone: TimeZone = TimeZone.getDefault(),
+    logs: suspend () -> DevLogSnapshot? = { AwlDebugExtensions.logSnapshot(ATTACHMENT_MAX_LOGS) },
+    requests: () -> List<DevNetworkRecord> = { AwlDebugExtensions.networkSnapshot(ATTACHMENT_MAX_REQUESTS) },
 ): ByteArray? {
     val body = try {
-        source?.invoke()
+        val snapshot = logs() ?: return null
+        val recentRequests = requests()
+        withContext(Dispatchers.Default) {
+            logsAttachmentBody(
+                logs = snapshot.records,
+                filters = describeFilters(snapshot.severityFilter, snapshot.searchQuery),
+                requests = recentRequests,
+                maxBytes = LOGS_BODY_MAX_BYTES,
+                timeZone = timeZone,
+            )
+        }
     } catch (e: CancellationException) {
         throw e
     } catch (e: Exception) {
         Log.w(LOG_TAG, "Could not collect logs for the report", e)
-        null
-    } ?: return null
-    val bytes = logsAttachmentHeader(config, device, generatedAt, timeZone).toByteArray(Charsets.UTF_8) + body
+        return null
+    }
+    val bytes = (logsAttachmentHeader(config, device, generatedAt, timeZone) + body).toByteArray(Charsets.UTF_8)
     return bytes.takeIf { it.size <= LOGS_MAX_BYTES }
 }
 
@@ -55,5 +68,5 @@ internal fun logsAttachmentHeader(config: FeedbackConfig, device: DeviceInfo, ge
     return "# AWL Debug logs\napp: $app\ndevice: $deviceLine\ngenerated: $generated\n"
 }
 
-/** Single line, capped like the metadata strings, so the header always fits the room the bridge leaves for it. */
+/** Single line, capped like the metadata strings, so the header always fits the room [LOGS_BODY_MAX_BYTES] leaves. */
 private fun String.headerValue(): String = replace(Regex("[\\r\\n\\u0000]"), " ").take(MAX_HEADER_VALUE_LENGTH)

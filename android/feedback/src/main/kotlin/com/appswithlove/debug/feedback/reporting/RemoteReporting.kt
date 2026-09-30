@@ -1,4 +1,4 @@
-package com.appswithlove.debug.reporting
+package com.appswithlove.debug.feedback.reporting
 
 import android.content.Context
 import android.content.SharedPreferences
@@ -10,9 +10,11 @@ import android.util.Log
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
-import com.appswithlove.debug.api.AwlDistribution
-import com.appswithlove.debug.api.reporting.RemoteReportingConfig
-import com.appswithlove.debug.ui.dev.network.NetworkEntry
+import com.appswithlove.debug.api.extension.AwlDebugExtensions
+import com.appswithlove.debug.feedback.AwlDistribution
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,7 +23,7 @@ import java.io.File
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
-/** Process-wide entry point behind `AwlDebug.startRemoteReporting`. */
+/** Process-wide state behind [AwlRemoteReporting]. */
 internal object RemoteReporting {
     private const val TAG = "AwlDebug"
     private const val PREFS = "awl_debug_reporting"
@@ -30,8 +32,11 @@ internal object RemoteReporting {
 
     private val mutableStatus = MutableStateFlow(ReportingStatus())
 
-    /** The panel shows a row once [ReportingStatus.isConfigured]. */
+    /** The panel shows its section once [ReportingStatus.isConfigured]. */
     val status: StateFlow<ReportingStatus> = mutableStatus.asStateFlow()
+
+    @Volatile
+    private var panelSection: AutoCloseable? = null
 
     @Volatile
     private var uploader: ReportingUploader? = null
@@ -52,6 +57,7 @@ internal object RemoteReporting {
         if (config.distribution == AwlDistribution.Store) {
             Log.w(TAG, "Remote reporting is off in store builds.")
             mutableStatus.value = ReportingStatus(isConfigured = true, isStoreBuild = true, isSendingEnabled = false)
+            showInPanel()
             return
         }
         if (config.endpoint.isBlank() || config.appKey.isBlank()) {
@@ -82,6 +88,8 @@ internal object RemoteReporting {
         created.start()
         reporter = created
         uploader = createdUploader
+        AwlDebugExtensions.addNetworkListener(created::onNetworkRecord)
+        showInPanel()
         createdUploader.upload(ignoreBackoff = true)
         executor.scheduleWithFixedDelay(
             { if (status.value.isOn) flush(ignoreBackoff = false) },
@@ -116,8 +124,10 @@ internal object RemoteReporting {
         }
     }
 
-    fun onNetworkEntry(entry: NetworkEntry) {
-        reporter?.onNetworkEntry(entry)
+    private fun showInPanel() {
+        if (panelSection != null) return
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        panelSection = AwlDebugExtensions.register(remoteReportingSection(status, scope, ::flush, ::setSendingEnabled))
     }
 
     @Synchronized
@@ -126,7 +136,7 @@ internal object RemoteReporting {
         reporter?.setUserIdentifier(appUserId)
     }
 
-    /** "Flush now" and `AwlDebug.flushReports`: seals what is recorded and sends it, ignoring the backoff. */
+    /** "Flush now" and [AwlRemoteReporting.flush]: seals what is recorded and sends it, ignoring the backoff. */
     fun flush() {
         flush(ignoreBackoff = true)
     }

@@ -24,7 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
-import com.appswithlove.debug.api.AwlDistribution
+import com.appswithlove.debug.feedback.AwlDistribution
 import com.appswithlove.debug.api.DeeplinkItem
 import com.appswithlove.debug.api.DevConfig
 import com.appswithlove.debug.api.DevModulesConfig

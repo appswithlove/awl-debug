@@ -1,6 +1,5 @@
 package com.appswithlove.debug.feedback
 
-import com.appswithlove.debug.api.AwlDistribution
 import io.kotest.assertions.withClue
 import io.kotest.matchers.shouldBe
 import org.json.JSONObject

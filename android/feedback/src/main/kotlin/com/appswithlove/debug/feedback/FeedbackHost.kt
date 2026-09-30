@@ -17,6 +17,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -39,9 +40,9 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.appswithlove.debug.api.DevTrigger
-import com.appswithlove.debug.api.bridge.AwlDebugInternalApi
-import com.appswithlove.debug.api.bridge.DevBridge
-import com.appswithlove.debug.api.bridge.FeedbackEntry
+import com.appswithlove.debug.api.extension.AwlDebugExtensions
+import com.appswithlove.debug.api.extension.DevExtensionItem
+import com.appswithlove.debug.api.extension.DevExtensionSection
 import com.appswithlove.debug.feedback.attachments.captureLogsAttachment
 import com.appswithlove.debug.feedback.attachments.hasRecordingToAttach
 import com.appswithlove.debug.feedback.queue.FeedbackQueue
@@ -52,6 +53,10 @@ import java.util.Date
 import java.util.UUID
 
 private const val LOG_TAG = "Feedback"
+
+/** Panel section below App Info, after remote reporting. */
+internal const val FEEDBACK_SECTION_ID = "feedback"
+internal const val FEEDBACK_SECTION_ORDER = 20
 
 /** Everything captured at the moment the tester starts a report; the reporter is only known when it is sent. */
 internal class FeedbackDraft(
@@ -68,12 +73,12 @@ internal class FeedbackController(
     private val scope: CoroutineScope,
     private val layer: GraphicsLayer,
     private val config: () -> FeedbackConfig?,
-) {
+) : ReportStarter {
     val isConfigured: Boolean get() = config() != null
     var draft: FeedbackDraft? by mutableStateOf(null)
         private set
 
-    fun start() {
+    override fun start() {
         val currentConfig = config() ?: return
         if (draft != null) return
         val extra = currentConfig.extraMetadata()
@@ -133,7 +138,7 @@ fun FeedbackHost(config: FeedbackConfig?, content: @Composable () -> Unit) {
     }
     if (config != null) {
         RetryQueuedReports()
-        RegisterFeedbackEntry(controller = controller, triggers = triggers)
+        RegisterFeedbackSection(controller = controller, triggers = triggers)
     }
     CompositionLocalProvider(LocalFeedbackController provides controller) {
         Box(modifier = recording, propagateMinConstraints = true) {
@@ -178,28 +183,34 @@ private fun RetryQueuedReports() {
 }
 
 /**
- * Offers this host to the debug panel and [AwlFeedback.start]. The host resumed last wins, so with several
- * activities the one on screen takes the reports.
+ * Offers this host to the debug panel ("Send feedback") and [AwlFeedback.start]. The host resumed last wins, so with
+ * several activities the one on screen takes the reports. The panel leaves [triggers] to feedback.
  */
-@OptIn(AwlDebugInternalApi::class)
 @Composable
-private fun RegisterFeedbackEntry(controller: FeedbackController, triggers: Set<DevTrigger>) {
+private fun RegisterFeedbackSection(controller: FeedbackController, triggers: Set<DevTrigger>) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-    DisposableEffect(controller, triggers, context, lifecycleOwner) {
-        val entry = FeedbackEntry(
-            triggers = triggers,
-            pendingCount = FeedbackQueue.shared(context).pendingCount,
-            start = controller::start,
-        )
-        DevBridge.feedbackLauncher.value = entry
+    val pending by remember(context) { FeedbackQueue.shared(context).pendingCount }.collectAsState()
+    val entry = stringResource(R.string.feedback_entry)
+    val badge = if (pending > 0) stringResource(R.string.feedback_pending, pending) else null
+    val items = remember(controller) { MutableStateFlow<List<DevExtensionItem>>(emptyList()) }
+    SideEffect { items.value = listOf(DevExtensionItem.Link(entry, badge, onClick = AwlFeedback::start)) }
+    DisposableEffect(controller, triggers, lifecycleOwner) {
+        val section = DevExtensionSection(FEEDBACK_SECTION_ID, items, FEEDBACK_SECTION_ORDER, claimedTriggers = triggers)
+        var registration = AwlDebugExtensions.register(section)
+        ActiveFeedbackHost.set(controller)
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) DevBridge.feedbackLauncher.value = entry
+            if (event == Lifecycle.Event.ON_RESUME) {
+                registration.close()
+                registration = AwlDebugExtensions.register(section)
+                ActiveFeedbackHost.set(controller)
+            }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
-            DevBridge.feedbackLauncher.compareAndSet(entry, null)
+            registration.close()
+            ActiveFeedbackHost.clear(controller)
         }
     }
 }

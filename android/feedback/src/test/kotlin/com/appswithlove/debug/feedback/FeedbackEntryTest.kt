@@ -2,22 +2,23 @@ package com.appswithlove.debug.feedback
 
 import android.os.Looper
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import com.appswithlove.debug.api.DevTrigger
-import com.appswithlove.debug.api.bridge.AwlDebugInternalApi
-import com.appswithlove.debug.api.bridge.DevBridge
-import com.appswithlove.debug.api.bridge.FeedbackEntry
+import com.appswithlove.debug.api.extension.AwlDebugExtensions
+import com.appswithlove.debug.api.extension.DevExtensionItem
+import com.appswithlove.debug.api.extension.DevExtensionSection
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
-import kotlinx.coroutines.flow.MutableStateFlow
-import org.junit.After
+import io.kotest.matchers.types.shouldBeInstanceOf
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -26,7 +27,6 @@ import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.GraphicsMode
 import kotlin.concurrent.thread
 
-@OptIn(AwlDebugInternalApi::class)
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class FeedbackEntryTest {
@@ -42,45 +42,57 @@ class FeedbackEntryTest {
         environment = "test",
     )
 
-    @After
-    fun tearDown() {
-        DevBridge.feedbackLauncher.value = null
+    private fun feedbackSection(): DevExtensionSection? =
+        AwlDebugExtensions.sections.value.singleOrNull { it.id == FEEDBACK_SECTION_ID }
+
+    private fun showHost(config: FeedbackConfig?) {
+        compose.setContent { FeedbackHost(config = config) { Box(Modifier.fillMaxSize().background(Color.White)) } }
+        compose.waitForIdle()
     }
 
     @Test
-    fun configuredHostOffersEntryUntilItLeaves() {
+    fun configuredHostOffersPanelEntryUntilItLeaves() {
         var showHost by mutableStateOf(true)
         compose.setContent {
             if (showHost) FeedbackHost(config = config.copy(triggers = setOf(DevTrigger.TripleTap))) { Box(Modifier.fillMaxSize()) }
         }
         compose.waitForIdle()
 
-        DevBridge.feedbackLauncher.value.shouldNotBeNull().triggers shouldBe setOf(DevTrigger.TripleTap)
+        val section = feedbackSection().shouldNotBeNull()
+        section.order shouldBe FEEDBACK_SECTION_ORDER
+        section.claimedTriggers shouldBe setOf(DevTrigger.TripleTap)
+        val link = section.items.value.single().shouldBeInstanceOf<DevExtensionItem.Link>()
+        link.text shouldBe "Send feedback"
+        link.badge.shouldBeNull()
 
         showHost = false
         compose.waitForIdle()
-        DevBridge.feedbackLauncher.value.shouldBeNull()
+        feedbackSection().shouldBeNull()
+        ActiveFeedbackHost.current.shouldBeNull()
     }
 
     @Test
     fun hostWithoutConfigOffersNoEntry() {
-        compose.setContent { FeedbackHost(config = null) { Box(Modifier.fillMaxSize()) } }
-        compose.waitForIdle()
+        showHost(config = null)
 
-        DevBridge.feedbackLauncher.value.shouldBeNull()
+        feedbackSection().shouldBeNull()
+        ActiveFeedbackHost.current.shouldBeNull()
     }
 
     @Test
-    fun startFromCodeRunsEntryOnMainThread() {
-        var startedOnMain: Boolean? = null
-        DevBridge.feedbackLauncher.value = FeedbackEntry(emptySet(), MutableStateFlow(0)) {
-            startedOnMain = Looper.myLooper() == Looper.getMainLooper()
-        }
+    fun panelEntryAndStartFromCodeStartTheShownHostOnTheMainThread() {
+        showHost(config)
+        val link = feedbackSection().shouldNotBeNull().items.value.single().shouldBeInstanceOf<DevExtensionItem.Link>()
+        val startedOnMain = mutableListOf<Boolean>()
+        val probe = ReportStarter { startedOnMain += Looper.myLooper() == Looper.getMainLooper() }
+        ActiveFeedbackHost.set(probe)
 
+        compose.runOnUiThread { link.onClick() }
         thread { AwlFeedback.start() }.join()
         shadowOf(Looper.getMainLooper()).idle()
 
-        startedOnMain shouldBe true
+        startedOnMain shouldBe listOf(true, true)
+        ActiveFeedbackHost.clear(probe)
     }
 
     @Test

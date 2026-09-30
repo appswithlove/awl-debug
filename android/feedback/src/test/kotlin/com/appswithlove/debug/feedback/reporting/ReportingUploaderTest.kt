@@ -1,7 +1,6 @@
-package com.appswithlove.debug.reporting
+package com.appswithlove.debug.feedback.reporting
 
-import com.appswithlove.debug.api.AwlDistribution
-import com.appswithlove.debug.api.reporting.RemoteReportingConfig
+import com.appswithlove.debug.feedback.AwlDistribution
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull

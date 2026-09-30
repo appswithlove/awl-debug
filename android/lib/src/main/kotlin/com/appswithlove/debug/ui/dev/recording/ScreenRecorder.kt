@@ -27,9 +27,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import com.appswithlove.debug.R
 import com.appswithlove.debug.api.DevScreenRecordingConfig
-import com.appswithlove.debug.api.bridge.AwlDebugInternalApi
-import com.appswithlove.debug.api.bridge.DevBridge
-import com.appswithlove.debug.api.bridge.RecordingExport
 import com.appswithlove.debug.api.extension.DevRecordingExport
 import com.appswithlove.debug.api.extension.DevRecordingExportOptions
 import java.io.File
@@ -120,7 +117,6 @@ internal object ScreenRecorder {
                 _currentFrameCount.value = 0
             }
             application.registerActivityLifecycleCallbacks(lifecycleCallbacks)
-            registerFeedbackBridge()
         }
         val isResumed = (activity as? LifecycleOwner)?.lifecycle?.currentState?.isAtLeast(Lifecycle.State.RESUMED) ?: true
         if (isResumed) onActivityResumed(activity)
@@ -168,16 +164,6 @@ internal object ScreenRecorder {
                 val source = if (_currentFrameCount.value > 0) buffer.currentDir else buffer.lastDir
                 RecordingExporter.export(source, File(cacheRoot, "recording-extension"), options)
             }
-        }
-    }
-
-    /** Legacy bridge for the feedback artifact, with the limits of the feedback service. */
-    @OptIn(AwlDebugInternalApi::class)
-    private fun registerFeedbackBridge() {
-        DevBridge.hasRecording = ::hasRecording
-        DevBridge.lastRecording = {
-            export(DevRecordingExportOptions(lastSeconds = 60, maxVideoBytes = 25L * 1024 * 1024, maxTimelineBytes = 256 * 1024))
-                ?.let { RecordingExport(video = it.video, frames = it.frames, timeline = it.timeline) }
         }
     }
 

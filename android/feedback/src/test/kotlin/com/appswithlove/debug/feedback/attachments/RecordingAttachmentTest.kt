@@ -1,7 +1,6 @@
 package com.appswithlove.debug.feedback.attachments
 
-import com.appswithlove.debug.api.bridge.AwlDebugInternalApi
-import com.appswithlove.debug.api.bridge.RecordingExport
+import com.appswithlove.debug.api.extension.DevRecordingExport
 import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
@@ -11,7 +10,6 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-@OptIn(AwlDebugInternalApi::class)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class RecordingAttachmentTest {
@@ -21,7 +19,7 @@ class RecordingAttachmentTest {
 
     @Test
     fun sendsVideoFramesAndTimelineParts() = runTest {
-        val export = RecordingExport(
+        val export = DevRecordingExport(
             video = folder.newFile("recording.mp4").apply { writeText("mp4") },
             frames = folder.newFile("frames.jpg").apply { writeText("jpg") },
             timeline = folder.newFile("timeline.md").apply { writeText("md") },
@@ -39,7 +37,7 @@ class RecordingAttachmentTest {
 
     @Test
     fun videoTooLarge_sendsNoRecordingParts() = runTest {
-        val attachment = captureRecordingAttachment(source = { RecordingExport(video = null, frames = null, timeline = null) })!!
+        val attachment = captureRecordingAttachment(source = { DevRecordingExport(video = null, frames = null, timeline = null) })!!
 
         attachment.isVideoTooLarge shouldBe true
         attachment.parts shouldBe emptyList()
@@ -47,10 +45,11 @@ class RecordingAttachmentTest {
 
     @Test
     fun nothingWithoutDebugPanelOrOnFailure() = runTest {
-        captureRecordingAttachment(source = null) shouldBe null
+        captureRecordingAttachment() shouldBe null // nothing was recorded
         captureRecordingAttachment(source = { null }) shouldBe null
         captureRecordingAttachment(source = { error("encoder failed") }) shouldBe null
-        hasRecordingToAttach(source = null) shouldBe false
+        hasRecordingToAttach() shouldBe false
+        hasRecordingToAttach(source = { error("not ready") }) shouldBe false
         hasRecordingToAttach(source = { true }) shouldBe true
     }
 }

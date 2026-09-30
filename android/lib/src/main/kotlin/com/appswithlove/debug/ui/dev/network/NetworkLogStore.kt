@@ -1,6 +1,5 @@
 package com.appswithlove.debug.ui.dev.network
 
-import com.appswithlove.debug.bridge.LogsAttachment
 import com.appswithlove.debug.extension.DebugExtensionProvider
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -58,7 +57,6 @@ internal object NetworkCollector {
     val store = NetworkLogStore()
 
     init {
-        LogsAttachment.register()
         DebugExtensionProvider.install()
     }
 }
