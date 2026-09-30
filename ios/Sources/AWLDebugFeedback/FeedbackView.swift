@@ -118,7 +118,7 @@ private struct ScreenshotMarkup: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing)
                 .accessibilityElement(children: .ignore)
-                .accessibilityLabel("Screenshot. Draw on it to mark the issue.")
+                .accessibilityLabel("Screenshot. Draw to mark the problem.")
 
             MarkupToolbar(session: session)
         }
@@ -142,7 +142,7 @@ private struct DescriptionField: View {
                     .background(Color(uiColor: .tertiarySystemFill), in: RoundedRectangle(cornerRadius: 8))
                     .overlay(alignment: .topLeading) {
                         if session.text.isEmpty {
-                            Text("Describe the issue")
+                            Text("What happened?")
                                 .foregroundStyle(.secondary)
                                 .padding(.horizontal, 9)
                                 .padding(.vertical, 12)
@@ -150,7 +150,7 @@ private struct DescriptionField: View {
                         }
                     }
                     .disabled(session.phase == .sending)
-                    .accessibilityLabel("Description")
+                    .accessibilityLabel("What happened?")
 
                 MicButton(session: session)
             }
@@ -163,8 +163,9 @@ private struct DescriptionField: View {
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
-                Text("\(session.text.count)/\(FeedbackSession.maxTextLength)")
-                    .foregroundStyle(session.text.count > FeedbackSession.maxTextLength ? .red : .secondary)
+                // Verbatim: a localized key would group the digits ("5'000"); the spec and Android show "{n}/5000".
+                Text(verbatim: "\(session.textLength)/\(FeedbackSession.maxTextLength)")
+                    .foregroundStyle(.secondary)
                     .monospacedDigit()
             }
             .font(.caption)

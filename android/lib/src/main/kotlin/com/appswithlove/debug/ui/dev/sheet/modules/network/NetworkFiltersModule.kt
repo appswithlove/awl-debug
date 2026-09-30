@@ -1,12 +1,14 @@
 package com.appswithlove.debug.ui.dev.sheet.modules.network
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.HorizontalDivider
@@ -16,9 +18,11 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import com.appswithlove.debug.ui.component.DevEmptyState
 import com.appswithlove.debug.ui.component.DevOutlinedButton
+import com.appswithlove.debug.ui.component.DevSectionTitle
 import com.appswithlove.debug.ui.dev.network.NetworkUiState
 import com.appswithlove.debug.ui.dev.network.StatusClass
 import com.appswithlove.debug.ui.dev.network.toggle
@@ -81,42 +85,43 @@ private fun <T> FilterGroup(
     onExcludedChanged: (Set<T>) -> Unit,
 ) {
     Column(modifier = Modifier.padding(vertical = 8.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                modifier = Modifier.weight(1f),
-                text = title,
-                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            TextButton(onClick = { onExcludedChanged(emptySet()) }) { Text("Select all") }
-            TextButton(onClick = { onExcludedChanged(values.toSet()) }) { Text("Deselect all") }
+        // The buttons move below the title when both do not fit, e.g. with a large font size.
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            itemVerticalAlignment = Alignment.CenterVertically,
+        ) {
+            DevSectionTitle(text = title)
+            Row {
+                TextButton(onClick = { onExcludedChanged(emptySet()) }) { Text("Select all") }
+                TextButton(onClick = { onExcludedChanged(values.toSet()) }) { Text("Deselect all") }
+            }
         }
         description?.let {
             Text(
                 text = it,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         if (values.isEmpty()) {
-            Text(
-                modifier = Modifier.padding(vertical = 8.dp),
-                text = "No requests yet",
-                color = MaterialTheme.colorScheme.onSurface,
-            )
+            DevEmptyState(text = "No requests yet")
         }
         values.forEach { value ->
+            // One toggle per option, so TalkBack reads the label with the checkbox state.
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { onExcludedChanged(excluded.toggle(value)) },
-                horizontalArrangement = Arrangement.Start,
+                    .heightIn(min = 48.dp)
+                    .toggleable(
+                        value = value !in excluded,
+                        role = Role.Checkbox,
+                        onValueChange = { onExcludedChanged(excluded.toggle(value)) },
+                    ),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Checkbox(
-                    checked = value !in excluded,
-                    onCheckedChange = { onExcludedChanged(excluded.toggle(value)) },
-                )
+                Checkbox(checked = value !in excluded, onCheckedChange = null)
                 Text(text = label(value), color = MaterialTheme.colorScheme.onSurface)
             }
         }

@@ -64,6 +64,7 @@ enum Constants {
         static let appLogsLimit = prefix + "appLogsLimit"
         static let versionOverlayVisible = prefix + "versionOverlayVisible"
         static let performanceMeasuring = prefix + "performanceMeasuring"
+        static let remoteReportingEnabled = prefix + "remoteReportingEnabled"
     }
     
 }

@@ -1,7 +1,7 @@
 import Foundation
 
-/// Frames are only taken while something happens: up to one second after a touch, keyboard or orientation change,
-/// while a finger is down, and two more frames after that so the screen's reaction is in the recording.
+/// Frames are only taken while something happens: up to one second after a touch, typing, a keyboard or orientation
+/// change, while a finger is down, and two more frames after that so the screen's reaction is in the recording.
 struct RecordingActivity {
     static let activeInterval: TimeInterval = 1
     static let framesAfterActivity = 2

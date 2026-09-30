@@ -52,6 +52,9 @@ final class ScreenRecorder: NSObject {
         center.addObserver(self, selector: #selector(noteActivity), name: UIResponder.keyboardWillShowNotification, object: nil)
         center.addObserver(self, selector: #selector(noteActivity), name: UIResponder.keyboardDidHideNotification, object: nil)
         center.addObserver(self, selector: #selector(noteActivity), name: UIDevice.orientationDidChangeNotification, object: nil)
+        // Typing: the keyboard's own window is not watched for touches.
+        center.addObserver(self, selector: #selector(textDidChange(_:)), name: UITextField.textDidChangeNotification, object: nil)
+        center.addObserver(self, selector: #selector(textDidChange(_:)), name: UITextView.textDidChangeNotification, object: nil)
         installRecognizers()
         activity = RecordingActivity()
         activity.noteActivity(at: Date())
@@ -85,10 +88,10 @@ final class ScreenRecorder: NSObject {
             return
         }
         let windows = RecordingFrameRenderer.appWindows(of: scene)
-        guard !windows.isEmpty else {
+        guard !windows.isEmpty,
+              let frame = RecordingFrameRenderer.capture(windows: windows, bounds: scene.screen.bounds, date: now) else {
             return
         }
-        let frame = RecordingFrameRenderer.capture(windows: windows, bounds: scene.screen.bounds, date: now)
         let drawnTouches = Array(touches.values)
         touches = touches.filter { $0.value.phase != .ended }
 
@@ -114,6 +117,21 @@ final class ScreenRecorder: NSObject {
 
     @objc private func noteActivity() {
         activity.noteActivity(at: Date())
+    }
+
+    @objc private func textDidChange(_ notification: Notification) {
+        if Self.isTypingInApp(notification) {
+            noteActivity()
+        }
+    }
+
+    /// Typing in an app window. Typing in the SDK's own windows (e.g. the feedback form) is not the app being used,
+    /// so it takes no frames of the screen below.
+    static func isTypingInApp(_ notification: Notification) -> Bool {
+        guard let window = (notification.object as? UIView)?.window else {
+            return false
+        }
+        return RecordingFrameRenderer.isAppWindow(window)
     }
 
     private func record(_ touches: Set<UITouch>, in window: UIWindow) {

@@ -74,7 +74,7 @@ struct FeedbackMetadata: Encodable, Equatable {
     /// characters; sorting keeps the kept subset deterministic.
     private static func limited(_ metadata: [String: String]) -> [String: String] {
         let entries = metadata
-            .filter { !$0.key.isEmpty && $0.key.count <= maxKeyLength }
+            .filter { !$0.key.isEmpty && $0.key.utf16.count <= maxKeyLength }
             .sorted { $0.key < $1.key }
             .prefix(maxExtraEntries)
             .map { ($0.key, capped($0.value)) }
@@ -82,11 +82,11 @@ struct FeedbackMetadata: Encodable, Equatable {
     }
 
     private static func capped(_ value: String) -> String {
-        String(value.prefix(maxValueLength))
+        value.prefix(utf16Units: maxValueLength)
     }
 
     private static func short(_ value: String) -> String {
-        String(value.prefix(maxStringLength))
+        value.prefix(utf16Units: maxStringLength)
     }
 
     /// The service requires a non-blank name and rejects malformed addresses, so a blank name
@@ -102,8 +102,27 @@ struct FeedbackMetadata: Encodable, Equatable {
         return Reporter(name: short(name), email: email)
     }
 
-    /// Same rule as the service.
+    /// The service's rule (zod `z.email()`): ASCII local part without leading, trailing or double dots, a domain
+    /// with a dot and a TLD of at least two letters. The service rejects the whole report for any other address.
     static func isValidEmail(_ email: String) -> Bool {
-        email.count <= maxEmailLength && email.range(of: #"^[^@\s]+@[^@\s]+\.[^@\s]+$"#, options: .regularExpression) != nil
+        email.utf16.count <= maxEmailLength && email.range(of: emailPattern, options: .regularExpression) != nil
+    }
+
+    private static let emailPattern =
+        #"^(?:[A-Za-z0-9_'+\-]+\.)*[A-Za-z0-9_'+\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\-]*\.)+[A-Za-z]{2,}\z"#
+}
+
+extension String {
+    /// At most `maxLength` UTF-16 units, the way the service counts string lengths, without splitting a character.
+    func prefix(utf16Units maxLength: Int) -> String {
+        guard utf16.count > maxLength else {
+            return self
+        }
+        var units = 0
+        let end = firstIndex { character in
+            units += character.utf16.count
+            return units > maxLength
+        } ?? endIndex
+        return String(self[..<end])
     }
 }
