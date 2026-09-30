@@ -20,10 +20,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.appswithlove.debug.ui.component.DevOutlinedButton
+import com.appswithlove.debug.ui.component.DevSectionTitle
 import com.appswithlove.debug.ui.component.DevSlider
 import com.appswithlove.debug.ui.component.DevSwitchRow
 import com.appswithlove.debug.ui.theme.AppTheme
@@ -46,7 +46,7 @@ internal fun AccessibilityModule(
     Column(
         modifier = modifier
             .verticalScroll(rememberScrollState())
-            .padding(vertical = 12.dp),
+            .padding(bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         SectionTitle("Font size")
@@ -143,11 +143,7 @@ internal fun AccessibilityModule(
 
 @Composable
 private fun SectionTitle(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-        color = MaterialTheme.colorScheme.onSurface,
-    )
+    DevSectionTitle(text = text)
 }
 
 @Composable

@@ -10,6 +10,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.unit.dp
 import com.appswithlove.debug.ui.dev.network.CapturedBody
+import com.appswithlove.debug.ui.dev.network.NetworkFilter
 import com.appswithlove.debug.ui.dev.network.NetworkUiState
 import com.appswithlove.debug.ui.dev.network.networkEntry
 import com.appswithlove.debug.ui.theme.DevTheme
@@ -66,6 +67,42 @@ class NetworkModuleScreenshotTest {
                 onClear = {},
                 onExport = {},
                 onMaxSizeChanged = {},
+            )
+        }
+    }
+
+    @Test
+    @Config(fontScale = 2f)
+    fun listLargeFont() {
+        capture("src/test/screenshots/NetworkModule_list_font200.png") {
+            NetworkModule(
+                state = NetworkUiState(entries = entries.take(3), methods = listOf("DELETE", "GET", "POST", "PUT")),
+                onSearch = {},
+                onEntryClick = {},
+                onShowFilters = {},
+                onSortChanged = {},
+                onClear = {},
+                onExport = {},
+                onMaxSizeChanged = {},
+            )
+        }
+    }
+
+    @Test
+    @Config(fontScale = 2f)
+    fun filtersLargeFont() {
+        capture("src/test/screenshots/NetworkModule_filters_font200.png") {
+            NetworkFiltersModule(
+                state = NetworkUiState(
+                    entries = entries,
+                    methods = listOf("GET", "POST"),
+                    hosts = listOf("api.example.com"),
+                    filter = NetworkFilter(excludedMethods = setOf("POST")),
+                ),
+                onExcludedMethodsChanged = {},
+                onExcludedStatusClassesChanged = {},
+                onExcludedHostsChanged = {},
+                onDone = {},
             )
         }
     }

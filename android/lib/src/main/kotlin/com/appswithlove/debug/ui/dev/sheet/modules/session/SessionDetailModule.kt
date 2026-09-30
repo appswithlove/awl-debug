@@ -23,6 +23,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -87,8 +88,8 @@ internal fun SessionDetailModule(
 
     Column(
         modifier = modifier
-            .padding(vertical = 12.dp)
-            .verticalScroll(rememberScrollState()),
+            .verticalScroll(rememberScrollState())
+            .padding(bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         states.forEachIndexed { index, state ->
@@ -182,7 +183,7 @@ private fun ProviderCard(
                     { CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = contentColor) }
                 }
                 icon != null -> {
-                    { Icon(imageVector = icon, contentDescription = null, tint = contentColor) }
+                    { Icon(imageVector = icon, contentDescription = null, tint = LocalContentColor.current) }
                 }
                 else -> null
             },

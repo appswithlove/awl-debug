@@ -30,6 +30,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.appswithlove.debug.api.DeeplinkItem
+import com.appswithlove.debug.ui.component.DevButtonRow
+import com.appswithlove.debug.ui.component.DevGroupLabel
 import com.appswithlove.debug.ui.component.DevOutlinedButton
 import com.appswithlove.debug.ui.component.DevOutlinedTextField
 import com.appswithlove.debug.ui.component.icons.TablerIcons
@@ -59,8 +61,8 @@ internal fun DeeplinksModule(
 
     Column(
         modifier = modifier
-            .padding(vertical = 12.dp)
-            .verticalScroll(rememberScrollState()),
+            .verticalScroll(rememberScrollState())
+            .padding(bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         DevOutlinedTextField(
@@ -78,10 +80,9 @@ internal fun DeeplinksModule(
             isError = deeplinkError != null,
             errorText = deeplinkError,
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            val enabled = deeplinkText.isNotBlank() && deeplinkError == null
+        val enabled = deeplinkText.isNotBlank() && deeplinkError == null
+        DevButtonRow {
             DevOutlinedButton(
-                modifier = Modifier.weight(1f),
                 text = "Fire now",
                 enabled = enabled,
                 contentColor = MaterialTheme.colorScheme.onSurface,
@@ -90,7 +91,6 @@ internal fun DeeplinksModule(
                 },
             )
             DevOutlinedButton(
-                modifier = Modifier.weight(1f),
                 text = "Save",
                 enabled = enabled,
                 contentColor = MaterialTheme.colorScheme.onSurface,
@@ -134,12 +134,7 @@ internal fun DeeplinksModule(
 
 @Composable
 private fun SectionLabel(text: String) {
-    Text(
-        modifier = Modifier.padding(top = 8.dp),
-        text = text,
-        style = MaterialTheme.typography.labelMedium,
-        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-    )
+    DevGroupLabel(modifier = Modifier.padding(top = 8.dp), text = text)
 }
 
 @Composable
