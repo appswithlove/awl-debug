@@ -242,8 +242,10 @@ The SDK must never ship to the App Store. Compile every call behind a flag that 
    ```bash
    # Keeps the AWL debug SDK out of configurations without AWL_DEBUG.
    [[ " ${OTHER_SWIFT_FLAGS:-} " == *" -DAWL_DEBUG "* ]] && exit 0
+   # The frameworks, plus the package's resource bundle that Xcode copies to the app's root.
    rm -rf "${TARGET_BUILD_DIR}/${WRAPPER_NAME}/Frameworks/AWLDebugTool.framework" \
-          "${TARGET_BUILD_DIR}/${WRAPPER_NAME}/Frameworks/AWLDebugFeedback.framework"
+          "${TARGET_BUILD_DIR}/${WRAPPER_NAME}/Frameworks/AWLDebugFeedback.framework" \
+          "${TARGET_BUILD_DIR}/${WRAPPER_NAME}/AWLDebugTool_AWLDebugTool.bundle"
    if otool -L "${TARGET_BUILD_DIR}/${WRAPPER_NAME}/${EXECUTABLE_NAME}" | grep -q AWLDebug; then
        echo "error: the store build still links the AWL debug SDK"; exit 1
    fi
