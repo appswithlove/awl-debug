@@ -1036,7 +1036,7 @@ private fun FeedbackNavItem(entry: FeedbackEntry, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() }
+            .clickable(role = Role.Button, onClick = onClick)
             .padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -1054,6 +1054,11 @@ private fun FeedbackNavItem(entry: FeedbackEntry, onClick: () -> Unit) {
                 )
             }
         }
+        Icon(
+            painter = painterResource(R.drawable.ic_chevron_right),
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+        )
     }
 }
 
