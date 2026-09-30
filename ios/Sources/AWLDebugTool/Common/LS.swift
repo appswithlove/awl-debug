@@ -7,14 +7,17 @@
 
 enum LS {
     static let logWatermark = "[AWL Debug Tool]"
+
+    enum Panel {
+        /// VoiceOver value of a start-page module that records or measures (the green dot).
+        static let active = "On"
+    }
     
     struct Strings {
-        static let appName = "Debug Tool"
+        static let appName = "AWL Debug"
         static let unknownValue = "n/a"
         static let emptyString = ""
-        static let fatalErrorMsg = "Don't worry be happy."
         static let searchLogs = "Search requests"
-        static let tracking = "Track network logs"
         static let trackingInfo = "Add AWLDebugTool.start() into AppDelegate/App init() to enable this."
         static let stopTracking = "stop tracking network logs"
         static let startTracking = "start tracking network logs"
@@ -27,11 +30,10 @@ enum LS {
     struct Headers {
         static let btnClose = "Close"
         static let btnDone = "Done"
-        static let logs = "Logs"
         static let permissions = "Permissions"
-        static let fcm = "FCM push token"
-        static let aboutSection = "About"
-        static let firebaseActions = "Firebase actions"
+        static let fcm = "FCM Push Token"
+        static let aboutSection = "App Info"
+        static let testCrashes = "Test Crashes"
         static let screenRecording = "Screen Recording"
         static let settings = "Settings"
         static let requestMethods = "Request Methods"
@@ -45,7 +47,6 @@ enum LS {
         static let deleteNLTitle = "Delete network logs?"
         static let deleteNLMessage = "All captured requests will be removed."
         
-        static let btnOK = "OK"
         static let btnCancel = "Cancel"
         static let btnDelete = "Delete"
     }
@@ -78,7 +79,6 @@ enum LS {
     
     struct Actions {
         // MARK: - Logs
-        static let showNetworkLogs = "Show network logs"
         static let clearNetworkLogs = "Clear network logs"
         static let exportNetworkLogs = "Export network logs"
         
@@ -93,11 +93,6 @@ enum LS {
         static let screenRecorderLastAvailable = "Last recording available (%@)"
         static let screenRecorderEmpty = "No recording yet"
         static let screenRecorderWarning = "Recordings can contain personal data. Secure text fields are masked."
-        
-        // MARK: - Firebase Action
-        static let simulateCrash = "Simulate crash"
-        static let explicitCrash = " - explicit fatal error"
-        static let implicitCrash = " - implicit fatal error"
 
         // MARK: - Session
         static let copy = "Copy"
@@ -112,6 +107,8 @@ enum LS {
     
     struct Deeplinks {
         static let sectionTitle = "Deeplinks"
+        static let predefined = "Predefined"
+        static let saved = "Saved"
         static let addDeeplink = "Add deeplink"
         static let input = "Enter deeplink"
         static let invalid = "Invalid deeplink"
@@ -158,6 +155,8 @@ enum LS {
         static let responseSize = "Response size"
         static let error = "Error"
         static let streamNotCaptured = "(stream, not captured)"
+        static let newestFirst = "Newest first"
+        static let oldestFirst = "Oldest first"
         
         static func redactedCount(_ count: Int) -> String {
             "\(count) values redacted"
@@ -190,6 +189,27 @@ enum LS {
         static let provisional = "Provisional"
         static let unknown = "Unknown"
         static let empty = "No permissions declared"
+    }
+
+    struct TestCrashes {
+        static let runtime = "Simulate crash - Runtime exception"
+        static let indexOutOfBounds = "Simulate crash - Index out of bounds"
+        static let confirmTitle = "Crash the app now?"
+        static let confirm = "Crash"
+        static let message = "AWL Debug test crash"
+    }
+
+    struct AppInfo {
+        static let app = "App"
+        static let version = "Version"
+        static let build = "Build"
+        static let device = "Device"
+        static let os = "OS"
+        static let locale = "Locale"
+        static let time = "Time"
+        static let internet = "Internet"
+        static let online = "Online"
+        static let offline = "Offline"
     }
 
     struct ClearData {
@@ -254,6 +274,31 @@ enum LS {
 
         static func freezes(count: Int, longestMs: Int) -> String {
             count == 0 ? "\(freeze): none" : "\(freeze): \(count)× (longest \(longestMs) ms)"
+        }
+    }
+
+    struct Reporting {
+        static let title = "Remote reporting"
+        static let on = "On"
+        static let off = "Off"
+        static let toggle = "Send session data"
+        static let flushNow = "Flush now"
+        static let sessionId = "Session ID"
+        static let copied = "Copied"
+        static let disabledByServer = "Reporting is disabled for this app in the dashboard."
+        static let disabledStore = "Reporting is off in store builds."
+        static let unauthorized = "Invalid or disabled app key."
+
+        static func lastFlush(_ time: String) -> String {
+            "Last sent \(time)"
+        }
+
+        static func pending(_ count: Int) -> String {
+            "\(count) pending"
+        }
+
+        static func rejected(_ status: Int) -> String {
+            "The dashboard rejected a batch (\(status))."
         }
     }
 }

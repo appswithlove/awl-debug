@@ -28,7 +28,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.appswithlove.debug.R
-import com.appswithlove.debug.ui.theme.AppTheme
 import com.appswithlove.debug.ui.theme.DevTheme
 
 @Composable
@@ -49,7 +48,7 @@ internal fun SelectionDialog(
                 modifier = Modifier
                     .padding(horizontal = 16.dp)
                     .background(
-                        color = AppTheme.colors.background,
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
                         shape = MaterialTheme.shapes.medium,
                     ),
                 horizontalAlignment = Alignment.Start,

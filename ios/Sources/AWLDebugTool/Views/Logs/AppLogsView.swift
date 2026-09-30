@@ -15,6 +15,9 @@ struct AppLogsView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            Toggle(LS.AppLogs.record, isOn: $store.isRecording)
+                .padding(.horizontal, 16)
+                .padding(.top, 4)
             LevelChips(selectedLevels: $store.selectedLevels)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
@@ -29,18 +32,8 @@ struct AppLogsView: View {
         .searchable(text: $store.searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: LS.AppLogs.search)
         .autocorrectionDisabled(true)
         .textInputAutocapitalization(.never)
-        .navigationTitle(LS.AppLogs.title)
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Toggle(LS.AppLogs.record, isOn: $store.isRecording)
-                    .toggleStyle(.switch)
-                    .labelsHidden()
-                    .accessibilityLabel(LS.AppLogs.record)
-            }
-            ToolbarItem(placement: .navigationBarTrailing) {
-                ActionsMenu
-            }
+        .panelPage(LS.AppLogs.title) {
+            ActionsMenu
         }
         .sheet(item: $exportFile) { file in
             ActivityView(items: [file.url])
@@ -86,15 +79,19 @@ struct AppLogsView: View {
 
     @ViewBuilder private var ActionsMenu: some View {
         Menu {
-            Button(LS.AppLogs.export, action: export)
-                .disabled(store.filteredEntries.isEmpty)
+            Button(action: export) {
+                Label(LS.AppLogs.export, systemImage: Image.AppIcon.export.rawValue)
+            }
+            .disabled(store.filteredEntries.isEmpty)
             Picker(LS.AppLogs.limit, selection: $store.limit) {
                 ForEach(Constants.Defaults.defaultNumberOfLogs, id: \.self) {
-                    Text("\($0)")
+                    Text(verbatim: "\($0)")
                 }
             }
             .pickerStyle(.menu)
-            Button(LS.AppLogs.clear, role: .destructive, action: store.clear)
+            Button(role: .destructive, action: store.clear) {
+                Label(LS.AppLogs.clear, systemImage: Image.AppIcon.clear.rawValue)
+            }
         } label: {
             Image(systemName: "ellipsis.circle")
         }

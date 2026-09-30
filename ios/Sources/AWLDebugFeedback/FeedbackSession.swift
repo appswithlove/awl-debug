@@ -29,7 +29,14 @@ final class FeedbackSession: ObservableObject {
     @Published private(set) var pendingMark: MarkupMark?
     @Published var tool = MarkupTool.pen
     @Published var color = MarkupColor.red
-    @Published var text = ""
+    /// At most `maxTextLength` UTF-16 units, as the service counts; longer typed, pasted or dictated text is cut off.
+    @Published var text = "" {
+        didSet {
+            if text.utf16.count > Self.maxTextLength {
+                text = text.prefix(utf16Units: Self.maxTextLength)
+            }
+        }
+    }
     @Published private(set) var phase = Phase.editing
     /// Adds `logs.txt` with the debug tool's logs and requests.
     @Published var attachLogs: Bool
@@ -64,7 +71,9 @@ final class FeedbackSession: ObservableObject {
         let reporter = reporterStore.load(fallback: config.reporter)
         reporterName = reporter?.name ?? ""
         reporterEmail = reporter?.email ?? ""
-        isEditingReporter = reporter == nil
+        // A saved or preset email the service would reject opens the fields, so the tester sees it and can fix it.
+        let hasRejectedEmail = reporter?.email.map { !$0.isBlank && !FeedbackMetadata.isValidEmail($0.trimmed) } ?? false
+        isEditingReporter = reporter == nil || hasRejectedEmail
         // Views observe the session only, so dictation state changes are passed on.
         dictationChanges = dictation.objectWillChange.sink { [weak self] _ in
             self?.objectWillChange.send()
@@ -80,8 +89,13 @@ final class FeedbackSession: ObservableObject {
         text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    /// Length of the description as the service counts it (UTF-16 units), shown as "{n}/5000".
+    var textLength: Int {
+        text.utf16.count
+    }
+
     var canSend: Bool {
-        !trimmedText.isEmpty && text.count <= Self.maxTextLength && isReporterValid && !isFinished && phase != .sending
+        !trimmedText.isEmpty && textLength <= Self.maxTextLength && isReporterValid && !isFinished && phase != .sending
     }
 
     /// An empty email is fine; one the service would reject is not.

@@ -13,36 +13,53 @@ struct DeeplinksView: View {
     @State private var isQuickURLInvalid = false
 
     var body: some View {
-        Section {
-            QuickField
+        Form {
+            Section {
+                QuickField
+            }
+
             if manager.developerDeeplinks.isEmpty && manager.testerDeeplinks.isEmpty {
-                Text(LS.Deeplinks.empty)
-                    .foregroundStyle(.secondary)
-                    .font(.footnote)
+                Section {
+                    Text(LS.Deeplinks.empty)
+                        .foregroundStyle(.secondary)
+                }
             }
 
-            ForEach(manager.developerDeeplinks) { deeplink in
-                deeplinkRow(deeplink, isDeveloper: true)
+            if !manager.developerDeeplinks.isEmpty {
+                Section {
+                    ForEach(manager.developerDeeplinks) { deeplink in
+                        deeplinkRow(deeplink, isDeveloper: true)
+                    }
+                } header: {
+                    Text(LS.Deeplinks.predefined)
+                }
             }
 
-            ForEach(manager.testerDeeplinks) { deeplink in
-                deeplinkRow(deeplink, isDeveloper: false)
+            if !manager.testerDeeplinks.isEmpty {
+                Section {
+                    ForEach(manager.testerDeeplinks) { deeplink in
+                        deeplinkRow(deeplink, isDeveloper: false)
+                    }
+                    .onDelete { manager.remove(at: $0) }
+                } header: {
+                    Text(LS.Deeplinks.saved)
+                }
             }
-            .onDelete { manager.remove(at: $0) }
 
-            Button {
-                isAddingDeeplink = true
-            } label: {
-                Label(LS.Deeplinks.addDeeplink, systemImage: "plus.circle")
+            Section {
+                Button {
+                    isAddingDeeplink = true
+                } label: {
+                    Label(LS.Deeplinks.addDeeplink, systemImage: "plus.circle")
+                }
             }
-            .sheet(isPresented: $isAddingDeeplink) {
-                AddDeeplinkView(
-                    onAdd: { title, url in manager.add(title: title, url: url) },
-                    onDismiss: { isAddingDeeplink = false }
-                )
-            }
-        } header: {
-            Text(LS.Deeplinks.sectionTitle)
+        }
+        .panelPage(LS.Deeplinks.sectionTitle)
+        .sheet(isPresented: $isAddingDeeplink) {
+            AddDeeplinkView(
+                onAdd: { title, url in manager.add(title: title, url: url) },
+                onDismiss: { isAddingDeeplink = false }
+            )
         }
     }
 
@@ -109,6 +126,7 @@ struct DeeplinksView: View {
                 Image(systemName: isDeveloper ? "lock" : "person")
                     .foregroundStyle(.tertiary)
                     .font(.caption)
+                    .accessibilityHidden(true)
             }
         }
     }

@@ -1,6 +1,7 @@
 package com.appswithlove.debug.feedback
 
 import com.appswithlove.debug.api.AwlDistribution
+import io.kotest.assertions.withClue
 import io.kotest.matchers.shouldBe
 import org.json.JSONObject
 import org.junit.Test
@@ -68,6 +69,17 @@ class FeedbackMetadataTest {
         val extra = json.getJSONObject("extra").toMap()
         extra.keys shouldBe setOf("screen", "k".repeat(64))
         json.has("reporter") shouldBe false
+    }
+
+    @Test
+    fun buildMetadataJson_leavesOutEmailsTheServiceRejects() {
+        fun sentEmail(email: String): String? = JSONObject(
+            buildMetadataJson(config.copy(reporter = FeedbackReporter(name = "Sam", email = email)), device, emptyMap(), timestamp)
+        ).getJSONObject("reporter").optString("email").ifEmpty { null }
+
+        listOf("sam@example.ch.", "sam..tester@example.ch", ".sam@example.ch", "müller@example.ch", "sam@example.c", "sam@-example.ch")
+            .forEach { email -> withClue(email) { sentEmail(email) shouldBe null } }
+        sentEmail("first.last+qa@sub.example.co.uk") shouldBe "first.last+qa@sub.example.co.uk"
     }
 
     private fun fixture(name: String): String =
