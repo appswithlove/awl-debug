@@ -11,6 +11,7 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -29,8 +30,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
@@ -50,10 +49,16 @@ import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
@@ -185,7 +190,7 @@ internal fun FeedbackDialog(
                 }
             }
         }
-        MaterialTheme(colorScheme = if (darkTheme) darkColorScheme() else lightColorScheme()) {
+        MaterialTheme(colorScheme = if (darkTheme) FeedbackDarkColors else FeedbackLightColors) {
             Surface(modifier = Modifier.fillMaxSize()) {
                 Column(
                     modifier = Modifier
@@ -261,11 +266,22 @@ internal fun FeedbackDialog(
                             SentAs(name = reporterName.trim(), enabled = !isSending, onChange = { isEditingReporter = true })
                         }
                     }
+                    // Live regions: TalkBack announces hints and errors when they appear.
                     speechHint?.let { hint ->
-                        Text(text = stringResource(hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            text = stringResource(hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                        )
                     }
                     (sendState as? SendState.Failed)?.let { failed ->
-                        Text(text = failed.error.message(), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
+                        Text(
+                            text = failed.error.message(),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                        )
                     }
                 }
             }
@@ -288,7 +304,9 @@ private fun Header(
         Text(
             text = stringResource(R.string.feedback_title),
             style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier
+                .weight(1f)
+                .semantics { heading() },
             textAlign = TextAlign.Center,
         )
         if (isSending) {
@@ -313,28 +331,53 @@ private fun ReporterFields(
     onNameChange: (String) -> Unit,
     onEmailChange: (String) -> Unit,
 ) {
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        OutlinedTextField(
-            value = name,
-            onValueChange = onNameChange,
-            enabled = enabled,
-            label = { Text(stringResource(R.string.feedback_reporter_prompt)) },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Next),
-            modifier = Modifier.weight(1f),
-        )
-        OutlinedTextField(
-            value = email,
-            onValueChange = onEmailChange,
-            enabled = enabled,
-            label = { Text(stringResource(R.string.feedback_reporter_email)) },
-            singleLine = true,
-            isError = !isEmailValid,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Done),
-            modifier = Modifier.weight(1f),
-        )
+    @Composable
+    fun NameField(modifier: Modifier) = OutlinedTextField(
+        value = name,
+        onValueChange = onNameChange,
+        enabled = enabled,
+        label = { Text(stringResource(R.string.feedback_reporter_prompt)) },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Next),
+        modifier = modifier,
+    )
+
+    @Composable
+    fun EmailField(modifier: Modifier) = OutlinedTextField(
+        value = email,
+        onValueChange = onEmailChange,
+        enabled = enabled,
+        label = { Text(stringResource(R.string.feedback_reporter_email)) },
+        singleLine = true,
+        isError = !isEmailValid,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Done),
+        modifier = modifier,
+    )
+
+    // Side by side while the longer label fits into half the width; stacked with large font sizes.
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+        val textMeasurer = rememberTextMeasurer()
+        val emailLabel = stringResource(R.string.feedback_reporter_email)
+        val labelStyle = MaterialTheme.typography.bodyLarge
+        val labelWidth = with(LocalDensity.current) { textMeasurer.measure(emailLabel, labelStyle).size.width.toDp() }
+        if (labelWidth + TEXT_FIELD_HORIZONTAL_PADDING <= (maxWidth - REPORTER_FIELDS_SPACING) / 2) {
+            Row(horizontalArrangement = Arrangement.spacedBy(REPORTER_FIELDS_SPACING)) {
+                NameField(Modifier.weight(1f))
+                EmailField(Modifier.weight(1f))
+            }
+        } else {
+            Column(verticalArrangement = Arrangement.spacedBy(REPORTER_FIELDS_SPACING)) {
+                NameField(Modifier.fillMaxWidth())
+                EmailField(Modifier.fillMaxWidth())
+            }
+        }
     }
 }
+
+private val REPORTER_FIELDS_SPACING = 8.dp
+
+/** Start and end padding of an outlined text field around its label. */
+private val TEXT_FIELD_HORIZONTAL_PADDING = 32.dp
 
 @Composable
 private fun SentAs(name: String, enabled: Boolean, onChange: () -> Unit) {
