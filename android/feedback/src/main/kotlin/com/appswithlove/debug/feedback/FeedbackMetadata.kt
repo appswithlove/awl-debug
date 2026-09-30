@@ -70,7 +70,12 @@ internal fun buildMetadataJson(
 private fun String.capped(): String = take(MAX_STRING_LENGTH)
 
 private const val MAX_EMAIL_LENGTH = 254
-private val EMAIL_PATTERN = Regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")
+
+/**
+ * The service's rule (zod `z.email()`): ASCII local part without leading, trailing or double dots, a domain with
+ * a dot and a TLD of at least two letters. The service rejects the whole report for any other address.
+ */
+private val EMAIL_PATTERN = Regex("^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$")
 
 /** Same rule as the service; an address it would reject is left out instead of failing the report. */
 internal fun String.isValidEmail(): Boolean = length <= MAX_EMAIL_LENGTH && EMAIL_PATTERN.matches(this)

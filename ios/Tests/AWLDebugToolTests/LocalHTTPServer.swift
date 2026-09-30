@@ -15,6 +15,7 @@ final class LocalHTTPServer {
     private var routes: [String: Response?] = [:]
     private var hits: [String: Int] = [:]
     private var bodies: [String: Data] = [:]
+    private var headers: [String: [String: String]] = [:]
     private var connections: [NWConnection] = []
     
     init() throws {
@@ -48,6 +49,11 @@ final class LocalHTTPServer {
         queue.sync { bodies[path] }
     }
     
+    /// Header fields of the last request to `path`, names lowercased.
+    func receivedHeaders(_ path: String) -> [String: String] {
+        queue.sync { headers[path, default: [:]] }
+    }
+    
     func stop() {
         queue.sync {
             listener.cancel()
@@ -66,6 +72,7 @@ final class LocalHTTPServer {
             guard let self = self else { return }
             let buffer = buffer + (data ?? Data())
             if let (path, body) = Self.parseRequest(buffer) {
+                self.headers[path] = Self.parseHeaders(buffer)
                 self.respond(to: path, body: body, on: connection)
             } else if !isComplete && error == nil {
                 self.receive(on: connection, buffer: buffer)
@@ -110,6 +117,16 @@ final class LocalHTTPServer {
         let length = Int(header("content-length") ?? "") ?? 0
         guard rest.count >= length else { return nil }
         return (path, Data(rest.prefix(length)))
+    }
+    
+    private static func parseHeaders(_ data: Data) -> [String: String] {
+        guard let headEnd = data.range(of: Data("\r\n\r\n".utf8)) else { return [:] }
+        var result: [String: String] = [:]
+        for line in String(decoding: data[..<headEnd.lowerBound], as: UTF8.self).components(separatedBy: "\r\n").dropFirst() {
+            guard let colon = line.firstIndex(of: ":") else { continue }
+            result[line[..<colon].lowercased()] = line[line.index(after: colon)...].trimmingCharacters(in: .whitespaces)
+        }
+        return result
     }
     
     private static func decodeChunked(_ data: Data) -> Data? {

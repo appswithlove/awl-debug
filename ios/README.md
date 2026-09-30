@@ -85,11 +85,12 @@ From code, for example from a custom module: `AWLDebugTool.open()`, `AWLDebugToo
 UIKit apps without a SwiftUI root call `AWLDebugTool.install(in: windowScene)` instead of `includeDebugTool()`, after the scene's window is visible (for example at the end of `scene(_:willConnectTo:options:)`).
 
 ## Usage
+The panel opens on a start page with App Info and the modules in a fixed order, the same as on Android: Logs, Network, Performance, Permissions, Accessibility, Deeplinks, Session, FCM push token, Screen Recording, Clear App Data, Test Crashes. A green dot marks a module that records or measures. Each module opens its own page with Back and Close. Sections passed as `customView` come last.
+
 <b>Functionalities</b>
 
-### 1. About
-- user can see general data about underlying app
-(device, app name, app version and build number, current time, internet access)
+### 1. App Info
+- app name, version, build, device model (e.g. `iPhone17,1`, never the device name), iOS version, locale, current time and internet status (Online/Offline); long press a value to copy it
 - app version and build number are also visible in a small overlay in the top-left corner of the screen, above sheets too; testers switch it off with "Show version overlay" (stored per device), apps with `AWLDebugConfig.showVersionOverlay = false`
 
 ### 2. Network logging
@@ -106,8 +107,8 @@ The Logs module shows the app's own unified-log entries (`os_log`, `Logger`, Ker
 ### 4. Permissions
 - user can change permissions for underlying app (Location, Camera, ...)
 
-### 5. Simulate crash
-- user can simulate crash to check if firebase integration works.
+### 5. Test Crashes
+- "Simulate crash - Runtime exception" and "Simulate crash - Index out of bounds" crash the app after a confirmation, to check that the app's crash reporting (e.g. Firebase Crashlytics) catches it. The message is "AWL Debug test crash".
 
 ### 6. Session / Tokens
 - developer passes one provider per token source in `AWLDebugConfig.sessionProviders`: `AWLTokenProvider(label:token:…)` reads the token on demand (a KMP `suspend` getter works too), or the app conforms its own type to `AWLSessionProvider` and streams changes through `token: AsyncStream<String?>`
@@ -116,7 +117,7 @@ The Logs module shows the app's own unified-log entries (`os_log`, `Logger`, Ker
 - the module is hidden without providers; `AWLDebugTool.start(tokens:)` with `TokenDebugModel` still works but is deprecated
 
 ### 7. Display FCM push token
-- user can see currently used FCM pushed token. It's useful during testing to send pushes directly to the device.
+- user can see currently used FCM pushed token (long press to copy). It's useful during testing to send pushes directly to the device. Hidden while the app passes no token.
 
 ### 8. Deeplinks
 - user can fire developer-provided deeplinks immediately, or schedule them to arrive via a local notification (5s/10s delay) to test cold-start/background handling
@@ -138,7 +139,7 @@ The Logs module shows the app's own unified-log entries (`os_log`, `Logger`, Ker
 - CPU is the process's share of all cores (0–100 %), battery level comes from `UIDevice`, and a main-thread ping waiting longer than 700 ms counts as a UI freeze
 
 ### 12. Screen recording
-- Records the app's own windows (sheets and alerts included, not the debug panel, feedback or the keyboard) as frames, 3 per second and only while the app is used: up to one second after a touch, keyboard or orientation change, plus two frames after that. Touches show as circles (green where they begin, red where they end).
+- Records the app's own windows (sheets and alerts included, not the debug panel, feedback or the keyboard) and the version overlay as frames, 3 per second and only while the app is used: up to one second after a touch, typing, a keyboard or orientation change, plus two frames after that. Touches show as circles (green where they begin, red where they end).
 - Switch it on or off in the panel; the choice is kept on the device. Defaults come from `AWLDebugConfig.screenRecording`:
   ```swift
   config.screenRecording = .init(isOnByDefault: false, maxDuration: .seconds(300)) // 30 s, 1, 5 or 10 min
@@ -146,7 +147,7 @@ The Logs module shows the app's own unified-log entries (`os_log`, `Logger`, Ker
   `AWLDebugTool.start(isScreenRecordingOn:)` still works but is deprecated.
 - While recording is on, the version overlay shows a red dot. Nothing is recorded while the panel is open or the app is in the background.
 - Frames are kept in `Library/Caches/AWLDebug/recording/current/` and moved to `last/` on the next start, so after a crash the panel shows "Last recording available ({date})" and "Export last recording" contains the steps before the crash.
-- Masking: secure text fields (`UITextField.isSecureTextEntry`, SwiftUI `SecureField`) are always covered with a black rectangle, in the same frame. Mark other views with `.awlDebugMasked()` (SwiftUI) or `view.awlDebugMasked = true` (UIKit). Store builds do not link the SDK, so wrap the marker in your app:
+- Masking: secure text fields (`UITextField.isSecureTextEntry`, SwiftUI `SecureField`) are always covered with a black rectangle, in the same frame. While such a view moves (e.g. in a sheet sliding in), no frame is taken; a view on top only drops the mask when it really hides it (opaque, not clipped away, not moving). Mark other views with `.awlDebugMasked()` (SwiftUI) or `view.awlDebugMasked = true` (UIKit). Store builds do not link the SDK, so wrap the marker in your app:
   ```swift
   extension View {
       @ViewBuilder func debugMasked() -> some View {
@@ -196,6 +197,40 @@ RootView()
 - Dictation needs `NSMicrophoneUsageDescription` and `NSSpeechRecognitionUsageDescription` in the app's `Info.plist`.
 - Tests: `xcodebuild test -scheme AWLDebugTool-Package -destination 'platform=iOS Simulator,name=iPhone 17 Pro'`.
 
+### 15. Remote reporting
+Records sessions, the requests captured by the Network module and a performance sample every 5 s (CPU, memory, battery, longest main-thread stall) for the feedback service, so problems show up across test devices without anyone exporting logs.
+
+```swift
+#if DEBUG || STAGING
+var config = AWLDebugConfig()
+config.remoteReporting = RemoteReportingConfig(
+    endpoint: URL(string: "https://feedback.example.com")!,
+    appKey: "<app key>",
+    environment: "staging",
+    distribution: .internal
+)
+AWLDebugTool.start(config: config)
+
+AWLDebugTool.setUserIdentifier(user.id) // after login, nil after logout; only a SHA-256 hash leaves the device
+AWLDebugTool.flushReports()
+#endif
+```
+
+| Parameter | Default | Description |
+|---|---|---|
+| `distribution` | required | With `.store` nothing is recorded or sent |
+| `captureBodies` | `false` | Also send captured request and response bodies |
+| `maxBodyBytes` | `65536` | Bodies are cut off after this many bytes (at most 65536) |
+| `onlyOnUnmeteredNetwork` | `false` | Only send over networks that are not expensive or constrained |
+
+- A session starts when the app becomes active and ends when it goes to the background; back within 30 minutes, the same session continues.
+- Data is buffered in `Library/Application Support/AWLDebug/reporting/` (at most 10 MB, oldest entries dropped first and counted) and packed into batches of up to 2000 requests and 2000 samples.
+- Values are redacted as in the Network module, bodies are off by default, and the SDK's own requests to the service are never recorded.
+- An App Store install (App Store receipt, no provisioning profile) records nothing, whatever `distribution` says.
+- Batches are sent gzip-compressed to `POST <endpoint>/v1/sessions/batch` every 30 s, when the app goes to the background (as a background task), when the network comes back and on `flushReports()` or "Flush now" in the panel. Sending uses its own ephemeral `URLSession`, never on the main thread.
+- Network errors, 5xx and 429 keep the batch and retry it with the same `batchId` after 30 s, 1 min, 2 min … up to 1 h, never before `Retry-After`. 400, 413, 415 and 422 drop the batch; 401 and 403 stop reporting until the next app start. The panel shows the reason.
+- The panel row "Remote reporting" (below About) shows on/off, the last successful send, pending batches and the session ID (tap to copy, to find the session in the dashboard). Testers can turn "Send session data" off per device.
+
 ## Store builds
 The SDK must never ship to the App Store. Compile every call behind a flag that store configurations do not define (e.g. `AWL_DEBUG`). Package products cannot be linked per configuration, so both products are dynamic frameworks. Store configurations then remove them:
 
@@ -207,8 +242,10 @@ The SDK must never ship to the App Store. Compile every call behind a flag that 
    ```bash
    # Keeps the AWL debug SDK out of configurations without AWL_DEBUG.
    [[ " ${OTHER_SWIFT_FLAGS:-} " == *" -DAWL_DEBUG "* ]] && exit 0
+   # The frameworks, plus the package's resource bundle that Xcode copies to the app's root.
    rm -rf "${TARGET_BUILD_DIR}/${WRAPPER_NAME}/Frameworks/AWLDebugTool.framework" \
-          "${TARGET_BUILD_DIR}/${WRAPPER_NAME}/Frameworks/AWLDebugFeedback.framework"
+          "${TARGET_BUILD_DIR}/${WRAPPER_NAME}/Frameworks/AWLDebugFeedback.framework" \
+          "${TARGET_BUILD_DIR}/${WRAPPER_NAME}/AWLDebugTool_AWLDebugTool.bundle"
    if otool -L "${TARGET_BUILD_DIR}/${WRAPPER_NAME}/${EXECUTABLE_NAME}" | grep -q AWLDebug; then
        echo "error: the store build still links the AWL debug SDK"; exit 1
    fi

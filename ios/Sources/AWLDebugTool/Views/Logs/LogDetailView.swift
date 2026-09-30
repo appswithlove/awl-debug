@@ -14,12 +14,8 @@ struct LogDetailView: View {
             BodySection(title: LS.Network.responseBody, body: log.responseBody)
         }
         .listStyle(.insetGrouped)
-        .navigationBarTitleDisplayMode(.inline)
-        .navigationTitle("\(log.method) \(log.statusCode)")
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                ActionsMenu
-            }
+        .panelPage("\(log.method) \(log.statusCode)") {
+            ActionsMenu
         }
     }
 

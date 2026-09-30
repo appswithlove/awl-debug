@@ -16,8 +16,11 @@ struct FilterView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Toggle(LS.Settings.educationalMode, isOn: $networkLogger.isEducationalaModeOn)
-                
+                Section {
+                    Toggle(LS.Settings.educationalMode, isOn: $networkLogger.isEducationalaModeOn)
+                    Toggle(LS.Settings.dynamicData, isOn: $networkLogger.isDynamicDataModeOn)
+                }
+
                 RequestMethodsSection
                 ResponseCodesSection
                 EndpointsSection

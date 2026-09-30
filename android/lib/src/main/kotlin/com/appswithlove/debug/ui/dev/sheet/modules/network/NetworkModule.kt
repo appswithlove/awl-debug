@@ -4,6 +4,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -15,6 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -33,6 +35,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.appswithlove.debug.R
+import com.appswithlove.debug.ui.component.DevButtonRow
+import com.appswithlove.debug.ui.component.DevEmptyState
 import com.appswithlove.debug.ui.component.DevOutlinedButton
 import com.appswithlove.debug.ui.component.DevOutlinedTextField
 import com.appswithlove.debug.ui.component.SelectionDialog
@@ -74,9 +78,13 @@ internal fun NetworkModule(
             onClear = { onSearch("") },
         )
 
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        // Wraps the sort button below the count when both do not fit, e.g. with a large font size.
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            itemVerticalAlignment = Alignment.CenterVertically,
+        ) {
             Text(
-                modifier = Modifier.weight(1f),
                 text = "Number of requests: ${state.entries.size} / ${state.maxSize}",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface,
@@ -110,13 +118,7 @@ internal fun NetworkModule(
             contentPadding = PaddingValues(4.dp),
         ) {
             if (state.entries.isEmpty()) {
-                item {
-                    Text(
-                        modifier = Modifier.padding(8.dp),
-                        text = "No requests yet",
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                }
+                item { DevEmptyState(text = "No requests yet", modifier = Modifier.padding(horizontal = 4.dp)) }
             }
             items(state.entries, key = { it.id }) { entry ->
                 NetworkRow(entry = entry, onClick = { onEntryClick(entry) })
@@ -124,16 +126,14 @@ internal fun NetworkModule(
             }
         }
 
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        DevButtonRow {
             DevOutlinedButton(
-                modifier = Modifier.weight(1f),
                 text = "Filters",
                 leadingIcon = { ButtonIcon(TablerIcons.Filter) },
                 contentColor = MaterialTheme.colorScheme.onSurface,
                 onClick = onShowFilters,
             )
             DevOutlinedButton(
-                modifier = Modifier.weight(1f),
                 text = "Clear",
                 leadingIcon = { ButtonIcon(TablerIcons.TrashX) },
                 contentColor = MaterialTheme.colorScheme.onSurface,
@@ -164,7 +164,7 @@ internal fun NetworkModule(
             )
             Text(
                 text = state.maxSize.toString(),
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Icon(
                 painter = painterResource(R.drawable.ic_chevron_right),
@@ -194,7 +194,7 @@ internal fun NetworkModule(
                 TextButton(onClick = {
                     onClear()
                     showClearDialog = false
-                }) { Text("Delete") }
+                }) { Text("Delete", color = AppTheme.colors.error) }
             },
             dismissButton = {
                 TextButton(onClick = { showClearDialog = false }) { Text("Cancel") }
@@ -211,11 +211,11 @@ private fun NetworkRow(entry: NetworkEntry, onClick: () -> Unit) {
             .clickable(onClick = onClick)
             .padding(horizontal = 4.dp, vertical = 6.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        FlowRow(itemVerticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
                 text = SimpleDateFormat("HH:mm:ss", Locale.US).format(Date(entry.startedAtMillis)),
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(
                 text = entry.method,
@@ -230,7 +230,7 @@ private fun NetworkRow(entry: NetworkEntry, onClick: () -> Unit) {
             Text(
                 text = "${entry.durationMs} ms",
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             if (entry.isSlow) {
                 Text(
@@ -266,6 +266,6 @@ internal fun ButtonIcon(imageVector: ImageVector) {
         modifier = Modifier.size(18.dp),
         imageVector = imageVector,
         contentDescription = null,
-        tint = MaterialTheme.colorScheme.onSurface,
+        tint = LocalContentColor.current,
     )
 }
