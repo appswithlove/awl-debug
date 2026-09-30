@@ -72,30 +72,30 @@ private fun App(openedDeeplink: String? = null) {
             Timber.e("This is an example of Timber error message")
         }
 
-        DevSheet(
-            modifier = Modifier.fillMaxSize(),
-            devConfig = DevConfig(
-                versionName = "Sample App",
-                versionCode = 1,
-                buildType = "1",
-                flavor = "dev",
-            ),
-            triggers = DevTrigger.entries.toSet(),
-            isAlwaysActive = false,
-            swipeToDismiss = false,
-            inheritHostTheme = true,
-            modulesConfig = DevModulesConfig(
-                deeplinks = listOf(
-                    DeeplinkItem(label = "Profile", url = "awl-sample://profile/123"),
-                    DeeplinkItem(label = "Settings", url = "awl-sample://settings"),
+        FeedbackHost(config = sampleFeedbackConfig()) {
+            DevSheet(
+                modifier = Modifier.fillMaxSize(),
+                devConfig = DevConfig(
+                    versionName = "Sample App",
+                    versionCode = 1,
+                    buildType = "1",
+                    flavor = "dev",
                 ),
-            ),
-            customModules = {
-                Text(text = "Custom Module", color = MaterialTheme.colorScheme.onSurface)
-                Text(text = "Custom Module", color = MaterialTheme.colorScheme.onSurface)
-            },
-            content = {
-                FeedbackHost(config = sampleFeedbackConfig()) {
+                triggers = DevTrigger.entries.toSet(),
+                isAlwaysActive = false,
+                swipeToDismiss = false,
+                inheritHostTheme = true,
+                modulesConfig = DevModulesConfig(
+                    deeplinks = listOf(
+                        DeeplinkItem(label = "Profile", url = "awl-sample://profile/123"),
+                        DeeplinkItem(label = "Settings", url = "awl-sample://settings"),
+                    ),
+                ),
+                customModules = {
+                    Text(text = "Custom Module", color = MaterialTheme.colorScheme.onSurface)
+                    Text(text = "Custom Module", color = MaterialTheme.colorScheme.onSurface)
+                },
+                content = {
                     Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                         Box(
                             modifier = Modifier
@@ -129,8 +129,8 @@ private fun App(openedDeeplink: String? = null) {
                         }
                     }
                 }
-            }
-        )
+            )
+        }
     }
 }
 
