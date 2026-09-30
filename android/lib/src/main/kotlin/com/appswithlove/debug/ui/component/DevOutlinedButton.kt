@@ -40,6 +40,7 @@ internal fun DevOutlinedButton(
     OutlinedButton(
         modifier = modifier,
         onClick = onClick,
+        enabled = enabled,
         colors = ButtonDefaults.outlinedButtonColors(
             containerColor = Color.Transparent,
             contentColor = contentColor,
