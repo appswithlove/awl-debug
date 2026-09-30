@@ -89,9 +89,8 @@ The panel opens on a start page with App Info and the modules in a fixed order, 
 
 <b>Functionalities</b>
 
-### 1. About
-- user can see general data about underlying app
-(device, app name, app version and build number, current time, internet access)
+### 1. App Info
+- app name, version, build, device model (e.g. `iPhone17,1`, never the device name), iOS version, locale, current time and internet status (Online/Offline); long press a value to copy it
 - app version and build number are also visible in a small overlay in the top-left corner of the screen, above sheets too; testers switch it off with "Show version overlay" (stored per device), apps with `AWLDebugConfig.showVersionOverlay = false`
 
 ### 2. Network logging
@@ -108,8 +107,8 @@ The Logs module shows the app's own unified-log entries (`os_log`, `Logger`, Ker
 ### 4. Permissions
 - user can change permissions for underlying app (Location, Camera, ...)
 
-### 5. Simulate crash
-- user can simulate crash to check if firebase integration works.
+### 5. Test Crashes
+- "Simulate crash - Runtime exception" and "Simulate crash - Index out of bounds" crash the app after a confirmation, to check that the app's crash reporting (e.g. Firebase Crashlytics) catches it. The message is "AWL Debug test crash".
 
 ### 6. Session / Tokens
 - developer passes one provider per token source in `AWLDebugConfig.sessionProviders`: `AWLTokenProvider(label:token:…)` reads the token on demand (a KMP `suspend` getter works too), or the app conforms its own type to `AWLSessionProvider` and streams changes through `token: AsyncStream<String?>`
@@ -118,7 +117,7 @@ The Logs module shows the app's own unified-log entries (`os_log`, `Logger`, Ker
 - the module is hidden without providers; `AWLDebugTool.start(tokens:)` with `TokenDebugModel` still works but is deprecated
 
 ### 7. Display FCM push token
-- user can see currently used FCM pushed token. It's useful during testing to send pushes directly to the device.
+- user can see currently used FCM pushed token (long press to copy). It's useful during testing to send pushes directly to the device. Hidden while the app passes no token.
 
 ### 8. Deeplinks
 - user can fire developer-provided deeplinks immediately, or schedule them to arrive via a local notification (5s/10s delay) to test cold-start/background handling
