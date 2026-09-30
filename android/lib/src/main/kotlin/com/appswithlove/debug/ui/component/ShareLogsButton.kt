@@ -25,7 +25,7 @@ internal fun ShareLogsButton(
 
     DevOutlinedButton(
         modifier = modifier,
-        text = "Export Logs",
+        text = "Export logs",
         leadingIcon = {
             Icon(
                 modifier = Modifier.size(18.dp),
@@ -39,7 +39,7 @@ internal fun ShareLogsButton(
             scope.launch {
                 try {
                     val text = logHistory.filteredSnapshot().joinToString(separator = "") { "${it.toExportString()}\n\n" }
-                    shareTextFile(context, filename, text, chooserTitle = "Share Logs")
+                    shareTextFile(context, filename, text, chooserTitle = "Share logs")
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }

@@ -836,7 +836,7 @@ private fun DevSheetContent(
                                 .collectAsStateWithLifecycle(initialValue = null).value
                             FcmPushTokenModule(
                                 token = fcmToken,
-                                onLongPress = {
+                                onCopy = {
                                     coroutineScope.launch {
                                         clipboard.setClipEntry(
                                             ClipEntry(

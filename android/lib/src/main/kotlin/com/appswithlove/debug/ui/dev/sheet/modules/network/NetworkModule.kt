@@ -36,6 +36,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.appswithlove.debug.R
 import com.appswithlove.debug.ui.component.DevButtonRow
+import com.appswithlove.debug.ui.component.DevEmptyState
 import com.appswithlove.debug.ui.component.DevOutlinedButton
 import com.appswithlove.debug.ui.component.DevOutlinedTextField
 import com.appswithlove.debug.ui.component.SelectionDialog
@@ -117,13 +118,7 @@ internal fun NetworkModule(
             contentPadding = PaddingValues(4.dp),
         ) {
             if (state.entries.isEmpty()) {
-                item {
-                    Text(
-                        modifier = Modifier.padding(8.dp),
-                        text = "No requests yet",
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                }
+                item { DevEmptyState(text = "No requests yet", modifier = Modifier.padding(horizontal = 4.dp)) }
             }
             items(state.entries, key = { it.id }) { entry ->
                 NetworkRow(entry = entry, onClick = { onEntryClick(entry) })

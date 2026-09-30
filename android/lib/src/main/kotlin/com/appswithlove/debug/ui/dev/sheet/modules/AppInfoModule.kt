@@ -17,6 +17,8 @@ import androidx.compose.ui.unit.dp
 import com.appswithlove.debug.api.DevConfig
 import com.appswithlove.debug.ui.component.DevSwitchRow
 
+private const val MISSING_VALUE = "n/a"
+
 @Composable
 internal fun AppInfoModule(
     devConfig: DevConfig? = null,
@@ -33,10 +35,10 @@ internal fun AppInfoModule(
             color = MaterialTheme.colorScheme.onSurface,
         )
         Spacer(modifier = Modifier.height(4.dp))
-        InfoLine(label = "Version", value = devConfig?.versionName ?: "No information")
-        InfoLine(label = "Build", value = devConfig?.versionCode?.toString() ?: "No information")
-        InfoLine(label = "Flavor", value = devConfig?.flavor ?: "No information")
-        InfoLine(label = "Build Type", value = devConfig?.buildType ?: "No information")
+        InfoLine(label = "Version", value = devConfig?.versionName ?: MISSING_VALUE)
+        InfoLine(label = "Build", value = devConfig?.versionCode?.toString() ?: MISSING_VALUE)
+        InfoLine(label = "Flavor", value = devConfig?.flavor ?: MISSING_VALUE)
+        InfoLine(label = "Build Type", value = devConfig?.buildType ?: MISSING_VALUE)
         devConfig?.customParams?.forEach { (key, value) ->
             InfoLine(label = key, value = value)
         }
