@@ -158,6 +158,21 @@ final class ScreenRecordingTests: XCTestCase {
         XCTAssertTrue(activity.shouldCapture(at: start.addingTimeInterval(61), isTouching: true))
     }
 
+    func testTypingCountsInAppWindowsOnly() {
+        let appWindow = UIWindow(frame: CGRect(x: 0, y: 0, width: 300, height: 400))
+        let appField = UITextField()
+        appWindow.addSubview(appField)
+        let feedbackWindow = UIWindow(frame: CGRect(x: 0, y: 0, width: 300, height: 400))
+        feedbackWindow.accessibilityIdentifier = RecordingFrameRenderer.sdkWindowIdentifier
+        let feedbackText = UITextView()
+        feedbackWindow.addSubview(feedbackText)
+
+        XCTAssertTrue(ScreenRecorder.isTypingInApp(Notification(name: UITextField.textDidChangeNotification, object: appField)))
+        XCTAssertFalse(ScreenRecorder.isTypingInApp(Notification(name: UITextView.textDidChangeNotification, object: feedbackText)),
+                       "typing a report takes no frames of the screen below")
+        XCTAssertFalse(ScreenRecorder.isTypingInApp(Notification(name: UITextField.textDidChangeNotification, object: UITextField())))
+    }
+
     // AK-REC-5: after a crash the frames of the previous run are the last recording.
     func testRotationKeepsThePreviousRunAsLastRecording() throws {
         let root = FileManager.default.temporaryDirectory.appending(path: "recording-\(UUID().uuidString)")
