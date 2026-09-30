@@ -163,7 +163,8 @@ private struct DescriptionField: View {
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
-                Text("\(session.textLength)/\(FeedbackSession.maxTextLength)")
+                // Verbatim: a localized key would group the digits ("5'000"); the spec and Android show "{n}/5000".
+                Text(verbatim: "\(session.textLength)/\(FeedbackSession.maxTextLength)")
                     .foregroundStyle(.secondary)
                     .monospacedDigit()
             }
