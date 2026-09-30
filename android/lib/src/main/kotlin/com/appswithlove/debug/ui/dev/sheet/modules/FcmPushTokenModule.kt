@@ -1,6 +1,6 @@
 package com.appswithlove.debug.ui.dev.sheet.modules
 
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,7 +14,8 @@ import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -28,13 +29,14 @@ import com.appswithlove.debug.ui.theme.DevTheme
 @Composable
 internal fun FcmPushTokenModule(
     token: String?,
-    onLongPress: (String) -> Unit,
+    onCopy: (String) -> Unit,
     onRefresh: (() -> Unit)? = null,
     onRevoke: (() -> Unit)? = null,
 ) {
     val noTokenText = "N/A"
     val tooltipState = rememberTooltipState()
-    val tooltipText = "Long press to copy token"
+    val tooltipText = "Tap to copy token"
+    val copyToken = { if (token != null) onCopy(token) }
 
     Column {
         Row(
@@ -44,6 +46,7 @@ internal fun FcmPushTokenModule(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
+                modifier = Modifier.semantics { heading() },
                 text = "FCM Push Token",
                 style = MaterialTheme.typography.bodyLarge.copy(
                     fontWeight = FontWeight(800),
@@ -57,15 +60,14 @@ internal fun FcmPushTokenModule(
             )
         }
         Text(
-            modifier = Modifier.pointerInput(Unit) {
-                detectTapGestures(
-                    onLongPress = {
-                        if (token != null && token != noTokenText) {
-                            onLongPress(token)
-                        }
-                    },
-                )
-            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .combinedClickable(
+                    enabled = token != null,
+                    onClickLabel = "Copy token",
+                    onLongClick = copyToken,
+                    onClick = copyToken,
+                ),
             text = token ?: noTokenText,
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface,
@@ -113,7 +115,7 @@ private fun FcmPushTokenModulePreview() {
     DevTheme {
         FcmPushTokenModule(
             token = "123asdgfa34fv3w4234tc3123asdgfa34fv3w4234tc3123asdgfa34fv3w4234tc3123asdgfa34fv3w4234tc3123asdgfa34fv3w4234tc3",
-            onLongPress = {},
+            onCopy = {},
         )
     }
 }

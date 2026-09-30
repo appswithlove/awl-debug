@@ -26,11 +26,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.appswithlove.debug.api.DeeplinkItem
 import com.appswithlove.debug.ui.component.DevButtonRow
+import com.appswithlove.debug.ui.component.DevEmptyState
 import com.appswithlove.debug.ui.component.DevGroupLabel
 import com.appswithlove.debug.ui.component.DevOutlinedButton
 import com.appswithlove.debug.ui.component.DevOutlinedTextField
@@ -104,12 +108,7 @@ internal fun DeeplinksModule(
         }
 
         if (predefined.isEmpty() && saved.isEmpty()) {
-            Text(
-                modifier = Modifier.padding(vertical = 8.dp),
-                text = "No deeplinks configured",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-            )
+            DevEmptyState(text = "No deeplinks configured")
         }
 
         if (predefined.isNotEmpty()) {
@@ -124,7 +123,15 @@ internal fun DeeplinksModule(
             SectionLabel("Saved")
             saved.forEach { item ->
                 SwipeToDelete(onDelete = { onDelete(item) }) {
-                    DeeplinkRow(item = item, icon = TablerIcons.User, onClick = { onOpen(item) })
+                    DeeplinkRow(
+                        // Swiping is not available with TalkBack; the same action is offered in its actions menu.
+                        modifier = Modifier.semantics {
+                            customActions = listOf(CustomAccessibilityAction("Delete") { onDelete(item); true })
+                        },
+                        item = item,
+                        icon = TablerIcons.User,
+                        onClick = { onOpen(item) },
+                    )
                 }
                 HorizontalDivider()
             }
@@ -166,9 +173,9 @@ private fun SwipeToDelete(onDelete: () -> Unit, content: @Composable () -> Unit)
 }
 
 @Composable
-private fun DeeplinkRow(item: DeeplinkItem, icon: ImageVector, onClick: () -> Unit) {
+private fun DeeplinkRow(item: DeeplinkItem, icon: ImageVector, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .background(AppTheme.colors.background)
             .clickable(onClick = onClick)

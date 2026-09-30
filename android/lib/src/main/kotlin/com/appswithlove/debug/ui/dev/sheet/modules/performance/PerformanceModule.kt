@@ -23,6 +23,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.appswithlove.debug.ui.component.DevEmptyState
 import com.appswithlove.debug.ui.component.DevOutlinedButton
 import com.appswithlove.debug.ui.component.DevSwitchRow
 import com.appswithlove.debug.ui.component.icons.TablerIcons
@@ -76,6 +77,10 @@ internal fun PerformanceModule(
             checked = isOverlayVisible.value,
             onCheckedChange = onOverlayVisibleChanged,
         )
+
+        if (!isTracking.value) {
+            DevEmptyState(text = "Measuring is off. Turn on the switch at the top to see CPU, RAM, battery and UI freezes.")
+        }
 
         AnimatedVisibility(visible = isTracking.value && samples.value.isEmpty()) {
             Text(

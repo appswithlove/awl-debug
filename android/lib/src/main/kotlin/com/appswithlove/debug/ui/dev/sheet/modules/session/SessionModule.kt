@@ -16,6 +16,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -33,7 +36,12 @@ internal fun SessionModule(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() }
+            .clickable(role = Role.Button, onClick = onClick)
+            // The status dots carry no text; TalkBack reads each provider with its status instead.
+            .semantics {
+                contentDescription = (listOf("Session") + states.map { "${it.provider.label}: ${loginStatus(it)}" })
+                    .joinToString(", ")
+            }
             .padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -57,6 +65,9 @@ internal fun SessionModule(
         )
     }
 }
+
+private fun loginStatus(state: SessionManager.ProviderState): String =
+    if (state.token != null) "Logged in" else "Logged out"
 
 @Composable
 internal fun ProviderStatusRow(state: SessionManager.ProviderState) {

@@ -45,20 +45,27 @@ class LogsModuleScreenshotTest {
     }
 
     @Test
-    fun list() = capture("src/test/screenshots/LogsModule_list.png")
+    fun list() = capture("src/test/screenshots/LogsModule_list.png", sampleHistory())
 
     @Test
     @Config(fontScale = 2f)
-    fun listLargeFont() = capture("src/test/screenshots/LogsModule_list_font200.png")
+    fun listLargeFont() = capture("src/test/screenshots/LogsModule_list_font200.png", sampleHistory())
 
-    private fun capture(path: String) {
+    @Test
+    fun emptyWhileRecordingIsOff() =
+        capture("src/test/screenshots/LogsModule_empty.png", LogHistory().apply { setTrackLogs(false) })
+
+    private fun sampleHistory(): LogHistory {
         val start = 1_790_000_000_000L
-        val logHistory = LogHistory().apply {
+        return LogHistory().apply {
             push(LogEntry(DevLogSeverity.DEBUG, "Loaded 12 items from cache", timestamp = start))
             push(LogEntry(DevLogSeverity.INFO, "GET https://api.example.com/v1/items 200 (87 ms)", timestamp = start + 1_250, tag = "HTTP"))
             push(LogEntry(DevLogSeverity.WARN, "Image cache is 92% full", timestamp = start + 2_500))
             push(LogEntry(DevLogSeverity.ERROR, "Checkout failed: payment declined", timestamp = start + 3_750, tag = "Checkout"))
         }
+    }
+
+    private fun capture(path: String, logHistory: LogHistory) {
         composeTestRule.setContent {
             DevTheme(darkTheme = false) {
                 Box(
