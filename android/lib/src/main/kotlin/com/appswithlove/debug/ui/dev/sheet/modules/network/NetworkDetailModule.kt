@@ -24,9 +24,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.appswithlove.debug.ui.component.DevOutlinedButton
+import com.appswithlove.debug.ui.component.DevSectionTitle
 import com.appswithlove.debug.ui.component.DevSwitch
 import com.appswithlove.debug.ui.component.icons.TablerIcons
 import com.appswithlove.debug.ui.dev.network.CapturedBody
@@ -114,11 +114,7 @@ private fun ActionButton(text: String, onClick: () -> Unit) {
 @Composable
 private fun Section(title: String, content: @Composable () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-            color = MaterialTheme.colorScheme.onSurface,
-        )
+        DevSectionTitle(text = title)
         HorizontalDivider()
         content()
     }

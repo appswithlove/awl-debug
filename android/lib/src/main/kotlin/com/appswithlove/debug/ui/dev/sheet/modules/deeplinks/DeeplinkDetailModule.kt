@@ -28,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.appswithlove.debug.api.DeeplinkItem
 import com.appswithlove.debug.ui.component.DevOutlinedButton
+import com.appswithlove.debug.ui.component.DevSectionTitle
 import com.appswithlove.debug.ui.theme.AppTheme
 
 private val DELAYS_SECONDS = listOf(5, 10, 30)
@@ -50,7 +51,7 @@ internal fun DeeplinkDetailModule(
     Column(
         modifier = modifier
             .verticalScroll(rememberScrollState())
-            .padding(vertical = 12.dp),
+            .padding(bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text(
@@ -154,9 +155,5 @@ internal fun DeeplinkDetailModule(
 
 @Composable
 private fun SectionTitle(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-        color = MaterialTheme.colorScheme.onSurface,
-    )
+    DevSectionTitle(text = text)
 }

@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -39,6 +38,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.appswithlove.debug.R
+import com.appswithlove.debug.ui.component.DevButtonRow
 import com.appswithlove.debug.ui.component.DevOutlinedButton
 import com.appswithlove.debug.ui.component.DevOutlinedTextField
 import com.appswithlove.debug.ui.component.icons.TablerIcons
@@ -90,7 +90,6 @@ internal fun LogsModule(
                 ) {
                     DevLogSeverity.entries.forEach { severity ->
                         FilterChip(
-                            modifier = Modifier.height(28.dp),
                             onClick = {
                                 logHistory.filterBySeverity(severity)
                             },
@@ -206,20 +205,10 @@ internal fun LogsModule(
         }
 
         AnimatedVisibility(visible = trackLogs.value) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                ShareLogsButton(
-                    modifier = Modifier.weight(1f),
-                    logHistory = logHistory,
-                )
+            DevButtonRow(modifier = Modifier.padding(bottom = 12.dp)) {
+                ShareLogsButton(logHistory = logHistory)
 
                 DevOutlinedButton(
-                    modifier = Modifier.weight(1f),
                     text = "Clear Logs",
                     leadingIcon = {
                         Icon(

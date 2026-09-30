@@ -28,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import com.appswithlove.debug.ui.component.DevGroupLabel
 import com.appswithlove.debug.ui.theme.DevTheme
 
 @Composable
@@ -95,11 +96,9 @@ internal fun PermissionsModule(modifier: Modifier = Modifier) {
                         PermissionOrigin.Library -> "Libraries"
                     }
                     item {
-                        Text(
-                            text = label,
-                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                        DevGroupLabel(
                             modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 4.dp),
+                            text = label,
                         )
                     }
                     itemsIndexed(items) { index, item ->
