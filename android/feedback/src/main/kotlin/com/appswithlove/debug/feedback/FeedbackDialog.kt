@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -28,6 +29,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -55,6 +57,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -68,6 +71,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
 import androidx.core.view.WindowCompat
+import com.appswithlove.debug.feedback.attachments.logsPart
 import com.appswithlove.debug.feedback.queue.FeedbackQueue
 import com.appswithlove.debug.feedback.queue.SubmitResult
 import kotlinx.coroutines.Dispatchers
@@ -107,6 +111,7 @@ internal fun FeedbackDialog(
     var text by remember(draft) { mutableStateOf("") }
     var sendState by remember(draft) { mutableStateOf<SendState>(SendState.Idle) }
     var speechHint by remember(draft) { mutableStateOf<Int?>(null) }
+    var attachLogs by remember(draft) { mutableStateOf(config.attachLogsByDefault) }
     val isSending = sendState == SendState.Sending
     val keyboard = remember(draft) { KeyboardDismissal() }
     val savedReporter = remember(draft) { reporterStore.load(fallback = config.reporter) }
@@ -159,7 +164,10 @@ internal fun FeedbackDialog(
                 appKey = config.appKey,
                 text = text.trim(),
                 metadataJson = draft.metadataJson(reporter),
-                parts = listOf(FeedbackPart("screenshot", image.fileName, image.mimeType, image.bytes)),
+                parts = listOfNotNull(
+                    FeedbackPart("screenshot", image.fileName, image.mimeType, image.bytes),
+                    draft.logs?.takeIf { attachLogs }?.let(::logsPart),
+                ),
             )
             when (val result = queue.submit(report)) {
                 SubmitResult.Sent -> onSent()
@@ -265,6 +273,14 @@ internal fun FeedbackDialog(
                         } else {
                             SentAs(name = reporterName.trim(), enabled = !isSending, onChange = { isEditingReporter = true })
                         }
+                    }
+                    if (draft.logs != null) {
+                        AttachmentSwitch(
+                            label = stringResource(R.string.feedback_attach_logs),
+                            checked = attachLogs,
+                            enabled = !isSending,
+                            onCheckedChange = { attachLogs = it },
+                        )
                     }
                     // Live regions: TalkBack announces hints and errors when they appear.
                     speechHint?.let { hint ->
@@ -391,6 +407,19 @@ private fun SentAs(name: String, enabled: Boolean, onChange: () -> Unit) {
         TextButton(onClick = onChange, enabled = enabled) {
             Text(stringResource(R.string.feedback_reporter_change))
         }
+    }
+}
+
+@Composable
+private fun AttachmentSwitch(label: String, checked: Boolean, enabled: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .toggleable(value = checked, enabled = enabled, role = Role.Switch, onValueChange = onCheckedChange),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(text = label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+        Switch(checked = checked, onCheckedChange = null, enabled = enabled)
     }
 }
 

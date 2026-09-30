@@ -18,7 +18,8 @@ struct RecordingTouch {
 }
 
 enum RecordingFrameRenderer {
-    /// `accessibilityIdentifier` of the SDK's own windows (panel, feedback, overlays); they are never recorded.
+    /// `accessibilityIdentifier` of the SDK's own windows (panel, feedback); they are never recorded. The version overlay
+    /// is recorded, so the frames show which build it was.
     static let sdkWindowIdentifier = "AWLDebugWindow"
     static let jpegQuality: CGFloat = 0.6
 
@@ -51,7 +52,8 @@ enum RecordingFrameRenderer {
         }
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1
-        format.opaque = true
+        // Not opaque: in an opaque context a window drawn on top (the version overlay) blacks out the windows below.
+        format.opaque = false
         let image = UIGraphicsImageRenderer(bounds: bounds, format: format).image { _ in
             for window in windows {
                 window.drawHierarchy(in: window.frame, afterScreenUpdates: false)
