@@ -20,7 +20,8 @@ enum FeedbackError: Error, Equatable {
 
     init(statusCode: Int, retryAfter: String?) {
         switch statusCode {
-        case 400:
+        // 422: the service takes no reports from store builds; sending again cannot succeed.
+        case 400, 422:
             self = .invalidRequest
         case 401, 403:
             self = .unauthorized
@@ -61,28 +62,27 @@ enum FeedbackError: Error, Equatable {
         }
     }
 
+    /// The texts of the feedback spec, the same on Android.
     var message: String {
         switch self {
         case .invalidRequest:
-            "The feedback service rejected the report as invalid."
+            "The feedback service rejected the report."
         case .unauthorized:
             "This app is not registered with the feedback service (invalid or disabled app key)."
         case .tooLarge:
             "The report is too large to send."
         case .unsupportedMediaType:
-            "The screenshot format was not accepted."
+            "The screenshot format was rejected by the feedback service."
         case let .rateLimited(seconds?):
-            "Too many reports. Try again in \(seconds) seconds."
+            "Too many reports. Please try again in \(seconds) seconds."
         case .rateLimited(nil):
-            "Too many reports. Try again later."
+            "Too many reports. Please try again later."
         case .serviceUnavailable:
-            "The feedback service is unavailable. Try again later."
-        case .offline:
-            "No internet connection. Check your connection and try again."
-        case .network:
-            "The feedback service could not be reached. Try again."
-        case let .unexpectedStatus(code):
-            "Sending failed (HTTP \(code)). Try again."
+            "The feedback service is currently unavailable. Please try again."
+        case .offline, .network:
+            "No connection to the feedback service. Check your network and try again."
+        case .unexpectedStatus:
+            "Sending failed. Please try again."
         case .encodingFailed:
             "The screenshot could not be prepared."
         }
