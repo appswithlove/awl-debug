@@ -9,6 +9,8 @@ import SwiftUI
 
 struct CPUView: View {
     @StateObject private var vm: CPUViewModel
+    @ScaledMetric(relativeTo: .caption2) private var chartHeight: CGFloat = 60
+    @ScaledMetric(relativeTo: .body) private var thermalHeight: CGFloat = 20
 
     init(cpuMonitor: CPUMonitor) {
         _vm = .init(wrappedValue: CPUViewModel(cpuMonitor: cpuMonitor))
@@ -20,7 +22,7 @@ struct CPUView: View {
             
             HStack {
                 Image(systemName: "thermometer")
-            RoundedRectangle(cornerRadius: 16)
+            RoundedRectangle(cornerRadius: thermalHeight / 2)
                 .fill(
                     LinearGradient(
                         colors: CPUViewModel.TemperatureState.allCases.map { $0.color },
@@ -28,14 +30,14 @@ struct CPUView: View {
                         endPoint: .trailing
                     )
                 )
-                .frame(height: 20)
+                .frame(height: thermalHeight)
                 .overlay {
                     HStack {
                         ForEach(CPUViewModel.TemperatureState.allCases, id: \.self) { t in
                             if t == vm.currentThermalState {
                                 Circle()
                                     .fill(.white)
-                                    .frame(width: 20, height: 20)
+                                    .frame(width: thermalHeight, height: thermalHeight)
                                     .overlay {
                                         Circle()
                                             .stroke(.black)
@@ -47,6 +49,9 @@ struct CPUView: View {
                     }
                 }
             }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(LS.Performance.thermalState)
+            .accessibilityValue(vm.currentThermalState.map { "\($0)" } ?? LS.Strings.unknownValue)
 
             // Per-core spark bars
 //            HStack(spacing: 2) {
@@ -75,6 +80,7 @@ struct CPUView: View {
                         .font(.caption).lineLimit(1)
                         .foregroundStyle(.secondary)
                 }
+                .accessibilityElement(children: .combine)
             }
             
             // history graph
@@ -86,9 +92,11 @@ struct CPUView: View {
                             color: .red,
                             labelSign: "%")
             }
-            .frame(height: 60)
+            .frame(height: chartHeight)
             .background(Color.secondary.opacity(0.1))
-            .cornerRadius(4)
+            .clipShape(RoundedRectangle(cornerRadius: 4))
+            // The current value is in the label above; the curve adds nothing for VoiceOver.
+            .accessibilityHidden(true)
         }
     }
 }

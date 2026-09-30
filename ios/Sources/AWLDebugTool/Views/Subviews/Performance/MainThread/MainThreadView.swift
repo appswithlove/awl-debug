@@ -9,6 +9,7 @@ import SwiftUI
 
 struct MainThreadView: View {
     @StateObject private var vm: MainThreadViewModel
+    @ScaledMetric(relativeTo: .caption2) private var chartHeight: CGFloat = 60
 
     init(monitor: MainThreadMonitor) {
         _vm = .init(wrappedValue: MainThreadViewModel(monitor: monitor))
@@ -19,7 +20,7 @@ struct MainThreadView: View {
             Label(latencyTitle, systemImage: "clock.badge.exclamationmark")
             Text(LS.Performance.freezes(count: vm.freezeCount, longestMs: Int(vm.longestFreezeMs)))
                 .font(.caption)
-                .foregroundStyle(vm.freezeCount > 0 ? .red : .secondary)
+                .foregroundStyle(vm.freezeCount > 0 ? Color.statusError : .secondary)
 
             var hangThreshold: CGFloat = 100 // 100ms
             // Recent hangs from the history window
@@ -39,10 +40,11 @@ struct MainThreadView: View {
                         .foregroundStyle(.secondary)
                         
                         Spacer()
-                        Text("\(Int(snap.latencyMs)) ms")
+                        Text(verbatim: "\(Int(snap.latencyMs)) ms")
                             .font(.caption.monospacedDigit())
-                            .foregroundStyle(.red)
+                            .foregroundStyle(Color.statusError)
                     }
+                    .accessibilityElement(children: .combine)
                 }
             }
 
@@ -53,11 +55,12 @@ struct MainThreadView: View {
                              minValue: 0,
                              capacity: vm.historyCapacity,
                              color: .orange,
-                             labelSign: "ms")
+                             labelSign: " ms")
             }
-            .frame(height: 60)
+            .frame(height: chartHeight)
             .background(Color.secondary.opacity(0.1))
-            .cornerRadius(4)
+            .clipShape(RoundedRectangle(cornerRadius: 4))
+            .accessibilityHidden(true)
         }
     }
 

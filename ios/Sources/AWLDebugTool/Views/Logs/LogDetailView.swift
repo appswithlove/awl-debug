@@ -73,6 +73,7 @@ struct LogDetailView: View {
                 .font(.callout)
                 .textSelection(.enabled)
         }
+        .accessibilityElement(children: .combine)
     }
 
     private func HeadersSection(title: String, headers: [NetworkLog.Header]) -> some View {

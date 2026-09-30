@@ -28,6 +28,7 @@ struct UserDefaultsView: View {
                             Spacer()
                             if selection.contains(area) {
                                 Image(systemName: "checkmark")
+                                    .accessibilityHidden(true)
                             }
                         }
                     }
