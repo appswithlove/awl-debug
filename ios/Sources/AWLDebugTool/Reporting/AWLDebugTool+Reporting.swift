@@ -7,7 +7,7 @@ public extension AWLDebugTool {
         RemoteReporting.shared.setUserIdentifier(appUserId)
     }
 
-    /// Packs everything recorded for remote reporting so far into batches for sending.
+    /// Packs everything recorded for remote reporting so far into batches and sends them right away.
     static func flushReports() {
         RemoteReporting.shared.flush()
     }

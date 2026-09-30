@@ -227,6 +227,9 @@ AWLDebugTool.flushReports()
 - Data is buffered in `Library/Application Support/AWLDebug/reporting/` (at most 10 MB, oldest entries dropped first and counted) and packed into batches of up to 2000 requests and 2000 samples.
 - Values are redacted as in the Network module, bodies are off by default, and the SDK's own requests to the service are never recorded.
 - An App Store install (App Store receipt, no provisioning profile) records nothing, whatever `distribution` says.
+- Batches are sent gzip-compressed to `POST <endpoint>/v1/sessions/batch` every 30 s, when the app goes to the background (as a background task), when the network comes back and on `flushReports()` or "Flush now" in the panel. Sending uses its own ephemeral `URLSession`, never on the main thread.
+- Network errors, 5xx and 429 keep the batch and retry it with the same `batchId` after 30 s, 1 min, 2 min … up to 1 h, never before `Retry-After`. 400, 413, 415 and 422 drop the batch; 401 and 403 stop reporting until the next app start. The panel shows the reason.
+- The panel row "Remote reporting" (below About) shows on/off, the last successful send, pending batches and the session ID (tap to copy, to find the session in the dashboard). Testers can turn "Send session data" off per device.
 
 ## Store builds
 The SDK must never ship to the App Store. Compile every call behind a flag that store configurations do not define (e.g. `AWL_DEBUG`). Package products cannot be linked per configuration, so both products are dynamic frameworks. Store configurations then remove them:

@@ -35,6 +35,8 @@ public struct DebugView: View {
             Form {
                 AboutView(isOnline: networkReachabilityManager.isConnected)
 
+                RemoteReportingView(state: RemoteReporting.shared.panel)
+
                 if VersionOverlayPresenter.shared.isAvailable {
                     Section {
                         Toggle(LS.VersionOverlay.toggle, isOn: $isVersionOverlayVisible)
