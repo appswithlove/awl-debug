@@ -10,21 +10,22 @@ import SwiftUI
 struct FirebaseView: View {
     
     var body: some View {
-        Section {
-            ProprietaryActionButton(text: LS.Actions.simulateCrash,
-                                    subtext:  LS.Actions.explicitCrash,
-                                    icon: .crash,
-                                    iconColor: IconColor.action,
-                                    action: simulateCrashExplicitly)
+        Form {
+            Section {
+                ProprietaryActionButton(text: LS.Actions.simulateCrash,
+                                        subtext:  LS.Actions.explicitCrash,
+                                        icon: .crash,
+                                        iconColor: IconColor.action,
+                                        action: simulateCrashExplicitly)
 
-            ProprietaryActionButton(text: LS.Actions.simulateCrash,
-                                    subtext:  LS.Actions.implicitCrash,
-                                    icon: .crash,
-                                    iconColor: IconColor.action,
-                                    action: simulateCrashImplicitly)
-        } header: {
-            Text(LS.Headers.firebaseActions)
+                ProprietaryActionButton(text: LS.Actions.simulateCrash,
+                                        subtext:  LS.Actions.implicitCrash,
+                                        icon: .crash,
+                                        iconColor: IconColor.action,
+                                        action: simulateCrashImplicitly)
+            }
         }
+        .panelPage(LS.Headers.testCrashes)
     }
     
     func simulateCrashExplicitly() {
@@ -39,5 +40,7 @@ struct FirebaseView: View {
 }
 
 #Preview {
-    FirebaseView()
+    NavigationStack {
+        FirebaseView()
+    }
 }

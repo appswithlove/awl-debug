@@ -11,40 +11,15 @@ struct ScreenRecordingView: View {
     @ObservedObject var model: ScreenRecorderModel
 
     var body: some View {
-        Section {
-            Toggle(
-                LS.Actions.screenRecorderToole,
-                isOn: Binding(
-                    get: { model.isOn },
-                    set: { model.isScreenRecordingOn = $0 }
+        Form {
+            Section {
+                Toggle(
+                    LS.Actions.screenRecorderToole,
+                    isOn: Binding(
+                        get: { model.isOn },
+                        set: { model.isScreenRecordingOn = $0 }
+                    )
                 )
-            )
-
-            if let date = model.lastRecordingDate {
-                Text(String(format: LS.Actions.screenRecorderLastAvailable,
-                            date.formatted(date: .abbreviated, time: .standard)))
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-            }
-
-            ProprietaryActionButton(
-                text: LS.Actions.screenRecorderExportLast,
-                icon: .export,
-                iconColor: IconColor.action,
-                isDisabled: model.isExportingVideo,
-                action: model.exportLastVideo
-            )
-
-            ProprietaryActionButton(
-                text: LS.Actions.screenRecorderExportCurrent,
-                icon: .export,
-                iconColor: IconColor.action,
-                isDisabled: model.isExportingVideo,
-                action: model.exportCurrentVideo
-            )
-
-            HStack {
-                Text(LS.Actions.screenRecorderMaxVideoDuration)
 
                 Picker(LS.Actions.screenRecorderMaxVideoDuration, selection: $model.maxVideoDuration) {
                     ForEach(Constants.MaxScreenVideoDuration.allCases) { videoDuration in
@@ -52,21 +27,41 @@ struct ScreenRecordingView: View {
                             .tag(videoDuration)
                     }
                 }
-                .pickerStyle(.segmented)
+                .pickerStyle(.menu)
+            } footer: {
+                Text(LS.Actions.screenRecorderWarning)
             }
-        } header: {
-            HStack {
-                Text(LS.Headers.screenRecording)
-                if model.isOn {
-                    Circle()
-                        .fill(.green)
-                        .frame(width: 8, height: 8)
-                        .accessibilityHidden(true)
+
+            Section {
+                Group {
+                    if let date = model.lastRecordingDate {
+                        Text(String(format: LS.Actions.screenRecorderLastAvailable,
+                                    date.formatted(date: .abbreviated, time: .standard)))
+                    } else {
+                        Text(LS.Actions.screenRecorderEmpty)
+                    }
                 }
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+
+                ProprietaryActionButton(
+                    text: LS.Actions.screenRecorderExportLast,
+                    icon: .export,
+                    iconColor: IconColor.action,
+                    isDisabled: model.isExportingVideo,
+                    action: model.exportLastVideo
+                )
+
+                ProprietaryActionButton(
+                    text: LS.Actions.screenRecorderExportCurrent,
+                    icon: .export,
+                    iconColor: IconColor.action,
+                    isDisabled: model.isExportingVideo,
+                    action: model.exportCurrentVideo
+                )
             }
-        } footer: {
-            Text(LS.Actions.screenRecorderWarning)
         }
+        .panelPage(LS.Headers.screenRecording)
         .alert(LS.Actions.screenRecorderEmpty, isPresented: $model.isRecordingEmpty) {
             Button(LS.Headers.btnDone, role: .cancel) {}
         }
@@ -74,7 +69,7 @@ struct ScreenRecordingView: View {
 }
 
 #Preview {
-    Form {
+    NavigationStack {
         ScreenRecordingView(model: ScreenRecorderModel())
     }
 }

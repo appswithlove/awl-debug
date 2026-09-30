@@ -7,14 +7,18 @@
 
 enum LS {
     static let logWatermark = "[AWL Debug Tool]"
+
+    enum Panel {
+        /// VoiceOver value of a start-page module that records or measures (the green dot).
+        static let active = "On"
+    }
     
     struct Strings {
-        static let appName = "Debug Tool"
+        static let appName = "AWL Debug"
         static let unknownValue = "n/a"
         static let emptyString = ""
         static let fatalErrorMsg = "Don't worry be happy."
         static let searchLogs = "Search requests"
-        static let tracking = "Track network logs"
         static let trackingInfo = "Add AWLDebugTool.start() into AppDelegate/App init() to enable this."
         static let stopTracking = "stop tracking network logs"
         static let startTracking = "start tracking network logs"
@@ -27,11 +31,10 @@ enum LS {
     struct Headers {
         static let btnClose = "Close"
         static let btnDone = "Done"
-        static let logs = "Logs"
         static let permissions = "Permissions"
-        static let fcm = "FCM push token"
-        static let aboutSection = "About"
-        static let firebaseActions = "Firebase actions"
+        static let fcm = "FCM Push Token"
+        static let aboutSection = "App Info"
+        static let testCrashes = "Test Crashes"
         static let screenRecording = "Screen Recording"
         static let settings = "Settings"
         static let requestMethods = "Request Methods"
@@ -78,7 +81,6 @@ enum LS {
     
     struct Actions {
         // MARK: - Logs
-        static let showNetworkLogs = "Show network logs"
         static let clearNetworkLogs = "Clear network logs"
         static let exportNetworkLogs = "Export network logs"
         
@@ -112,6 +114,8 @@ enum LS {
     
     struct Deeplinks {
         static let sectionTitle = "Deeplinks"
+        static let predefined = "Predefined"
+        static let saved = "Saved"
         static let addDeeplink = "Add deeplink"
         static let input = "Enter deeplink"
         static let invalid = "Invalid deeplink"
@@ -158,6 +162,8 @@ enum LS {
         static let responseSize = "Response size"
         static let error = "Error"
         static let streamNotCaptured = "(stream, not captured)"
+        static let newestFirst = "Newest first"
+        static let oldestFirst = "Oldest first"
         
         static func redactedCount(_ count: Int) -> String {
             "\(count) values redacted"
