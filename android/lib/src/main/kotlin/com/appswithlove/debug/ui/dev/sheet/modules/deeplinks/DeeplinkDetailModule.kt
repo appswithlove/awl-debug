@@ -62,7 +62,7 @@ internal fun DeeplinkDetailModule(
         Text(
             text = item.url,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
@@ -128,7 +128,7 @@ internal fun DeeplinkDetailModule(
             text = "A local notification will fire after the delay. Close the app after scheduling to test cold start. " +
                 "Note: may be suppressed in Focus mode.",
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         message?.let {
             Text(

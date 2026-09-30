@@ -17,6 +17,6 @@ internal fun DevEmptyState(text: String, modifier: Modifier = Modifier) {
             .padding(vertical = 12.dp),
         text = text,
         style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
 }

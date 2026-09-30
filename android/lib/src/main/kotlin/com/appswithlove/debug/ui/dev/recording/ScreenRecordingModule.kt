@@ -42,7 +42,7 @@ internal fun ScreenRecordingModule(modifier: Modifier = Modifier) {
     val maxDuration by ScreenRecorder.maxDurationSeconds.collectAsStateWithLifecycle()
     val lastRecording by ScreenRecorder.lastRecording.collectAsStateWithLifecycle()
     val showDurationDialog = remember { mutableStateOf(false) }
-    val secondaryColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+    val secondaryColor = MaterialTheme.colorScheme.onSurfaceVariant
 
     Column(modifier = modifier.padding(bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         DevSwitchRow(text = "Screen recording", checked = isOn, onCheckedChange = ScreenRecorder::setOn)

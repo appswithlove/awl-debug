@@ -86,7 +86,7 @@ internal fun PerformanceModule(
             Text(
                 text = "Collecting data...",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
 
@@ -174,7 +174,7 @@ private fun MetricBar(
             Text(
                 text = value,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         LinearProgressIndicator(

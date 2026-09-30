@@ -141,7 +141,7 @@ private fun PermissionRow(
                 color = if (item.isGranted)
                     MaterialTheme.colorScheme.onSurface
                 else
-                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                    MaterialTheme.colorScheme.onSurfaceVariant,
                 fontWeight = if (item.isGranted) FontWeight.Bold else FontWeight.Normal,
             )
         }
@@ -149,7 +149,7 @@ private fun PermissionRow(
             Text(
                 text = item.description ?: "No description available.",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 2.dp, bottom = 2.dp),
             )
         }

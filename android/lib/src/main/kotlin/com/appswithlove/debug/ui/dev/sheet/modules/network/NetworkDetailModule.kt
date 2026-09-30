@@ -72,7 +72,7 @@ internal fun NetworkDetailModule(
                 modifier = Modifier.weight(1f),
                 text = redactedCountText(entry.redactedCount),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Row(
                 modifier = Modifier
@@ -137,7 +137,7 @@ private fun KeyValue(key: String, value: String, valueColor: Color? = null) {
             modifier = Modifier.width(112.dp),
             text = key,
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Text(
             modifier = Modifier.weight(1f),
@@ -168,7 +168,7 @@ private fun Body(body: CapturedBody?, raw: Boolean) {
         Text(
             text = "(truncated, ${body.originalBytes ?: "?"} bytes total)",
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }

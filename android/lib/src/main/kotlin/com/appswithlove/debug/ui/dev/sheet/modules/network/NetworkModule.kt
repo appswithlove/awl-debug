@@ -164,7 +164,7 @@ internal fun NetworkModule(
             )
             Text(
                 text = state.maxSize.toString(),
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Icon(
                 painter = painterResource(R.drawable.ic_chevron_right),
@@ -194,7 +194,7 @@ internal fun NetworkModule(
                 TextButton(onClick = {
                     onClear()
                     showClearDialog = false
-                }) { Text("Delete") }
+                }) { Text("Delete", color = AppTheme.colors.error) }
             },
             dismissButton = {
                 TextButton(onClick = { showClearDialog = false }) { Text("Cancel") }
@@ -215,7 +215,7 @@ private fun NetworkRow(entry: NetworkEntry, onClick: () -> Unit) {
             Text(
                 text = SimpleDateFormat("HH:mm:ss", Locale.US).format(Date(entry.startedAtMillis)),
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(
                 text = entry.method,
@@ -230,7 +230,7 @@ private fun NetworkRow(entry: NetworkEntry, onClick: () -> Unit) {
             Text(
                 text = "${entry.durationMs} ms",
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             if (entry.isSlow) {
                 Text(

@@ -26,6 +26,6 @@ internal fun DevGroupLabel(text: String, modifier: Modifier = Modifier) {
         modifier = modifier.semantics { heading() },
         text = text,
         style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
 }

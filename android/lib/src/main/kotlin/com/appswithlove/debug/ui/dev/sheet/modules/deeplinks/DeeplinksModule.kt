@@ -187,7 +187,7 @@ private fun DeeplinkRow(item: DeeplinkItem, icon: ImageVector, onClick: () -> Un
             modifier = Modifier.size(18.dp),
             imageVector = icon,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(
@@ -198,7 +198,7 @@ private fun DeeplinkRow(item: DeeplinkItem, icon: ImageVector, onClick: () -> Un
             Text(
                 text = item.url,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }

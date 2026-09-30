@@ -72,6 +72,22 @@ class NetworkModuleScreenshotTest {
     }
 
     @Test
+    fun listDark() {
+        capture("src/test/screenshots/NetworkModule_list_dark.png", darkTheme = true) {
+            NetworkModule(
+                state = NetworkUiState(entries = entries, methods = listOf("DELETE", "GET", "POST", "PUT")),
+                onSearch = {},
+                onEntryClick = {},
+                onShowFilters = {},
+                onSortChanged = {},
+                onClear = {},
+                onExport = {},
+                onMaxSizeChanged = {},
+            )
+        }
+    }
+
+    @Test
     @Config(fontScale = 2f)
     fun listLargeFont() {
         capture("src/test/screenshots/NetworkModule_list_font200.png") {
@@ -124,9 +140,9 @@ class NetworkModuleScreenshotTest {
         }
     }
 
-    private fun capture(path: String, content: @Composable () -> Unit) {
+    private fun capture(path: String, darkTheme: Boolean = false, content: @Composable () -> Unit) {
         composeTestRule.setContent {
-            DevTheme(darkTheme = false) {
+            DevTheme(darkTheme = darkTheme) {
                 Box(
                     Modifier
                         .background(MaterialTheme.colorScheme.surface)
