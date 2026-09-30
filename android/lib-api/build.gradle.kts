@@ -5,14 +5,16 @@ plugins {
     alias(libs.plugins.maven.publish)
 }
 
+// Bytecode for Java 11: with 17, Kotlin marks sealed types with `PermittedSubclasses`, which the javadoc
+// generation of the Android Gradle plugin cannot read in libraries that depend on this one.
 java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
 }
 
 kotlin {
     compilerOptions {
-        jvmTarget.set(JvmTarget.JVM_17)
+        jvmTarget.set(JvmTarget.JVM_11)
     }
 }
 
