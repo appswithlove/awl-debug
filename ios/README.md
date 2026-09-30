@@ -138,7 +138,7 @@ The Logs module shows the app's own unified-log entries (`os_log`, `Logger`, Ker
 - CPU is the process's share of all cores (0–100 %), battery level comes from `UIDevice`, and a main-thread ping waiting longer than 700 ms counts as a UI freeze
 
 ### 12. Screen recording
-- Records the app's own windows (sheets and alerts included, not the debug panel, feedback or the keyboard) as frames, 3 per second and only while the app is used: up to one second after a touch, keyboard or orientation change, plus two frames after that. Touches show as circles (green where they begin, red where they end).
+- Records the app's own windows (sheets and alerts included, not the debug panel, feedback or the keyboard) as frames, 3 per second and only while the app is used: up to one second after a touch, typing, a keyboard or orientation change, plus two frames after that. Touches show as circles (green where they begin, red where they end).
 - Switch it on or off in the panel; the choice is kept on the device. Defaults come from `AWLDebugConfig.screenRecording`:
   ```swift
   config.screenRecording = .init(isOnByDefault: false, maxDuration: .seconds(300)) // 30 s, 1, 5 or 10 min
@@ -146,7 +146,7 @@ The Logs module shows the app's own unified-log entries (`os_log`, `Logger`, Ker
   `AWLDebugTool.start(isScreenRecordingOn:)` still works but is deprecated.
 - While recording is on, the version overlay shows a red dot. Nothing is recorded while the panel is open or the app is in the background.
 - Frames are kept in `Library/Caches/AWLDebug/recording/current/` and moved to `last/` on the next start, so after a crash the panel shows "Last recording available ({date})" and "Export last recording" contains the steps before the crash.
-- Masking: secure text fields (`UITextField.isSecureTextEntry`, SwiftUI `SecureField`) are always covered with a black rectangle, in the same frame. Mark other views with `.awlDebugMasked()` (SwiftUI) or `view.awlDebugMasked = true` (UIKit). Store builds do not link the SDK, so wrap the marker in your app:
+- Masking: secure text fields (`UITextField.isSecureTextEntry`, SwiftUI `SecureField`) are always covered with a black rectangle, in the same frame. While such a view moves (e.g. in a sheet sliding in), no frame is taken; a view on top only drops the mask when it really hides it (opaque, not clipped away, not moving). Mark other views with `.awlDebugMasked()` (SwiftUI) or `view.awlDebugMasked = true` (UIKit). Store builds do not link the SDK, so wrap the marker in your app:
   ```swift
   extension View {
       @ViewBuilder func debugMasked() -> some View {
