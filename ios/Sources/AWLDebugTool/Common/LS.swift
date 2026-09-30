@@ -9,6 +9,10 @@ enum LS {
     enum Panel {
         /// VoiceOver value of a start-page module that records or measures (the green dot).
         static let active = "On"
+        /// Shown after an extension row copied its value.
+        static let copied = "Copied"
+        /// VoiceOver hint of an extension row that copies its value.
+        static let copyHint = "Copies the value."
     }
     
     struct Strings {

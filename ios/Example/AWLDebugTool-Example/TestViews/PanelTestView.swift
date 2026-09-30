@@ -14,6 +14,7 @@ struct PanelTestView: View {
     @State private var isShowingCover = false
 #if DEBUG || STAGING
     @State private var isActivated = AWLDebugTool.isActivated
+    @State private var isDemoSectionShown = DemoSection.isShown
 #endif
 
     var body: some View {
@@ -24,6 +25,9 @@ struct PanelTestView: View {
 #if DEBUG || STAGING
             Toggle("Gestures open the panel", isOn: $isActivated)
                 .onChange(of: isActivated) { AWLDebugTool.isActivated = $0 }
+                .padding(.horizontal)
+            Toggle("Demo section in the panel", isOn: $isDemoSectionShown)
+                .onChange(of: isDemoSectionShown) { DemoSection.setShown($0) }
                 .padding(.horizontal)
 #endif
         }
@@ -50,6 +54,49 @@ private struct ModalContent: View {
         .buttonStyle(.bordered)
     }
 }
+
+#if DEBUG || STAGING
+/// A section on the panel's start page, added through `AWLDebugExtensions` the way a separate package would.
+@MainActor
+private enum DemoSection {
+    private static let section = AWLDebugExtensionSection(id: "demo", order: 30)
+    private static var registration: AWLDebugRegistration?
+    private static var taps = 0
+    private static var isSwitchOn = false
+
+    static var isShown: Bool {
+        registration != nil
+    }
+
+    static func setShown(_ isShown: Bool) {
+        if isShown, registration == nil {
+            update()
+            registration = AWLDebugExtensions.register(section)
+        } else if !isShown {
+            registration?.cancel()
+            registration = nil
+        }
+    }
+
+    private static func update() {
+        section.items = [
+            .title("Demo section", action: AWLDebugExtensionAction("Tap") {
+                taps += 1
+                update()
+            }),
+            .text("Tapped \(taps) times"),
+            .text("Demo ID: demo-1234", style: .monospace, copyValue: "demo-1234"),
+            .toggle("Demo switch", isOn: isSwitchOn) { isOn in
+                isSwitchOn = isOn
+                update()
+            },
+            .link("Open demo", badge: "Closes the panel first") {
+                AWLDebugTool.log("Demo link opened", tag: "Demo")
+            },
+        ]
+    }
+}
+#endif
 
 private struct OpenPanelButton: View {
     var body: some View {

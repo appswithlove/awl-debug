@@ -40,16 +40,9 @@ final class AWLDebugToolBridge: NSObject {
     @objc(feedbackRecording:)
     static func feedbackRecording(_ completion: @escaping (Data?, Data?, Data?, Bool) -> Void) {
         Task { @MainActor in
-            guard let folder = ScreenRecorder.shared.feedbackRecordingFolder() else {
-                completion(nil, nil, nil, false)
-                return
-            }
-            let frames = RecordingStorage.timedFrames(in: folder)
-            let events = RecordingStorage.events(in: folder)
-            let parts = await Task.detached(priority: .userInitiated) {
-                await RecordingExport.feedbackParts(frames: frames, events: events)
-            }.value
-            completion(parts.video, parts.frames, parts.timeline, parts.isTooLarge)
+            let parts = await AWLDebugExtensions.exportRecording(RecordingExport.feedbackOptions)
+            let frames = parts?.frames.flatMap { $0.count <= RecordingExport.maxFramesBytes ? $0 : nil }
+            completion(parts?.video, frames, parts?.timeline, parts?.isVideoTooLarge ?? false)
         }
     }
 }

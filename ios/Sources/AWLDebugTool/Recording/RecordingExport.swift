@@ -1,6 +1,6 @@
 import UIKit
 
-/// `recording.mp4`, `frames.jpg` and `timeline.md` of a recording, for the ZIP export and for feedback.
+/// `recording.mp4`, `frames.jpg` and `timeline.md` of a recording, for the ZIP export and for extensions.
 enum RecordingExport {
     static let videoFileName = "recording.mp4"
     static let framesFileName = "frames.jpg"
@@ -11,25 +11,20 @@ enum RecordingExport {
     static let maxVideoBytes = 25 * 1024 * 1024
     static let maxFramesBytes = 5 * 1024 * 1024
     static let maxTimelineBytes = 256 * 1024
+    static let feedbackOptions = AWLDebugRecordingExportOptions(lastSeconds: feedbackMaxFrames / ScreenRecorder.framesPerSecond,
+                                                                 maxVideoBytes: maxVideoBytes,
+                                                                 maxTimelineBytes: maxTimelineBytes)
 
-    /// What feedback attaches; all `nil` when the recording could not be encoded.
-    struct FeedbackParts {
-        var video: Data?
-        var frames: Data?
-        var timeline: Data?
-        /// The video stayed above `maxVideoBytes` even at half resolution, so nothing is attached.
-        var isTooLarge = false
-    }
-
-    /// Encodes the last `feedbackMaxFrames` frames. Above `maxVideoBytes` once more at half resolution, then without
-    /// video; `frames` and `timeline` only come with a video.
-    static func feedbackParts(frames all: [RecordedFrame], events: [RecordingEvent], timeZone: TimeZone = .current,
-                              maxVideoBytes: Int = maxVideoBytes) async -> FeedbackParts {
-        let frames = Array(all.suffix(feedbackMaxFrames))
+    /// Encodes the newest `options.lastSeconds` of frames. Above `options.maxVideoBytes` once more at half resolution,
+    /// then without any part; a longer timeline than `options.maxTimelineBytes` is left out. `nil` without a readable
+    /// frame or when encoding fails.
+    static func export(frames all: [RecordedFrame], events: [RecordingEvent], options: AWLDebugRecordingExportOptions,
+                       timeZone: TimeZone = .current) async -> AWLDebugRecordingExport? {
+        let frames = options.lastSeconds.map { Array(all.suffix(max($0, 0) * ScreenRecorder.framesPerSecond)) } ?? all
         guard let frameSize = frameSize(of: frames) else {
-            return FeedbackParts()
+            return nil
         }
-        let folder = FileManager.default.temporaryDirectory.appending(path: "awl-debug-feedback-\(UUID().uuidString)")
+        let folder = FileManager.default.temporaryDirectory.appending(path: "awl-debug-export-\(UUID().uuidString)")
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: folder) }
         let url = folder.appending(path: videoFileName)
@@ -41,22 +36,22 @@ enum RecordingExport {
                 try await ImagesToVideoExport.createVideo(from: frames.map(\.url), size: size,
                                                           fps: ScreenRecorder.framesPerSecond, outputURL: url)
             } catch {
-                return FeedbackParts()
+                return nil
             }
             let bytes = (try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int) ?? .max
-            if bytes <= maxVideoBytes {
+            if bytes <= options.maxVideoBytes ?? .max {
                 video = try? Data(contentsOf: url)
                 break
             }
         }
         guard let video else {
-            return FeedbackParts(isTooLarge: true)
+            return AWLDebugRecordingExport(video: nil, frames: nil, timeline: nil, isVideoTooLarge: true)
         }
         let timeline = Data(RecordingTimeline.markdown(frames: frames, events: events, timeZone: timeZone).utf8)
-        return FeedbackParts(
+        return AWLDebugRecordingExport(
             video: video,
-            frames: contactSheet(frames: frames, timeZone: timeZone).flatMap { $0.count <= maxFramesBytes ? $0 : nil },
-            timeline: timeline.count <= maxTimelineBytes ? timeline : nil
+            frames: contactSheet(frames: frames, timeZone: timeZone),
+            timeline: timeline.count <= options.maxTimelineBytes ?? .max ? timeline : nil
         )
     }
 

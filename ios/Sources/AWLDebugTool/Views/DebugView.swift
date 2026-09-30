@@ -46,6 +46,8 @@ public struct DebugView: View {
                 }
 
                 FeedbackEntryView()
+
+                ExtensionSectionsView(registry: .shared)
                 
                 // Fixed order, the same on Android: App-Info, Send feedback, Logs, Network, Performance, Permissions, Accessibility,
                 // Deeplinks, Session, FCM, Screen Recording, Clear App Data, Test Crashes, custom modules.
