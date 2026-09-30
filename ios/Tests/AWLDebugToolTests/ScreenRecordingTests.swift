@@ -184,6 +184,21 @@ final class ScreenRecordingTests: XCTestCase {
         XCTAssertTrue(ScreenRecorder.isKeyboardForApp(keyWindow: nil))
     }
 
+    func testKeyboardRowsOnlyForTheAppsKeyboardOncePerChange() {
+        var keyboard = RecordingKeyboard()
+        // UIKit reports the app's keyboard showing and hiding twice.
+        XCTAssertEqual(keyboard.willShow(forApp: true), "keyboard shown")
+        XCTAssertNil(keyboard.willShow(forApp: true))
+        XCTAssertEqual(keyboard.didHide(), "keyboard hidden")
+        XCTAssertNil(keyboard.didHide())
+        // The feedback form's keyboard: no row, also when it hides twice.
+        XCTAssertNil(keyboard.willShow(forApp: false))
+        XCTAssertNil(keyboard.willShow(forApp: false))
+        XCTAssertNil(keyboard.didHide())
+        XCTAssertNil(keyboard.didHide())
+        XCTAssertEqual(keyboard.willShow(forApp: true), "keyboard shown")
+    }
+
     // AK-REC-5: after a crash the frames of the previous run are the last recording.
     func testRotationKeepsThePreviousRunAsLastRecording() throws {
         let root = FileManager.default.temporaryDirectory.appending(path: "recording-\(UUID().uuidString)")
