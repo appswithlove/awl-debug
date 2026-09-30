@@ -29,7 +29,7 @@ internal fun ClearAppDataModule(onClear: () -> Unit) {
     var showConfirmation by remember { mutableStateOf(false) }
 
     Column(
-        modifier = Modifier.padding(vertical = 12.dp),
+        modifier = Modifier.padding(bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(

@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -21,12 +22,15 @@ import com.appswithlove.debug.ui.component.icons.TablerIcons
 
 private const val DISABLED_CONTENT_ALPHA = 0.38f
 
+/** Large font sizes wrap the label instead of cutting it off. */
+private const val MAX_LABEL_LINES = 3
+
 @Composable
 internal fun DevOutlinedButton(
     modifier: Modifier = Modifier,
     text: String,
     leadingIcon: @Composable (() -> Unit)? = null,
-    contentColor: Color = Color.Black,
+    contentColor: Color = MaterialTheme.colorScheme.onSurface,
     enabled: Boolean = true,
     onClick: () -> Unit,
 ) {
@@ -40,7 +44,7 @@ internal fun DevOutlinedButton(
             containerColor = Color.Transparent,
             contentColor = contentColor,
             disabledContainerColor = Color.Transparent,
-            disabledContentColor = contentColor,
+            disabledContentColor = disabledContentColor,
         ),
         shape = MaterialTheme.shapes.small,
         border = BorderStroke((1.6).dp, actualContentColor),
@@ -52,7 +56,8 @@ internal fun DevOutlinedButton(
             }
             Text(
                 text = text,
-                maxLines = 1,
+                textAlign = TextAlign.Center,
+                maxLines = MAX_LABEL_LINES,
                 overflow = TextOverflow.Ellipsis,
             )
         }

@@ -1,5 +1,6 @@
 package com.appswithlove.debug.ui.dev.sheet.modules
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -14,7 +15,10 @@ import com.appswithlove.debug.ui.theme.AppTheme
 
 @Composable
 internal fun TestCrashesModule() {
-    Column(modifier = Modifier.padding(vertical = 12.dp)) {
+    Column(
+        modifier = Modifier.padding(bottom = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
 
         DevOutlinedButton(
             modifier = Modifier.fillMaxWidth(),

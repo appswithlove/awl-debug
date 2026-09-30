@@ -1,7 +1,6 @@
 package com.appswithlove.debug.ui.dev.sheet.modules
 
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -19,6 +18,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.appswithlove.debug.ui.component.DevButtonRow
 import com.appswithlove.debug.ui.component.DevOutlinedButton
 import com.appswithlove.debug.ui.component.InfoTooltip
 import com.appswithlove.debug.ui.component.icons.TablerIcons
@@ -71,15 +71,9 @@ internal fun FcmPushTokenModule(
             color = MaterialTheme.colorScheme.onSurface,
         )
         if (onRefresh != null || onRevoke != null) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
+            DevButtonRow(modifier = Modifier.padding(top = 12.dp)) {
                 if (onRefresh != null) {
                     DevOutlinedButton(
-                        modifier = Modifier.weight(1f),
                         text = "Refresh",
                         contentColor = MaterialTheme.colorScheme.onSurface,
                         leadingIcon = {
@@ -95,7 +89,6 @@ internal fun FcmPushTokenModule(
                 }
                 if (onRevoke != null) {
                     DevOutlinedButton(
-                        modifier = Modifier.weight(1f),
                         text = "Revoke",
                         contentColor = AppTheme.colors.error,
                         leadingIcon = {
