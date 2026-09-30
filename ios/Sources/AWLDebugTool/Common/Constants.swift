@@ -2,7 +2,6 @@
 //  Constants.swift
 //  DebugTool
 //
-//  Created by Hrvoje Hajduković on 16.06.2023..
 //
 
 import Foundation
@@ -64,7 +63,6 @@ enum Constants {
         static let appLogsLimit = prefix + "appLogsLimit"
         static let versionOverlayVisible = prefix + "versionOverlayVisible"
         static let performanceMeasuring = prefix + "performanceMeasuring"
-        static let remoteReportingEnabled = prefix + "remoteReportingEnabled"
     }
     
 }

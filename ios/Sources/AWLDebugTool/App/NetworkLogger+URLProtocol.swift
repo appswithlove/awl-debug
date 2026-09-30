@@ -42,7 +42,7 @@ class AWLDebugURLProtocol: URLProtocol {
     
     struct Constants {
         static let RequestHandledKey = "AWLDebugURLProtocolRequestHandled"
-        /// Set on the SDK's own requests to the feedback service; they are never captured.
+        /// Set by `AWLDebugExtensions.excludeFromCapture` on an extension's own requests; they are never captured.
         static let SkipCaptureKey = "AWLDebugSkipCapture"
     }
     

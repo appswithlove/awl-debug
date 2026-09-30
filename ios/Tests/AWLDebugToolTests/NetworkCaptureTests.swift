@@ -180,4 +180,12 @@ final class NetworkCaptureTests: XCTestCase {
         XCTAssertEqual(unconfigured.requestBodyReadLimit, 256 * 1024)
         XCTAssertNil(AWLDebugURLProtocol.RequestInfo(request: request, config: .init(captureBodies: false)).requestBodyReadLimit)
     }
+
+    func testErrorCodes() {
+        XCTAssertEqual(NetworkLog.errorCode(for: URLError(.timedOut)), "timeout")
+        XCTAssertEqual(NetworkLog.errorCode(for: URLError(.cannotFindHost)), "dns")
+        XCTAssertEqual(NetworkLog.errorCode(for: URLError(.serverCertificateUntrusted)), "tls")
+        XCTAssertEqual(NetworkLog.errorCode(for: URLError(.cancelled)), "cancelled")
+        XCTAssertEqual(NetworkLog.errorCode(for: URLError(.cannotConnectToHost)), "connection")
+    }
 }

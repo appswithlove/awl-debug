@@ -162,25 +162,25 @@ final class ScreenRecordingTests: XCTestCase {
         let appWindow = UIWindow(frame: CGRect(x: 0, y: 0, width: 300, height: 400))
         let appField = UITextField()
         appWindow.addSubview(appField)
-        let feedbackWindow = UIWindow(frame: CGRect(x: 0, y: 0, width: 300, height: 400))
-        feedbackWindow.accessibilityIdentifier = RecordingFrameRenderer.sdkWindowIdentifier
-        let feedbackText = UITextView()
-        feedbackWindow.addSubview(feedbackText)
+        let sdkWindow = UIWindow(frame: CGRect(x: 0, y: 0, width: 300, height: 400))
+        sdkWindow.accessibilityIdentifier = RecordingFrameRenderer.sdkWindowIdentifier
+        let formText = UITextView()
+        sdkWindow.addSubview(formText)
 
         XCTAssertTrue(ScreenRecorder.isTypingInApp(Notification(name: UITextField.textDidChangeNotification, object: appField)))
-        XCTAssertFalse(ScreenRecorder.isTypingInApp(Notification(name: UITextView.textDidChangeNotification, object: feedbackText)),
+        XCTAssertFalse(ScreenRecorder.isTypingInApp(Notification(name: UITextView.textDidChangeNotification, object: formText)),
                        "typing a report takes no frames of the screen below")
         XCTAssertFalse(ScreenRecorder.isTypingInApp(Notification(name: UITextField.textDidChangeNotification, object: UITextField())))
     }
 
     func testKeyboardCountsForAppWindowsOnly() {
         let appWindow = UIWindow(frame: CGRect(x: 0, y: 0, width: 300, height: 400))
-        let feedbackWindow = UIWindow(frame: CGRect(x: 0, y: 0, width: 300, height: 400))
-        feedbackWindow.accessibilityIdentifier = RecordingFrameRenderer.sdkWindowIdentifier
+        let sdkWindow = UIWindow(frame: CGRect(x: 0, y: 0, width: 300, height: 400))
+        sdkWindow.accessibilityIdentifier = RecordingFrameRenderer.sdkWindowIdentifier
 
         XCTAssertTrue(ScreenRecorder.isKeyboardForApp(keyWindow: appWindow))
-        XCTAssertFalse(ScreenRecorder.isKeyboardForApp(keyWindow: feedbackWindow),
-                       "the feedback form's keyboard is no activity and no timeline row")
+        XCTAssertFalse(ScreenRecorder.isKeyboardForApp(keyWindow: sdkWindow),
+                       "the keyboard of an SDK window is no activity and no timeline row")
         XCTAssertTrue(ScreenRecorder.isKeyboardForApp(keyWindow: nil))
     }
 
@@ -191,7 +191,7 @@ final class ScreenRecordingTests: XCTestCase {
         XCTAssertNil(keyboard.willShow(forApp: true))
         XCTAssertEqual(keyboard.didHide(), "keyboard hidden")
         XCTAssertNil(keyboard.didHide())
-        // The feedback form's keyboard: no row, also when it hides twice.
+        // The keyboard of an SDK window: no row, also when it hides twice.
         XCTAssertNil(keyboard.willShow(forApp: false))
         XCTAssertNil(keyboard.willShow(forApp: false))
         XCTAssertNil(keyboard.didHide())

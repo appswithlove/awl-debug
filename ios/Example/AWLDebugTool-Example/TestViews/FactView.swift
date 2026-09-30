@@ -2,7 +2,6 @@
 //  FactView.swift
 //  AWLDebugTool-Example
 //
-//  Created by Yanis Plumit on 30.06.2026.
 //
 
 import OSLog
@@ -41,7 +40,7 @@ struct FactView: View {
     private func loadFact() async throws {
         let url = URL(string: "https://catfact.ninja/fact")!
         var request = URLRequest(url: url)
-        // Redacted in the Network module and in remote reporting.
+        // Redacted in the Network module.
         request.setValue("Bearer example-token", forHTTPHeaderField: "Authorization")
         let (data, _) = try await URLSession(configuration: .ephemeral).data(for: request)
         let decoder = JSONDecoder()

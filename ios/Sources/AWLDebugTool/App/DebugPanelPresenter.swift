@@ -18,10 +18,8 @@ final class DebugPanelPresenter: NSObject {
         didSet { updateRecognizers() }
     }
     var isAlwaysActive = false
-    /// Triggers that AWLDebugFeedback or a registered extension section handles; they do not open the panel.
-    var feedbackTriggers: () -> Set<AWLDebugTrigger> = {
-        (FeedbackBridge.current?.triggers ?? []).union(ExtensionSectionRegistry.shared.claimedTriggers)
-    }
+    /// Triggers that registered extension sections handle; they do not open the panel.
+    var claimedTriggers: () -> Set<AWLDebugTrigger> = { ExtensionSectionRegistry.shared.claimedTriggers }
     private var warnedConflicts: Set<AWLDebugTrigger> = []
 
     private var window: UIWindow?
@@ -67,7 +65,7 @@ final class DebugPanelPresenter: NSObject {
         guard triggers.contains(trigger), isAlwaysActive || AWLDebugTool.isActivated else {
             return false
         }
-        if feedbackTriggers().contains(trigger) {
+        if claimedTriggers().contains(trigger) {
             if warnedConflicts.insert(trigger).inserted {
                 AWLDebugTool.log("Trigger \(trigger) is configured for the panel and claimed by an extension; it does not open the panel.",
                                  level: .warn, tag: "AWLDebug")

@@ -8,7 +8,8 @@ public struct AWLDebugConfig {
     public var appGroupIdentifiers: [String] = []
     /// Token sources shown in the Session module; the module is hidden without providers.
     public var sessionProviders: [any AWLSessionProvider] = []
-    /// Gestures and events that open the panel. A trigger that AWLDebugFeedback also handles opens feedback only.
+    /// Gestures and events that open the panel. A trigger that an extension claims (`AWLDebugExtensionSection.claimedTriggers`)
+    /// does not open it.
     public var triggers: Set<AWLDebugTrigger> = [.threeFingerTap]
     /// Lets gestures open the panel even when `AWLDebugTool.isActivated` is `false`.
     public var isAlwaysActive: Bool = false
@@ -32,8 +33,6 @@ public struct AWLDebugConfig {
 
     /// Shows "AWL <version> (<build>)" at the top left over the app. Testers can still switch it off in the panel.
     public var showVersionOverlay: Bool = true
-    /// Sends sessions, requests and performance samples to the feedback service. Off when `nil`.
-    public var remoteReporting: RemoteReportingConfig?
     /// Defaults of the Screen Recording module; testers can change both in the panel.
     public var screenRecording = ScreenRecordingConfig()
 

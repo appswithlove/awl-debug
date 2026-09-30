@@ -1,10 +1,3 @@
-//
-//  AboutView.swift
-//  
-//
-//  Created by Hrvoje Hajduković on 20.09.2025..
-//
-
 import SwiftUI
 import UIKit
 
@@ -24,7 +17,7 @@ struct AboutView: View {
             InfoRow(label: LS.AppInfo.app, value: Self.infoValue("CFBundleDisplayName") ?? Self.infoValue("CFBundleName"))
             InfoRow(label: LS.AppInfo.version, value: Self.infoValue("CFBundleShortVersionString"))
             InfoRow(label: LS.AppInfo.build, value: Self.infoValue("CFBundleVersion"))
-            InfoRow(label: LS.AppInfo.device, value: ReportingSession.modelIdentifier)
+            InfoRow(label: LS.AppInfo.device, value: Self.modelIdentifier)
             InfoRow(label: LS.AppInfo.os, value: "iOS \(UIDevice.current.systemVersion)")
             InfoRow(label: LS.AppInfo.locale, value: Locale.current.identifier(.bcp47))
             TimelineView(.periodic(from: .now, by: 1)) { context in
@@ -33,6 +26,18 @@ struct AboutView: View {
             InfoRow(label: LS.AppInfo.internet, value: isOnline ? LS.AppInfo.online : LS.AppInfo.offline)
         } header: {
             Text(LS.Headers.aboutSection)
+        }
+    }
+
+    /// Hardware identifier such as `iPhone17,1`; on the simulator the simulated device's.
+    static var modelIdentifier: String {
+        if let simulated = ProcessInfo.processInfo.environment["SIMULATOR_MODEL_IDENTIFIER"] {
+            return simulated
+        }
+        var systemInfo = utsname()
+        uname(&systemInfo)
+        return withUnsafeBytes(of: &systemInfo.machine) { buffer in
+            String(bytes: buffer.prefix { $0 != 0 }, encoding: .utf8) ?? ""
         }
     }
 
