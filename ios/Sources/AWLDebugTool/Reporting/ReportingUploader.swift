@@ -53,7 +53,7 @@ final class ReportingUploader {
     private var completions: [() -> Void] = []
 
     init(endpoint: String, appKey: String, queue: DispatchQueue, buffer: ReportingBuffer,
-         uptime: @escaping () -> TimeInterval = { ProcessInfo.processInfo.systemUptime }) {
+         uptime: @escaping () -> TimeInterval) {
         self.queue = queue
         self.buffer = buffer
         self.appKey = appKey
