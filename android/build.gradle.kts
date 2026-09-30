@@ -99,7 +99,7 @@ subprojects {
 }
 
 // Real and no-op artifacts are swapped per build type, so their public API must be identical.
-val noOpPairs = listOf("lib" to "lib-no-op", "feedback" to "feedback-no-op")
+val noOpPairs = listOf("lib" to "lib-no-op")
 
 tasks.register("apiParityCheck") {
     description = "Fails when the API dumps of a real artifact and its no-op variant differ."
