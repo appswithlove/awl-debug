@@ -57,7 +57,8 @@ struct MarkupToolbar: View {
     @ObservedObject var session: FeedbackSession
 
     var body: some View {
-        // Bottom-aligned for thumb reach; scrolls only when the keyboard leaves too little height.
+        // Bottom-aligned for thumb reach. Scrolls only when the height is too small (keyboard up,
+        // small phone), starting at the top so the selected tool stays in view.
         ViewThatFits(in: .vertical) {
             VStack(spacing: 0) {
                 Spacer(minLength: 0)
@@ -68,14 +69,14 @@ struct MarkupToolbar: View {
             }
             .scrollIndicators(.hidden)
             .scrollDismissesKeyboard(.interactively)
-            .bottomScrollAnchor()
         }
         .frame(width: 48)
         .disabled(session.phase != .editing)
     }
 
+    /// No spacing between the 44 pt targets, so all ten fit beside the screenshot on a 6.3" phone.
     private var controls: some View {
-        VStack(spacing: 4) {
+        VStack(spacing: 0) {
             ForEach(MarkupTool.allCases, id: \.self) { tool in
                 ToolButton(tool: tool, isSelected: session.tool == tool) {
                     session.tool = tool
@@ -172,16 +173,5 @@ private struct IconButton: View {
                 .frame(width: 44, height: 44)
         }
         .accessibilityLabel(title)
-    }
-}
-
-private extension View {
-    @ViewBuilder
-    func bottomScrollAnchor() -> some View {
-        if #available(iOS 17, *) {
-            defaultScrollAnchor(.bottom)
-        } else {
-            self
-        }
     }
 }
