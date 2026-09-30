@@ -23,6 +23,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -87,8 +88,8 @@ internal fun SessionDetailModule(
 
     Column(
         modifier = modifier
-            .padding(vertical = 12.dp)
-            .verticalScroll(rememberScrollState()),
+            .verticalScroll(rememberScrollState())
+            .padding(bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         states.forEachIndexed { index, state ->
@@ -182,7 +183,7 @@ private fun ProviderCard(
                     { CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = contentColor) }
                 }
                 icon != null -> {
-                    { Icon(imageVector = icon, contentDescription = null, tint = contentColor) }
+                    { Icon(imageVector = icon, contentDescription = null, tint = LocalContentColor.current) }
                 }
                 else -> null
             },
@@ -225,14 +226,14 @@ private fun ProviderCard(
                 Text(
                     text = if (isRevealed) state.token else maskToken(state.token),
                     style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(1f),
                 )
                 IconButton(onClick = onRevealToggle) {
                     Icon(
                         imageVector = if (isRevealed) TablerIcons.EyeOff else TablerIcons.Eye,
                         contentDescription = if (isRevealed) "Hide token" else "Reveal token",
-                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
@@ -267,7 +268,7 @@ private fun LoginStatus(isLoggedIn: Boolean) {
         Text(
             text = if (isLoggedIn) "Logged in" else "Logged out",
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
@@ -302,12 +303,8 @@ private fun EditTokenDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = AppTheme.colors.background,
         title = {
-            Text(
-                text = "Edit token - $providerLabel",
-                color = MaterialTheme.colorScheme.onSurface,
-            )
+            Text("Edit token - $providerLabel")
         },
         text = {
             DevOutlinedTextField(
@@ -319,20 +316,10 @@ private fun EditTokenDialog(
             )
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(text) }) {
-                Text(
-                    text = "Confirm",
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-            }
+            TextButton(onClick = { onConfirm(text) }) { Text("Confirm") }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(
-                    text = "Cancel",
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                )
-            }
+            TextButton(onClick = onDismiss) { Text("Cancel") }
         },
     )
 }
@@ -345,18 +332,11 @@ private fun DeleteTokenDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = AppTheme.colors.background,
         title = {
-            Text(
-                text = "Delete token?",
-                color = MaterialTheme.colorScheme.onSurface,
-            )
+            Text("Delete token?")
         },
         text = {
-            Text(
-                text = "This will remove the access token for \"$providerLabel\" and break the current session.",
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-            )
+            Text("This will remove the access token for \"$providerLabel\" and break the current session.")
         },
         confirmButton = {
             TextButton(onClick = onConfirm) {
@@ -367,12 +347,7 @@ private fun DeleteTokenDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(
-                    text = "Cancel",
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                )
-            }
+            TextButton(onClick = onDismiss) { Text("Cancel") }
         },
     )
 }

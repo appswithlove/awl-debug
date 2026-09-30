@@ -22,6 +22,8 @@ import androidx.compose.ui.test.percentOffset
 import androidx.compose.ui.test.swipe
 import com.appswithlove.debug.feedback.queue.FeedbackQueue
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
+import io.kotest.matchers.string.shouldNotContain
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartReader
@@ -35,6 +37,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
+import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import java.io.File
 
@@ -103,6 +106,40 @@ class FeedbackDialogTest {
     }
 
     @Test
+    fun attachesLogsByDefault() {
+        server.enqueue(MockResponse().setResponseCode(201))
+        draft = FeedbackDraft(ImageBitmap(40, 80), { "{}" }, logs = "# AWL Debug logs\n".toByteArray())
+        openDialog()
+
+        sendReport()
+
+        compose.waitUntil(timeoutMillis = 5_000) { sent }
+        val body = server.takeRequest().body.readUtf8()
+        body shouldContain "name=\"logs\"; filename=\"logs.txt\""
+        body shouldContain "# AWL Debug logs"
+    }
+
+    @Test
+    fun leavesLogsOutWhenSwitchedOff() {
+        server.enqueue(MockResponse().setResponseCode(201))
+        draft = FeedbackDraft(ImageBitmap(40, 80), { "{}" }, logs = "# AWL Debug logs\n".toByteArray())
+        openDialog()
+
+        compose.onNodeWithText(string(R.string.feedback_attach_logs)).performClick()
+        sendReport()
+
+        compose.waitUntil(timeoutMillis = 5_000) { sent }
+        server.takeRequest().body.readUtf8() shouldNotContain "name=\"logs\""
+    }
+
+    @Test
+    fun noLogsSwitchWithoutDebugPanel() {
+        openDialog()
+
+        compose.onAllNodes(hasText(string(R.string.feedback_attach_logs))).fetchSemanticsNodes().size shouldBe 0
+    }
+
+    @Test
     fun asksForNameOnFirstReportAndShowsSentAsAfterwards() {
         server.enqueue(MockResponse().setResponseCode(201))
         openDialog(reporter = null)
@@ -151,6 +188,19 @@ class FeedbackDialogTest {
         val center = uploaded.getPixel(uploaded.width / 2, uploaded.height / 2)
         (Color.red(center) + Color.green(center) + Color.blue(center) <= 36) shouldBe true
         uploaded.getPixel(0, 0) shouldBe Color.WHITE
+    }
+
+    @Test
+    @Config(qualifiers = "w411dp-h914dp-xxhdpi", fontScale = 2f)
+    fun largeFontKeepsAllToolsAndStacksReporterFields() {
+        openDialog(reporter = null)
+
+        // The toolbar switches to two columns instead of hiding undo and clear below the fold.
+        compose.onNodeWithContentDescription(string(R.string.feedback_undo)).assertIsDisplayed()
+        compose.onNodeWithContentDescription(string(R.string.feedback_clear)).assertIsDisplayed()
+        val name = compose.onNode(hasSetTextAction() and hasText(string(R.string.feedback_reporter_prompt))).fetchSemanticsNode().boundsInRoot
+        val email = compose.onNode(hasSetTextAction() and hasText(string(R.string.feedback_reporter_email))).fetchSemanticsNode().boundsInRoot
+        (email.top >= name.bottom) shouldBe true
     }
 
     private fun openDialog(reporter: FeedbackReporter? = FeedbackReporter(name = "Test User")) {

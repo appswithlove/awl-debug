@@ -13,9 +13,14 @@ internal suspend fun shareTextFile(context: Context, fileName: String, text: Str
         val exportDir = File(context.cacheDir, "awl-debug").apply { mkdirs() }
         File(exportDir, fileName).apply { writeText(text, Charsets.UTF_8) }
     }
+    shareFile(context, file, "text/plain", chooserTitle)
+}
+
+/** Opens the share sheet for [file], which must be inside `cacheDir/awl-debug`. */
+internal suspend fun shareFile(context: Context, file: File, mimeType: String, chooserTitle: String) {
     val uri = FileProvider.getUriForFile(context, "${context.packageName}.awldebug.fileprovider", file)
     val shareIntent = Intent(Intent.ACTION_SEND).apply {
-        type = "text/plain"
+        type = mimeType
         putExtra(Intent.EXTRA_STREAM, uri)
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
