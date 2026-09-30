@@ -4,4 +4,6 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Retries queued reports when a network becomes available. -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- DevTrigger.Screenshot, Android 14+. Normal permission, debug artifact only. -->
+    <uses-permission android:name="android.permission.DETECT_SCREEN_CAPTURE" />
 </manifest>

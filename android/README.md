@@ -454,7 +454,7 @@ dependencies {
 }
 ```
 
-Wrap the app content in `FeedbackHost`. Shaking the device starts a report; `FeedbackLauncher` adds an entry, for example as a custom module of the `DevSheet`:
+Wrap the app content in `FeedbackHost`. Shaking the device or taking a screenshot (Android 14+) starts a report, and the `DevSheet` shows "Send feedback" as its second entry while a configured `FeedbackHost` is on screen:
 
 ```kotlin
 val feedbackConfig = FeedbackConfig(
@@ -467,7 +467,7 @@ val feedbackConfig = FeedbackConfig(
 )
 
 FeedbackHost(config = feedbackConfig) {
-    DevSheet(customModules = { FeedbackLauncher() }) {
+    DevSheet {
         MyApp()
     }
 }
@@ -475,10 +475,12 @@ FeedbackHost(config = feedbackConfig) {
 
 Place `FeedbackHost` outside of the `DevSheet` as shown: the screenshot shows what `FeedbackHost` wraps, and dialogs and bottom sheets are never part of it.
 
+Start a report from your own UI with `AwlFeedback.start()`, or place `FeedbackLauncher()` where you want an entry of your own. The no-op artifact does nothing on either.
+
 | Parameter | Default | Description |
 |---|---|---|
 | `extraMetadata` | empty | Read when a report starts. Up to 30 entries, keys up to 64 characters (empty keys are dropped), values up to 500. A `screen` entry becomes the report's screen (up to 200 characters). |
-| `shakeToReport` | `true` | Shaking starts a report while the app is in the foreground |
+| `triggers` | `Shake`, `Screenshot` | `DevTrigger`s that start a report while the app is in the foreground. `Screenshot` needs Android 14 (API 34). A trigger in both `triggers` and the `DevSheet` triggers starts feedback only and logs a warning. Replaces `shakeToReport`, which is deprecated |
 | `distribution` | `null` | `AwlDistribution.Debug`, `Internal` or `Store`. Only sent when set, because older feedback services reject unknown metadata fields |
 | `reporter` | `null` | `FeedbackReporter(name, email)` prefills the reporter. Without it the first report asks for a name (email optional); "Sent as {name}" with "Change" afterwards. Needs a service that accepts `reporter` |
 
