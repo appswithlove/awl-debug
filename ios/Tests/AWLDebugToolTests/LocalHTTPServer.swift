@@ -1,25 +1,35 @@
 import Foundation
 import Network
 
-/// Minimal HTTP/1.1 server on 127.0.0.1 for deterministic, real network tests.
+/// Minimal HTTP/1.1 server on 127.0.0.1 for deterministic, real network tests. With a `tlsIdentity` it speaks HTTPS.
 final class LocalHTTPServer {
-    
+
     struct Response {
         var status = "200 OK"
         var headers: [(String, String)] = []
         var body = Data("ok".utf8)
     }
-    
+
     private let listener: NWListener
+    private let scheme: String
     private let queue = DispatchQueue(label: "LocalHTTPServer")
     private var routes: [String: Response?] = [:]
     private var hits: [String: Int] = [:]
     private var bodies: [String: Data] = [:]
     private var headers: [String: [String: String]] = [:]
     private var connections: [NWConnection] = []
-    
-    init() throws {
-        listener = try NWListener(using: .tcp, on: .any)
+
+    init(tlsIdentity: SecIdentity? = nil) throws {
+        let parameters: NWParameters
+        if let tlsIdentity {
+            let tls = NWProtocolTLS.Options()
+            sec_protocol_options_set_local_identity(tls.securityProtocolOptions, sec_identity_create(tlsIdentity)!)
+            parameters = NWParameters(tls: tls)
+        } else {
+            parameters = .tcp
+        }
+        scheme = tlsIdentity == nil ? "http" : "https"
+        listener = try NWListener(using: parameters, on: .any)
         let ready = DispatchSemaphore(value: 0)
         listener.stateUpdateHandler = { state in
             if case .ready = state { ready.signal() }
@@ -37,7 +47,7 @@ final class LocalHTTPServer {
     }
     
     func url(_ path: String) -> URL {
-        URL(string: "http://127.0.0.1:\(listener.port?.rawValue ?? 0)\(path)")!
+        URL(string: "\(scheme)://127.0.0.1:\(listener.port?.rawValue ?? 0)\(path)")!
     }
     
     func hitCount(_ path: String) -> Int {
