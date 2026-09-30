@@ -91,8 +91,7 @@ struct FireDeeplinkView: View {
                 }
             }
         }
-        .navigationBarTitleDisplayMode(.inline)
-        .navigationTitle(deeplink.title)
+        .panelPage(deeplink.title)
     }
 
     private func delayLabel(_ delay: TimeInterval) -> String {
