@@ -86,12 +86,12 @@ final class ReportingBuffer {
         guard var record = records[sessionId] else { return }
         let line = Data("\(kind.rawValue)\(timestampMillis)\t\(json)\n".utf8)
         let file = entriesURL(sessionId)
+        // Throwing calls only: the old `write(_:)` raises an Objective-C exception when the disk is full.
         if let handle = try? FileHandle(forWritingTo: file) {
-            handle.seekToEndOfFile()
-            handle.write(line)
-            try? handle.close()
+            defer { try? handle.close() }
+            guard (try? handle.seekToEnd()) != nil, (try? handle.write(contentsOf: line)) != nil else { return }
         } else {
-            try? line.write(to: file)
+            guard (try? line.write(to: file)) != nil else { return }
         }
         totalBytes += line.count
         record.lastEntryMillis = max(record.lastEntryMillis ?? timestampMillis, timestampMillis)
@@ -146,11 +146,12 @@ final class ReportingBuffer {
     }
 
     /// Removes a batch once the service has accepted or rejected it for good.
-    func deleteBatch(_ batch: URL) {
+    @discardableResult
+    func deleteBatch(_ batch: URL) -> Bool {
         let size = fileSize(batch)
-        if (try? fileManager.removeItem(at: batch)) != nil {
-            totalBytes -= size
-        }
+        guard (try? fileManager.removeItem(at: batch)) != nil else { return false }
+        totalBytes -= size
+        return true
     }
 
     // MARK: - Batches
@@ -203,7 +204,8 @@ final class ReportingBuffer {
             return []
         }
         try? fileManager.createDirectory(at: batchesDir, withIntermediateDirectories: true)
-        let name = String(format: "%016d_%@_%d%@", nextSeq, session.id, entries.count, Self.batchSuffix)
+        // The count covers what the batch carries in `droppedCount`, too, so trimming it keeps the total.
+        let name = String(format: "%016d_%@_%d%@", nextSeq, session.id, entries.count + droppedCount, Self.batchSuffix)
         nextSeq += 1
         let file = batchesDir.appendingPathComponent(name)
         guard (try? gzipped.write(to: file, options: .atomic)) != nil else { return [] }
@@ -243,7 +245,7 @@ final class ReportingBuffer {
                     record.droppedCount += count
                     write(record)
                 }
-                deleteBatch(oldestBatch)
+                guard deleteBatch(oldestBatch) else { return }
                 continue
             }
             guard var record = records.values
@@ -255,7 +257,7 @@ final class ReportingBuffer {
             let lines = (try? String(contentsOf: file, encoding: .utf8))?.split(separator: "\n") ?? []
             let drop = max(lines.count / 2, 1)
             let before = fileSize(file)
-            try? Data(lines.dropFirst(drop).map { "\($0)\n" }.joined().utf8).write(to: file)
+            guard (try? Data(lines.dropFirst(drop).map { "\($0)\n" }.joined().utf8).write(to: file)) != nil else { return }
             totalBytes -= before - fileSize(file)
             record.droppedCount += min(drop, lines.count)
             write(record)
@@ -270,8 +272,9 @@ final class ReportingBuffer {
             guard let kind = line.first.flatMap(EntryKind.init(rawValue:)),
                   let tab = line.firstIndex(of: "\t"),
                   let millis = Int64(line[line.index(after: line.startIndex)..<tab]),
-                  // A line cut off by a crash is not valid JSON; skip it.
-                  line.hasSuffix("}") else {
+                  // A line cut off by a crash is not valid JSON; skip it. JSON escapes tabs, so a second tab
+                  // means a cut-off line ran into the next one.
+                  line.hasSuffix("}"), line.lastIndex(of: "\t") == tab else {
                 return nil
             }
             return Entry(kind: kind, timestampMillis: millis, json: String(line[line.index(after: tab)...]))
