@@ -35,7 +35,7 @@ final class ScreenRecordingTests: XCTestCase {
         window.layoutIfNeeded()
         host.view.layoutIfNeeded()
 
-        let captured = RecordingFrameRenderer.capture(windows: [window], bounds: window.bounds)
+        let captured = try XCTUnwrap(RecordingFrameRenderer.capture(windows: [window], bounds: window.bounds))
         // A window outside a scene draws nothing in a test, so the masks go onto a white picture of the same size.
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1
@@ -64,15 +64,84 @@ final class ScreenRecordingTests: XCTestCase {
         secureField.isSecureTextEntry = true
         window.addSubview(secureField)
         window.isHidden = false
-        XCTAssertEqual(RecordingFrameRenderer.maskedRects(in: window).count, 1)
+        XCTAssertEqual(RecordingFrameRenderer.maskedRects(in: window)?.count, 1)
 
         let cover = UIView(frame: CGRect(x: 0, y: 10, width: 300, height: 390))
         cover.backgroundColor = .white
         window.addSubview(cover)
-        XCTAssertTrue(RecordingFrameRenderer.maskedRects(in: window).isEmpty)
+        XCTAssertEqual(RecordingFrameRenderer.maskedRects(in: window), [])
 
         cover.backgroundColor = .white.withAlphaComponent(0.5)
-        XCTAssertEqual(RecordingFrameRenderer.maskedRects(in: window).count, 1, "a see-through view keeps the mask")
+        XCTAssertEqual(RecordingFrameRenderer.maskedRects(in: window)?.count, 1, "a see-through view keeps the mask")
+    }
+
+    // AK-REC-1: an opaque view only hides a mask where it is really drawn.
+    func testClippedOrSeeThroughViewsKeepTheMask() {
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 300, height: 400))
+        let secureField = UITextField(frame: CGRect(x: 20, y: 20, width: 200, height: 40))
+        secureField.isSecureTextEntry = true
+        window.addSubview(secureField)
+        window.isHidden = false
+
+        // A row scrolled out of its list: its frame covers the field, but the list clips it away.
+        let list = UIView(frame: CGRect(x: 0, y: 100, width: 300, height: 300))
+        list.clipsToBounds = true
+        let row = UIView(frame: CGRect(x: 0, y: -100, width: 300, height: 200))
+        row.backgroundColor = .white
+        list.addSubview(row)
+        window.addSubview(list)
+        XCTAssertEqual(RecordingFrameRenderer.maskedRects(in: window)?.count, 1, "clipped view")
+        list.removeFromSuperview()
+
+        // An opaque view inside a half transparent one lets the field shine through.
+        let faded = UIView(frame: window.bounds)
+        faded.alpha = 0.5
+        let cover = UIView(frame: window.bounds)
+        cover.backgroundColor = .white
+        faded.addSubview(cover)
+        window.addSubview(faded)
+        XCTAssertEqual(RecordingFrameRenderer.maskedRects(in: window)?.count, 1, "see-through parent")
+
+        // Rounded corners of a sheet do not cover what is below them.
+        faded.alpha = 1
+        cover.frame = CGRect(x: 10, y: 10, width: 280, height: 380)
+        cover.layer.cornerRadius = 20
+        XCTAssertEqual(RecordingFrameRenderer.maskedRects(in: window)?.count, 1, "rounded corner")
+        cover.layer.cornerRadius = 0
+        XCTAssertEqual(RecordingFrameRenderer.maskedRects(in: window), [], "opaque cover")
+    }
+
+    // AK-REC-1: while views animate, drawHierarchy draws them between start and end, so a moving view covers
+    // nothing and a moving masked view skips the frame.
+    func testMovingViewsNeitherCoverMasksNorGetMasked() async throws {
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 300, height: 400))
+        let root = UIViewController()
+        window.rootViewController = root
+        let secureField = UITextField(frame: CGRect(x: 20, y: 20, width: 200, height: 40))
+        secureField.isSecureTextEntry = true
+        root.view.addSubview(secureField)
+        // A sheet with its own secure field that slides in from below.
+        let sheet = UIView(frame: CGRect(x: 0, y: 400, width: 300, height: 400))
+        sheet.backgroundColor = .white
+        root.view.addSubview(sheet)
+        window.isHidden = false
+        window.layoutIfNeeded()
+        CATransaction.flush()
+        defer { sheet.layer.removeAllAnimations() }
+
+        UIView.animate(withDuration: 60, delay: 0, options: .curveLinear) {
+            sheet.frame.origin.y = 0
+        }
+        CATransaction.flush()
+        try await Task.sleep(for: .milliseconds(50))
+        XCTAssertEqual(RecordingFrameRenderer.maskedRects(in: window), [CGRect(x: 20, y: 20, width: 200, height: 40)],
+                       "the sliding sheet has not reached the field yet")
+
+        let sheetField = UITextField(frame: CGRect(x: 20, y: 100, width: 200, height: 40))
+        sheetField.isSecureTextEntry = true
+        sheet.addSubview(sheetField)
+        XCTAssertNil(RecordingFrameRenderer.maskedRects(in: window), "the sheet's field is somewhere on its way")
+        XCTAssertNil(RecordingFrameRenderer.capture(windows: [window], bounds: window.bounds))
     }
 
     // AK-REC-3: no frames without activity.
