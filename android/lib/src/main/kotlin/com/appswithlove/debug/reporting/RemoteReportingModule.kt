@@ -21,7 +21,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.appswithlove.debug.ui.component.DevSwitch
+import com.appswithlove.debug.ui.component.DevSwitchRow
 import kotlinx.coroutines.launch
 import java.text.DateFormat
 import java.util.Date
@@ -44,7 +44,7 @@ internal fun RemoteReportingRow(
     onFlushNow: () -> Unit,
     onSendingChanged: (Boolean) -> Unit,
 ) {
-    val secondary = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+    val secondary = MaterialTheme.colorScheme.onSurfaceVariant
     val clipboard = LocalClipboard.current
     val scope = rememberCoroutineScope()
 
@@ -74,7 +74,7 @@ internal fun RemoteReportingRow(
             Text(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable {
+                    .clickable(onClickLabel = "Copy session ID") {
                         scope.launch { clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("Session ID", sessionId))) }
                     }
                     .padding(vertical = 4.dp),
@@ -83,15 +83,7 @@ internal fun RemoteReportingRow(
                 color = secondary,
             )
         }
-        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                modifier = Modifier.weight(1f),
-                text = "Send session data",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            DevSwitch(checked = status.isSendingEnabled, onCheckedChange = onSendingChanged)
-        }
+        DevSwitchRow(text = "Send session data", checked = status.isSendingEnabled, onCheckedChange = onSendingChanged)
     }
 }
 
