@@ -75,6 +75,16 @@ final class FeedbackQueueTests {
     }
 
     @Test
+    func sendsWithItsOwnSessionThatSharesNoStateWithTheApp() async {
+        let session = await FeedbackQueue(directory: directory).session
+
+        #expect(session !== URLSession.shared)
+        #expect(session.configuration.httpCookieStorage == nil)
+        #expect(session.configuration.urlCache == nil)
+        #expect(session.configuration.urlCredentialStorage == nil)
+    }
+
+    @Test
     func offlineQueues() async throws {
         StubProtocol.failure = URLError(.notConnectedToInternet)
 
