@@ -161,7 +161,11 @@ public final class com/appswithlove/debug/api/bridge/DevBridge {
 	public static final field LOGS_ATTACHMENT_BODY_MAX_BYTES I
 	public final fun getFeedbackAttachments ()Lkotlin/jvm/functions/Function1;
 	public final fun getFeedbackLauncher ()Lkotlinx/coroutines/flow/MutableStateFlow;
+	public final fun getHasRecording ()Lkotlin/jvm/functions/Function0;
+	public final fun getLastRecording ()Lkotlin/jvm/functions/Function1;
 	public final fun setFeedbackAttachments (Lkotlin/jvm/functions/Function1;)V
+	public final fun setHasRecording (Lkotlin/jvm/functions/Function0;)V
+	public final fun setLastRecording (Lkotlin/jvm/functions/Function1;)V
 }
 
 public final class com/appswithlove/debug/api/bridge/FeedbackEntry {
@@ -169,6 +173,13 @@ public final class com/appswithlove/debug/api/bridge/FeedbackEntry {
 	public final fun getPendingCount ()Lkotlinx/coroutines/flow/StateFlow;
 	public final fun getStart ()Lkotlin/jvm/functions/Function0;
 	public final fun getTriggers ()Ljava/util/Set;
+}
+
+public final class com/appswithlove/debug/api/bridge/RecordingExport {
+	public fun <init> (Ljava/io/File;Ljava/io/File;Ljava/io/File;)V
+	public final fun getFrames ()Ljava/io/File;
+	public final fun getTimeline ()Ljava/io/File;
+	public final fun getVideo ()Ljava/io/File;
 }
 
 public final class com/appswithlove/debug/api/reporting/RemoteReportingConfig {

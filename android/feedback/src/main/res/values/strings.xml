@@ -20,6 +20,8 @@
     <string name="feedback_text_label">What happened?</string>
     <string name="feedback_dictate">Dictate</string>
     <string name="feedback_attach_logs">Attach logs</string>
+    <string name="feedback_attach_recording">Attach last recording</string>
+    <string name="feedback_video_too_large">Video too large, sent without video</string>
     <string name="feedback_reporter_prompt">Your name</string>
     <string name="feedback_reporter_email">Email (optional)</string>
     <string name="feedback_reporter_sent_as">Sent as %1$s</string>
