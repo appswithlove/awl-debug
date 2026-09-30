@@ -2,7 +2,6 @@
 //  LogsListView.swift
 //  AWLDebugTool
 //
-//  Created by Hrvoje Hajduković on 07.06.2023..
 //  Copyright © 2023 Apps with love. All rights reserved.
 //
 

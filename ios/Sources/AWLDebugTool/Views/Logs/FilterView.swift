@@ -2,8 +2,6 @@
 //  FilterView.swift
 //
 //
-//  Created by Hrvoje Hajduković on 27.06.2024..
-//
 
 import SwiftUI
 

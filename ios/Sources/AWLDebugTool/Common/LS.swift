@@ -2,8 +2,6 @@
 //  LS.swift
 //  AWLDebugTool
 //
-//  Created by Yanis Plumit on 02.06.2026.
-//
 
 enum LS {
     static let logWatermark = "[AWL Debug Tool]"
