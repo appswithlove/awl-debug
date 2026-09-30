@@ -137,7 +137,7 @@ final class RecordingExportTests: XCTestCase {
         | 08:14:31.000 | 1 | frame |
         | 08:14:31.300 | 1 | touch ended x=0.52 y=0.31 |
         | 08:14:31.333 | 2 | frame |
-        | 08:14:43.733 | 3 | gap 12.4s |
+        | 08:14:31.333 | 2 | gap 12.4s |
         | 08:14:43.733 | 3 | frame |
         | 08:14:43.800 | 3 | keyboard shown |
 

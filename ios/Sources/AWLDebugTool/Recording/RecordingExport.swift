@@ -196,16 +196,16 @@ enum RecordingTimeline {
         start.timeZone = timeZone
         start.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX"
 
-        // (time, order within the same time, frame number, event)
+        // (time, order within the same time, frame number, event); a pause shows right after the frame before it.
         var rows: [(time: Int64, rank: Int, frame: Int, text: String)] = []
         for (index, frame) in frames.enumerated() {
-            if index > 0 {
-                let pause = TimeInterval(frame.time - frames[index - 1].time) / 1000
+            rows.append((frame.time, 0, index + 1, "frame"))
+            if index + 1 < frames.count {
+                let pause = TimeInterval(frames[index + 1].time - frame.time) / 1000
                 if pause > gapThreshold {
-                    rows.append((frame.time, 0, index + 1, "gap " + String(format: "%.1f", pause) + "s"))
+                    rows.append((frame.time, 1, index + 1, "gap " + String(format: "%.1f", pause) + "s"))
                 }
             }
-            rows.append((frame.time, 1, index + 1, "frame"))
         }
         var frameIndex = 0
         for event in events where event.time >= first.time - leadIn && event.time <= last.time + leadIn {
