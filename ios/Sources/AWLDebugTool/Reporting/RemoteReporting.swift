@@ -12,6 +12,9 @@ final class RemoteReporting {
 
     static let shared = RemoteReporting()
 
+    /// What the panel row shows; updated on the main thread.
+    let panel = RemoteReportingPanelState()
+
     private let lock = NSLock()
     private var _reporter: RemoteReporter?
     private var _status = Status.notConfigured
@@ -53,6 +56,8 @@ final class RemoteReporting {
         guard _reporter == nil, let config else { return }
         guard config.distribution != .store, !Self.hasAppStoreReceipt else {
             _status = .storeBuild
+            let panel = panel
+            DispatchQueue.main.async { panel.status = .storeBuild }
             print("\(LS.logWatermark) Remote reporting is off in store builds.")
             return
         }
@@ -63,8 +68,25 @@ final class RemoteReporting {
         let reporter = RemoteReporter(config: config, buffer: ReportingBuffer(root: directory), appUserId: appUserId)
         _reporter = reporter
         _status = .recording
+        let panel = panel
+        reporter.onChange = { snapshot in
+            DispatchQueue.main.async { panel.snapshot = snapshot }
+        }
+        reporter.setEnabled(Self.isSendingEnabled)
         reporter.start()
         observeLifecycle(of: reporter)
+        DispatchQueue.main.async { panel.status = .recording }
+    }
+
+    /// The panel's "Send session data" switch, stored per device. On by default.
+    static var isSendingEnabled: Bool {
+        get { UserDefaults.standard.object(forKey: Constants.UserDefaultsKey.remoteReportingEnabled) as? Bool ?? true }
+        set { UserDefaults.standard.set(newValue, forKey: Constants.UserDefaultsKey.remoteReportingEnabled) }
+    }
+
+    func setSendingEnabled(_ enabled: Bool) {
+        Self.isSendingEnabled = enabled
+        reporter?.setEnabled(enabled)
     }
 
     func record(_ log: NetworkLog) {
@@ -83,14 +105,28 @@ final class RemoteReporting {
         reporter?.flush()
     }
 
+    /// Sends what is left while the app finishes going to the background.
+    private func sendInBackground(_ reporter: RemoteReporter) {
+        var task = UIBackgroundTaskIdentifier.invalid
+        let end = {
+            guard task != .invalid else { return }
+            UIApplication.shared.endBackgroundTask(task)
+            task = .invalid
+        }
+        task = UIApplication.shared.beginBackgroundTask(withName: "AWLDebug remote reporting", expirationHandler: end)
+        reporter.onBackground {
+            DispatchQueue.main.async(execute: end)
+        }
+    }
+
     private func observeLifecycle(of reporter: RemoteReporter) {
         let center = NotificationCenter.default
         observers = [
             center.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: nil) { _ in
                 reporter.onForeground()
             },
-            center.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: nil) { _ in
-                reporter.onBackground()
+            center.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: .main) { [weak self] _ in
+                self?.sendInBackground(reporter)
             },
         ]
         DispatchQueue.main.async {

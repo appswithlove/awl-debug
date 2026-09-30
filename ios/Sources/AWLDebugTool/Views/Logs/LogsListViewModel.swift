@@ -2,8 +2,6 @@
 //  LogsListViewModel.swift
 //  AWLDebugTool
 //
-//  Created by Yanis Plumit on 07.07.2026.
-//
 
 import SwiftUI
 

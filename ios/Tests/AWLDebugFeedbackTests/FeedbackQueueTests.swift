@@ -65,6 +65,9 @@ final class FeedbackQueueTests {
         let keys = StubProtocol.received.map { $0.value(forHTTPHeaderField: "Idempotency-Key") }
         #expect(keys == [key.uuidString.lowercased(), key.uuidString.lowercased()])
         #expect(StubProtocol.received.map { $0.value(forHTTPHeaderField: "X-App-Key") } == ["key-123", "key-123"])
+        #expect(StubProtocol.received.allSatisfy {
+            URLProtocol.property(forKey: FeedbackClient.skipCaptureProperty, in: $0) as? Bool == true
+        }, "the SDK never captures its own requests")
         #expect(StubProtocol.bodies[0] == request.httpBody)
         #expect(StubProtocol.bodies[1] == request.httpBody)
         #expect(queuedFolders.isEmpty)

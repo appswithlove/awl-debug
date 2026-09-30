@@ -150,6 +150,34 @@ final class ReporterRedactTests {
         #expect(!session.canSend)
     }
 
+    @Test
+    func emailTheServiceWouldRejectOpensTheFields() throws {
+        let preset = try makeSession(reporter: FeedbackReporter(name: "App User", email: "app@localhost"))
+        #expect(preset.isEditingReporter)
+        #expect(preset.reporterEmail == "app@localhost")
+        preset.text = "Crash"
+        #expect(!preset.canSend)
+
+        ReporterStore(defaults: defaults).save(FeedbackReporter(name: "Tester", email: "tester@example.c"))
+        #expect(try makeSession().isEditingReporter)
+        ReporterStore(defaults: defaults).save(FeedbackReporter(name: "Tester", email: "tester@example.ch"))
+        #expect(try makeSession().isEditingReporter == false)
+    }
+
+    // AK-FB-4: the 5001st character is not taken; the service counts UTF-16 units.
+    @Test
+    func descriptionStopsAt5000UTF16Units() throws {
+        let session = try makeSession(reporter: FeedbackReporter(name: "Tester"))
+
+        session.text = String(repeating: "a", count: 5001)
+        #expect(session.textLength == 5000)
+        #expect(session.canSend)
+
+        session.text = String(repeating: "😀", count: 2501)
+        #expect(session.textLength == 5000)
+        #expect(session.text.allSatisfy { $0 == "😀" })
+    }
+
     private static func whiteImage() -> UIImage {
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1

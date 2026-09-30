@@ -22,6 +22,8 @@ import androidx.compose.ui.test.percentOffset
 import androidx.compose.ui.test.swipe
 import com.appswithlove.debug.feedback.queue.FeedbackQueue
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
+import io.kotest.matchers.string.shouldNotContain
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartReader
@@ -101,6 +103,40 @@ class FeedbackDialogTest {
         compose.waitUntil(timeoutMillis = 5_000) { compose.onAllNodes(hasText(error)).fetchSemanticsNodes().isNotEmpty() }
         sent shouldBe false
         queued shouldBe false
+    }
+
+    @Test
+    fun attachesLogsByDefault() {
+        server.enqueue(MockResponse().setResponseCode(201))
+        draft = FeedbackDraft(ImageBitmap(40, 80), { "{}" }, logs = "# AWL Debug logs\n".toByteArray())
+        openDialog()
+
+        sendReport()
+
+        compose.waitUntil(timeoutMillis = 5_000) { sent }
+        val body = server.takeRequest().body.readUtf8()
+        body shouldContain "name=\"logs\"; filename=\"logs.txt\""
+        body shouldContain "# AWL Debug logs"
+    }
+
+    @Test
+    fun leavesLogsOutWhenSwitchedOff() {
+        server.enqueue(MockResponse().setResponseCode(201))
+        draft = FeedbackDraft(ImageBitmap(40, 80), { "{}" }, logs = "# AWL Debug logs\n".toByteArray())
+        openDialog()
+
+        compose.onNodeWithText(string(R.string.feedback_attach_logs)).performClick()
+        sendReport()
+
+        compose.waitUntil(timeoutMillis = 5_000) { sent }
+        server.takeRequest().body.readUtf8() shouldNotContain "name=\"logs\""
+    }
+
+    @Test
+    fun noLogsSwitchWithoutDebugPanel() {
+        openDialog()
+
+        compose.onAllNodes(hasText(string(R.string.feedback_attach_logs))).fetchSemanticsNodes().size shouldBe 0
     }
 
     @Test
