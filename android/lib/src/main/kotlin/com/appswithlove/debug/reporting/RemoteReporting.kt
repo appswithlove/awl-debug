@@ -77,10 +77,11 @@ internal object RemoteReporting {
             canSend = { !config.onlyOnUnmeteredNetwork || connectivity?.isUnmetered() == true },
             onStopped = { created.setRecording(false) },
         )
+        created.setRecording(sendingEnabled)
+        // Queued before any request can reach the reporter, so leftovers are sealed before new entries.
+        created.start()
         reporter = created
         uploader = createdUploader
-        created.setRecording(sendingEnabled)
-        created.start()
         createdUploader.upload(ignoreBackoff = true)
         executor.scheduleWithFixedDelay(
             { if (status.value.isOn) flush(ignoreBackoff = false) },
@@ -119,6 +120,7 @@ internal object RemoteReporting {
         reporter?.onNetworkEntry(entry)
     }
 
+    @Synchronized
     fun setUserIdentifier(appUserId: String?) {
         this.appUserId = appUserId
         reporter?.setUserIdentifier(appUserId)
