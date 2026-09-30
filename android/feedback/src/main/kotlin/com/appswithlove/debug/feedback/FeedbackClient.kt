@@ -51,7 +51,7 @@ internal sealed interface SendResult {
 }
 
 internal fun errorForStatus(code: Int, retryAfter: String?): SendError = when (code) {
-    400 -> SendError.Invalid
+    400, 422 -> SendError.Invalid
     401, 403 -> SendError.Unauthorized
     413 -> SendError.TooLarge
     415 -> SendError.UnsupportedMedia
