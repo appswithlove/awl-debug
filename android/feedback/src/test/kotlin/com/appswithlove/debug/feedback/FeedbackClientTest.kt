@@ -102,6 +102,7 @@ class FeedbackClientTest {
             401 to SendError.Unauthorized,
             413 to SendError.TooLarge,
             415 to SendError.UnsupportedMedia,
+            422 to SendError.Invalid,
             502 to SendError.Server,
             503 to SendError.Server,
         ).forEach { (code, error) -> errorForStatus(code, retryAfter = null) shouldBe error }
