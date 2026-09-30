@@ -30,6 +30,11 @@ final class ReportingMetricsSampler {
     }
 
     /// Call on `queue`.
+    var isRunning: Bool {
+        timer != nil
+    }
+
+    /// Call on `queue`.
     func start() {
         guard timer == nil else { return }
         lastCPUTime = Self.processCPUTime()
