@@ -22,9 +22,16 @@ internal class TouchTracker {
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN, MotionEvent.ACTION_POINTER_DOWN ->
                 events += TouchPoint(TouchPhase.Began, event.getX(index), event.getY(index), nowMillis)
-            MotionEvent.ACTION_UP, MotionEvent.ACTION_POINTER_UP, MotionEvent.ACTION_CANCEL -> {
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_POINTER_UP -> {
                 moving.remove(event.getPointerId(index))
                 events += TouchPoint(TouchPhase.Ended, event.getX(index), event.getY(index), nowMillis)
+            }
+            // A cancel ends the whole gesture, with every finger that is still down.
+            MotionEvent.ACTION_CANCEL -> {
+                moving.clear()
+                for (pointer in 0 until event.pointerCount) {
+                    events += TouchPoint(TouchPhase.Ended, event.getX(pointer), event.getY(pointer), nowMillis)
+                }
             }
             MotionEvent.ACTION_MOVE -> for (pointer in 0 until event.pointerCount) {
                 moving[event.getPointerId(pointer)] =
