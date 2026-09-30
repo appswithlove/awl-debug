@@ -57,7 +57,8 @@ struct MarkupToolbar: View {
     @ObservedObject var session: FeedbackSession
 
     var body: some View {
-        // Bottom-aligned for thumb reach; scrolls only when the keyboard leaves too little height.
+        // Bottom-aligned for thumb reach. Scrolls only when the height is too small (keyboard up,
+        // small phone), starting at the top so the selected tool stays in view.
         ViewThatFits(in: .vertical) {
             VStack(spacing: 0) {
                 Spacer(minLength: 0)
@@ -68,14 +69,18 @@ struct MarkupToolbar: View {
             }
             .scrollIndicators(.hidden)
             .scrollDismissesKeyboard(.interactively)
-            .bottomScrollAnchor()
         }
         .frame(width: 48)
+        // The buttons keep their 44 pt frames, so their symbols stop growing at a size that still fits;
+        // a long press shows them large (Large Content Viewer).
+        .dynamicTypeSize(...DynamicTypeSize.xxLarge)
         .disabled(session.phase != .editing)
     }
 
+    /// 44 pt buttons without gaps: all tools, colours, undo and clear fit beside the screenshot on a
+    /// 6.1" phone. With less height (keyboard up, reporter fields, "Attach last recording") the column scrolls.
     private var controls: some View {
-        VStack(spacing: 4) {
+        VStack(spacing: 0) {
             ForEach(MarkupTool.allCases, id: \.self) { tool in
                 ToolButton(tool: tool, isSelected: session.tool == tool) {
                     session.tool = tool
@@ -117,6 +122,9 @@ private struct ToolButton: View {
         }
         .accessibilityLabel(tool.name)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .accessibilityShowsLargeContentViewer {
+            Label(tool.name, systemImage: tool.systemImage)
+        }
     }
 }
 
@@ -142,7 +150,8 @@ private struct ColorSwatch: View {
                 .fill(Color(uiColor: color.uiColor))
                 .frame(width: 26, height: 26)
                 .overlay {
-                    Circle().stroke(Color(uiColor: .separator), lineWidth: 1)
+                    // Visible edge for Black in dark mode and Yellow in light mode.
+                    Circle().stroke(.primary.opacity(0.35), lineWidth: 1)
                 }
                 .padding(3)
                 .overlay {
@@ -157,6 +166,9 @@ private struct ColorSwatch: View {
         .buttonStyle(.plain)
         .accessibilityLabel(color.name)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .accessibilityShowsLargeContentViewer {
+            Label(color.name, systemImage: "circle.fill")
+        }
     }
 }
 
@@ -172,16 +184,8 @@ private struct IconButton: View {
                 .frame(width: 44, height: 44)
         }
         .accessibilityLabel(title)
-    }
-}
-
-private extension View {
-    @ViewBuilder
-    func bottomScrollAnchor() -> some View {
-        if #available(iOS 17, *) {
-            defaultScrollAnchor(.bottom)
-        } else {
-            self
+        .accessibilityShowsLargeContentViewer {
+            Label(title, systemImage: systemImage)
         }
     }
 }
