@@ -5,8 +5,6 @@ import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -25,15 +23,12 @@ private val LocalAppColors = staticCompositionLocalOf {
     )
 }
 
-private val DarkColorScheme = darkColorScheme()
-private val LightColorScheme = lightColorScheme()
-
 /**
  * Theme for the debug drawer.
  *
- * [colorScheme], [typography] and [shapes] default to the ambient [MaterialTheme] values (the host
- * app's, when the drawer is rendered inside it). Pass `null` for [colorScheme] to fall back to a
- * neutral Material default instead of inheriting the host colors.
+ * [typography] and [shapes] default to the ambient [MaterialTheme] values (the host app's, when the
+ * drawer is rendered inside it). [colorScheme] is the host's when it inherits the host theme; `null`
+ * uses the SDK's neutral [DevLightColorScheme] or [DevDarkColorScheme].
  */
 @Composable
 internal fun DevTheme(
@@ -50,7 +45,7 @@ internal fun DevTheme(
             iconSubtle = IconSubtleDark,
             info = InfoDark,
             warning = WarningDark,
-            positive = Positive,
+            positive = PositiveDark,
             error = ErrorDark,
             redirect = RedirectDark,
         )
@@ -61,13 +56,13 @@ internal fun DevTheme(
             iconSubtle = IconSubtleLight,
             info = InfoLight,
             warning = WarningLight,
-            positive = Positive,
+            positive = PositiveLight,
             error = ErrorLight,
             redirect = RedirectLight,
         )
     }
 
-    val resolvedColorScheme = colorScheme ?: if (darkTheme) DarkColorScheme else LightColorScheme
+    val resolvedColorScheme = colorScheme ?: if (darkTheme) DevDarkColorScheme else DevLightColorScheme
 
     CompositionLocalProvider(
         LocalAppColors provides appColors,

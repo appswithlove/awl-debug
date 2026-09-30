@@ -3,6 +3,7 @@ package com.appswithlove.debug.ui.component
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Text
 import androidx.compose.material3.TooltipAnchorPosition
@@ -15,7 +16,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.appswithlove.debug.ui.component.icons.TablerIcons
-import com.appswithlove.debug.ui.theme.AppTheme
 import kotlinx.coroutines.launch
 
 @Composable
@@ -45,7 +45,7 @@ internal fun InfoTooltip(
                 },
             imageVector = TablerIcons.InfoCircle,
             contentDescription = "Info",
-            tint = AppTheme.colors.iconSubtle,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }

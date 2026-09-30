@@ -21,23 +21,21 @@ enum IconColor {
     }
 }
 
+/// A form row with a text and a trailing icon; destructive (red) for `.deletion`.
 struct ProprietaryActionButton: View {
     let text: String
-    let subtext: String
     let icon: Image.AppIcon
     let iconColor: IconColor
     let isDisabled: Bool
     let action: () -> Void
     
     init(text: String,
-         subtext: String? = nil,
          icon: Image.AppIcon,
          iconColor: IconColor,
          isDisabled: Bool = false,
          action: @escaping () -> Void
     ) {
         self.text = text
-        self.subtext = subtext ?? ""
         self.icon = icon
         self.iconColor = iconColor
         self.isDisabled = isDisabled
@@ -45,19 +43,14 @@ struct ProprietaryActionButton: View {
     }
     
     var body: some View {
-        Button {
-            action()
-        } label: {
+        Button(role: iconColor == .deletion ? .destructive : nil, action: action) {
             HStack {
-                Group {
-                    Text(text)
-                    Text(subtext)
-                        .font(.caption)
-                }
+                Text(text)
                 Spacer()
                 Image.with(icon: icon)
-                    .foregroundColor(iconColor.color)
+                    .foregroundStyle(iconColor.color)
                     .opacity(isDisabled ? Constants.Values.disabledBtnOpacity : Constants.Values.enabledBtnOpacity)
+                    .accessibilityHidden(true)
             }
         }
         .disabled(isDisabled)

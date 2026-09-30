@@ -29,13 +29,13 @@ internal fun ClearAppDataModule(onClear: () -> Unit) {
     var showConfirmation by remember { mutableStateOf(false) }
 
     Column(
-        modifier = Modifier.padding(vertical = 12.dp),
+        modifier = Modifier.padding(bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(
             text = "All app data, including AWL Debug settings, will be deleted and the app will close.",
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         DevOutlinedButton(
             modifier = Modifier.fillMaxWidth(),

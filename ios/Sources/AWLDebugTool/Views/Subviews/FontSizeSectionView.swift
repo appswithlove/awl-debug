@@ -11,33 +11,22 @@ struct FontSizeSectionView: View {
 
     var body: some View {
         Section {
-            Menu(content: {
-                Picker("", selection: $preferredFontSize) {
-                    ForEach(DebugView.AppFontSize.allCases, id: \.self) { size in
-                        Text(size.ls).tag(size)
-                    }
+            Picker(LS.Settings.fontSize, selection: $preferredFontSize) {
+                ForEach(DebugView.AppFontSize.allCases, id: \.self) { size in
+                    Text(size.ls).tag(size)
                 }
-            }, label: {
-                HStack {
-                    Text(LS.Settings.fontSize)
+            }
+            .pickerStyle(.inline)
+            .labelsHidden()
+        } header: {
+            Text(LS.Settings.fontSize)
+        }
 
-                    Spacer()
-
-                    Text(preferredFontSize.ls)
-                        .foregroundStyle(.secondary)
-
-                    Image(systemName: "chevron.right")
-                        .foregroundColor(.gray)
-                }
-                .contentShape(Rectangle())
-            })
+        Section {
             Button {
                 isShowingInfo = true
             } label: {
-                HStack {
-                    Image(systemName: "info.circle")
-                    Text(LS.Settings.fontSizeInfoButton)
-                }
+                Label(LS.Settings.fontSizeInfoButton, systemImage: "info.circle")
             }
             .alert(LS.Settings.fontSizeInfoButton, isPresented: $isShowingInfo) {
                 Button(LS.Settings.openSettings) {

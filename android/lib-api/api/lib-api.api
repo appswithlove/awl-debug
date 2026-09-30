@@ -153,6 +153,24 @@ public final class com/appswithlove/debug/api/FcmTokenProvider$DefaultImpls {
 	public static fun getOnRevoke (Lcom/appswithlove/debug/api/FcmTokenProvider;)Lkotlin/jvm/functions/Function1;
 }
 
+public abstract interface annotation class com/appswithlove/debug/api/bridge/AwlDebugInternalApi : java/lang/annotation/Annotation {
+}
+
+public final class com/appswithlove/debug/api/bridge/DevBridge {
+	public static final field INSTANCE Lcom/appswithlove/debug/api/bridge/DevBridge;
+	public static final field LOGS_ATTACHMENT_BODY_MAX_BYTES I
+	public final fun getFeedbackAttachments ()Lkotlin/jvm/functions/Function1;
+	public final fun getFeedbackLauncher ()Lkotlinx/coroutines/flow/MutableStateFlow;
+	public final fun setFeedbackAttachments (Lkotlin/jvm/functions/Function1;)V
+}
+
+public final class com/appswithlove/debug/api/bridge/FeedbackEntry {
+	public fun <init> (Ljava/util/Set;Lkotlinx/coroutines/flow/StateFlow;Lkotlin/jvm/functions/Function0;)V
+	public final fun getPendingCount ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getStart ()Lkotlin/jvm/functions/Function0;
+	public final fun getTriggers ()Ljava/util/Set;
+}
+
 public final class com/appswithlove/debug/api/reporting/RemoteReportingConfig {
 	public static final field Companion Lcom/appswithlove/debug/api/reporting/RemoteReportingConfig$Companion;
 	public static final field MAX_BODY_BYTES I
