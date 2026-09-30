@@ -23,7 +23,7 @@ actor FeedbackQueue {
     private static let temporarySuffix = ".tmp"
 
     private let directory: URL
-    private let session: URLSession
+    let session: URLSession
     private let now: @Sendable () -> Date
     private let maxReports: Int
     private let maxBytes: Int
@@ -32,7 +32,7 @@ actor FeedbackQueue {
 
     init(
         directory: URL,
-        session: URLSession = .shared,
+        session: URLSession = FeedbackQueue.makeSession(),
         now: @escaping @Sendable () -> Date = { Date() },
         maxReports: Int = 20,
         maxBytes: Int = 50 * 1024 * 1024,
@@ -44,6 +44,16 @@ actor FeedbackQueue {
         self.maxReports = maxReports
         self.maxBytes = maxBytes
         self.onPendingCountChange = onPendingCountChange
+    }
+
+    /// Its own ephemeral session instead of `URLSession.shared`: reports carry none of the app's cookies or credentials,
+    /// and the service's responses end up in neither the app's cookie storage nor its URL cache.
+    static func makeSession() -> URLSession {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.httpCookieStorage = nil
+        configuration.urlCache = nil
+        configuration.urlCredentialStorage = nil
+        return URLSession(configuration: configuration)
     }
 
     /// `Library/Application Support/AWLDebug/feedback-queue/`: kept across launches, not a cache.
