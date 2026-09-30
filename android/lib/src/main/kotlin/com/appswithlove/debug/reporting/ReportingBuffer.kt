@@ -200,7 +200,7 @@ internal class ReportingBuffer(
         append(']')
     }
 
-    /** Drops the oldest data until the buffer is back below 90 % of [maxBytes]. */
+    /** Drops the oldest data, sealed batches first, until the buffer is back below 90 % of [maxBytes]. */
     private fun trim() {
         val target = maxBytes * 9 / 10
         while (totalBytes > target) {
@@ -217,7 +217,12 @@ internal class ReportingBuffer(
                 .firstOrNull { entriesFile(it.session.id).length() > 0 } ?: return
             val file = entriesFile(record.session.id)
             val lines = file.readLines().filter { it.isNotEmpty() }
-            val drop = (lines.size / 2).coerceAtLeast(1)
+            var excess = totalBytes - target
+            var drop = 0
+            while (drop < lines.size && excess > 0) {
+                excess -= lines[drop].toByteArray(Charsets.UTF_8).size + 1
+                drop++
+            }
             val before = file.length()
             file.writeText(lines.drop(drop).joinToString("") { "$it\n" })
             totalBytes -= before - file.length()
