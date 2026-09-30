@@ -8,6 +8,7 @@ import SwiftUI
 struct DeeplinksView: View {
     @ObservedObject var manager: DeeplinksManager
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var isAddingDeeplink = false
     @State private var quickURL = ""
     @State private var isQuickURLInvalid = false
@@ -78,9 +79,9 @@ struct DeeplinksView: View {
             if isQuickURLInvalid {
                 Text(LS.Deeplinks.invalid)
                     .font(.footnote)
-                    .foregroundStyle(.red)
+                    .foregroundStyle(Color.statusError)
             }
-            HStack {
+            FlowLayout {
                 Button(LS.Deeplinks.fireNow, action: fireQuickURL)
                     .buttonStyle(.borderedProminent)
                 Button(LS.Deeplinks.save, action: saveQuickURL)
@@ -120,7 +121,7 @@ struct DeeplinksView: View {
                     Text(deeplink.url)
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                        .lineLimit(1)
+                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? 3 : 1)
                 }
                 Spacer()
                 Image(systemName: isDeveloper ? "lock" : "person")

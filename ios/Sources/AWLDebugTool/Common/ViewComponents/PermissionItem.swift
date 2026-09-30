@@ -2,8 +2,6 @@
 //  PermissionItem.swift
 //  
 //
-//  Created by Hrvoje Hajduković on 19.09.2025..
-//
 
 import SwiftUI
 
@@ -12,19 +10,35 @@ struct PermissionItem: View {
     let type: PermissionRequestType
 
     var body: some View {
-        HStack {
-            Label(type.title, systemImage: type.symbol)
-            Spacer()
-            Text((status ?? .unknown).title)
-                .foregroundStyle(color)
+        // Name and status side by side; stacked with large text.
+        ViewThatFits(in: .horizontal) {
+            HStack {
+                title
+                Spacer()
+                statusText
+            }
+            VStack(alignment: .leading, spacing: 4) {
+                title
+                statusText
+            }
         }
+        .accessibilityElement(children: .combine)
+    }
+
+    private var title: some View {
+        Label(type.title, systemImage: type.symbol)
+    }
+
+    private var statusText: some View {
+        Text((status ?? .unknown).title)
+            .foregroundStyle(color)
     }
 
     private var color: Color {
         switch status {
-        case .granted, .provisional: return .green
-        case .limited: return .orange
-        case .denied: return .red
+        case .granted, .provisional: return .statusPositive
+        case .limited: return .statusWarning
+        case .denied: return .statusError
         case .notDetermined, .unknown, nil: return .secondary
         }
     }

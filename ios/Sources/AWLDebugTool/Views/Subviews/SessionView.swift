@@ -14,15 +14,43 @@ struct SessionView: View {
             NavigationLink {
                 SessionDetailView(sessionManager: sessionManager)
             } label: {
-                HStack {
-                    Text(LS.Headers.session)
-                    Spacer()
-                    ForEach(sessionManager.entries) { entry in
-                        SessionStatusDot(entry: entry)
+                // One line when it fits, the providers below the title with large text.
+                ViewThatFits(in: .horizontal) {
+                    HStack {
+                        Text(LS.Headers.session)
+                        Spacer()
+                        statusDots
+                    }
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(LS.Headers.session)
+                        statusDots
                     }
                 }
             }
         }
+    }
+}
+
+extension SessionView {
+    private var statusDots: some View {
+        FlowLayout {
+            ForEach(sessionManager.entries) { entry in
+                SessionStatusDot(entry: entry)
+            }
+        }
+    }
+}
+
+/// Green while a token is there, grey without.
+private struct SessionDot: View {
+    let isLoggedIn: Bool
+    @ScaledMetric(relativeTo: .caption) private var size: CGFloat = 8
+
+    var body: some View {
+        Circle()
+            .fill(isLoggedIn ? Color.statusPositive : Color.gray)
+            .frame(width: size, height: size)
+            .accessibilityHidden(true)
     }
 }
 
@@ -31,9 +59,7 @@ private struct SessionStatusDot: View {
 
     var body: some View {
         HStack(spacing: 4) {
-            Circle()
-                .fill(entry.isLoggedIn ? Color.green : Color.gray)
-                .frame(width: 8, height: 8)
+            SessionDot(isLoggedIn: entry.isLoggedIn)
             Text(entry.label)
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -67,17 +93,20 @@ private struct SessionCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text(entry.label)
-                    .font(.headline)
-                Spacer()
-                Circle()
-                    .fill(entry.isLoggedIn ? Color.green : Color.gray)
-                    .frame(width: 8, height: 8)
-                Text(entry.isLoggedIn ? LS.Session.loggedIn : LS.Session.loggedOut)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+            ViewThatFits(in: .horizontal) {
+                HStack {
+                    Text(entry.label)
+                        .font(.headline)
+                    Spacer()
+                    loginStatus
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(entry.label)
+                        .font(.headline)
+                    loginStatus
+                }
             }
+            .accessibilityElement(children: .combine)
 
             HStack {
                 Text(displayedToken)
@@ -90,6 +119,8 @@ private struct SessionCard: View {
                     isRevealed.toggle()
                 } label: {
                     Image(systemName: isRevealed ? "eye.slash" : "eye")
+                        .frame(minWidth: 44, minHeight: 44)
+                        .contentShape(Rectangle())
                 }
                 .accessibilityLabel(isRevealed ? LS.Session.hide : LS.Session.reveal)
                 .disabled(!entry.isLoggedIn)
@@ -97,6 +128,8 @@ private struct SessionCard: View {
                     entry.copyToken()
                 } label: {
                     Image(systemName: "doc.on.doc")
+                        .frame(minWidth: 44, minHeight: 44)
+                        .contentShape(Rectangle())
                 }
                 .accessibilityLabel(LS.Actions.copy)
                 .disabled(!entry.isLoggedIn)
@@ -108,7 +141,7 @@ private struct SessionCard: View {
             if let errorMessage = entry.errorMessage {
                 Text(errorMessage)
                     .font(.caption)
-                    .foregroundColor(.red)
+                    .foregroundStyle(Color.statusError)
             }
         }
         .padding(.vertical, 4)
@@ -130,41 +163,48 @@ private struct SessionCard: View {
         }
     }
 
-    /// Only the actions the app offers, and only those that fit the current state.
+    private var loginStatus: some View {
+        HStack(spacing: 4) {
+            SessionDot(isLoggedIn: entry.isLoggedIn)
+            Text(entry.isLoggedIn ? LS.Session.loggedIn : LS.Session.loggedOut)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    /// Only the actions the app offers, and only those that fit the current state. Wraps to more rows as needed.
     private var actions: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack {
-                if entry.canEdit {
-                    actionButton(LS.Session.edit, action: .edit) {
-                        editedToken = entry.token ?? ""
-                        isEditing = true
-                    }
+        FlowLayout {
+            if entry.canEdit {
+                actionButton(LS.Session.edit, action: .edit) {
+                    editedToken = entry.token ?? ""
+                    isEditing = true
                 }
-                if entry.canDelete {
-                    actionButton(LS.Session.delete, action: .delete, role: .destructive) {
-                        isConfirmingDelete = true
-                    }
+            }
+            if entry.canDelete {
+                actionButton(LS.Session.delete, action: .delete, role: .destructive) {
+                    isConfirmingDelete = true
                 }
-                if entry.canInvalidate {
-                    actionButton(entry.runningAction == .invalidate ? LS.Actions.invalidating : LS.Actions.invalidate,
-                                 action: .invalidate, role: .destructive) {
-                        Task { await entry.invalidateToken() }
-                    }
+            }
+            if entry.canInvalidate {
+                actionButton(entry.runningAction == .invalidate ? LS.Actions.invalidating : LS.Actions.invalidate,
+                             action: .invalidate, role: .destructive) {
+                    Task { await entry.invalidateToken() }
                 }
-                if entry.canLogin {
-                    actionButton(LS.Session.login, action: .login) {
-                        Task { await entry.login() }
-                    }
+            }
+            if entry.canLogin {
+                actionButton(LS.Session.login, action: .login) {
+                    Task { await entry.login() }
                 }
-                if entry.canRefresh {
-                    actionButton(LS.Session.refresh, action: .refresh) {
-                        Task { await entry.refresh() }
-                    }
+            }
+            if entry.canRefresh {
+                actionButton(LS.Session.refresh, action: .refresh) {
+                    Task { await entry.refresh() }
                 }
-                if entry.canLogout {
-                    actionButton(LS.Session.logout, action: .logout) {
-                        Task { await entry.logout() }
-                    }
+            }
+            if entry.canLogout {
+                actionButton(LS.Session.logout, action: .logout) {
+                    Task { await entry.logout() }
                 }
             }
         }

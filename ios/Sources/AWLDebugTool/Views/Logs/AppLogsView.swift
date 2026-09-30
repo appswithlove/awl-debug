@@ -20,13 +20,15 @@ struct AppLogsView: View {
                 .padding(.top, 4)
             LevelChips(selectedLevels: $store.selectedLevels)
                 .padding(.horizontal, 16)
-                .padding(.vertical, 8)
             EntryList
         }
         .overlay {
             if store.filteredEntries.isEmpty {
-                Text(LS.AppLogs.empty)
-                    .foregroundStyle(.secondary)
+                if store.config.readOSLog && !store.hasReadOSLog {
+                    ProgressView()
+                } else {
+                    PanelEmptyState(text: LS.AppLogs.empty, systemImage: "text.alignleft")
+                }
             }
         }
         .searchable(text: $store.searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: LS.AppLogs.search)
@@ -56,6 +58,10 @@ struct AppLogsView: View {
                         .contentShape(Rectangle())
                         .onTapGesture { toggle(entry) }
                         .onLongPressGesture { copy(entry) }
+                        // VoiceOver: activate expands like a tap, "Copy" like a long press.
+                        .accessibilityAddTraits(.isButton)
+                        .accessibilityAction { toggle(entry) }
+                        .accessibilityAction(named: LS.Actions.copy) { copy(entry) }
                 }
                 // Visible only while the list is scrolled to the end; new entries then keep it there.
                 Color.clear
@@ -143,7 +149,7 @@ private struct LevelChips: View {
     @Binding var selectedLevels: Set<AWLDebugLogLevel>
 
     var body: some View {
-        HStack(spacing: 8) {
+        FlowLayout {
             ForEach(AWLDebugLogLevel.allCases, id: \.self) { level in
                 let isSelected = selectedLevels.contains(level)
                 Button {
@@ -157,15 +163,19 @@ private struct LevelChips: View {
                         .font(.caption.bold())
                         .padding(.horizontal, 10)
                         .padding(.vertical, 6)
-                        .foregroundStyle(isSelected ? Color.white : level.color)
+                        // The background color of the panel reads on the filled chip in light and dark mode.
+                        .foregroundStyle(isSelected ? Color(uiColor: .systemBackground) : level.color)
                         .background(isSelected ? level.color : Color.clear, in: Capsule())
                         .overlay(Capsule().stroke(level.color))
+                        // 44 pt tall to tap, the capsule stays compact.
+                        .frame(minHeight: 44)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .accessibilityAddTraits(isSelected ? .isSelected : [])
             }
-            Spacer()
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
@@ -182,9 +192,10 @@ private struct EntryRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
-            HStack(spacing: 6) {
+            // Time, level and tag in one line; with large text the tag moves below.
+            FlowLayout(spacing: 6) {
                 Text(Self.timeFormatter.string(from: entry.date))
-                    .foregroundColor(.logTimeColor)
+                    .foregroundStyle(Color.logTimeColor)
                 Text(entry.level.rawValue)
                     .bold()
                     .foregroundStyle(entry.level.color)
@@ -193,7 +204,6 @@ private struct EntryRow: View {
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
-                Spacer()
                 if isCopied {
                     Text(LS.AppLogs.copied)
                         .foregroundStyle(.secondary)
@@ -209,6 +219,7 @@ private struct EntryRow: View {
                     .foregroundStyle(.secondary)
             }
         }
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -225,10 +236,10 @@ private struct ActivityView: UIViewControllerRepresentable {
 extension AWLDebugLogLevel {
     var color: Color {
         switch self {
-        case .debug: return .gray
-        case .info: return .blue
-        case .warn: return .orange
-        case .error: return .red
+        case .debug: return .statusNeutral
+        case .info: return .statusRedirect
+        case .warn: return .statusWarning
+        case .error: return .statusError
         }
     }
 }

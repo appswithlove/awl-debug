@@ -2,8 +2,6 @@
 //  PerformanceWidgetView.swift
 //  AWLDebugTool
 //
-//  Created by Yanis Plumit on 13.06.2026.
-//
 
 
 import SwiftUI
@@ -36,7 +34,7 @@ struct PerformanceWidgetView: View {
                             minValue: 0,
                             capacity: vm.historyRamCapacity,
                             color: .blue,
-                            labelSign: "mb")
+                            labelSign: " MB")
             }
             .frame(height: 30)
             .background(Color(.secondarySystemBackground).opacity(0.5))
@@ -60,7 +58,7 @@ struct PerformanceWidgetView: View {
                             minValue: 0,
                             capacity: vm.historyMainThreadCapacity,
                             color: .orange,
-                            labelSign: "ms")
+                            labelSign: " ms")
             }
             .frame(height: 30)
             .background(Color(.secondarySystemBackground).opacity(0.5))
@@ -69,7 +67,9 @@ struct PerformanceWidgetView: View {
         .frame(width: 200)
         .padding(4)
         .background(Color(.systemBackground).opacity(0.9))
-        .cornerRadius(4)
+        .clipShape(RoundedRectangle(cornerRadius: 4))
+        // Fixed-size overlay: the text grows only up to where it still fits the 200 pt box.
+        .dynamicTypeSize(...DynamicTypeSize.xLarge)
     }
     
 }

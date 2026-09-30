@@ -2,7 +2,6 @@
 //  LogsListView.swift
 //  AWLDebugTool
 //
-//  Created by Hrvoje Hajduković on 07.06.2023..
 //  Copyright © 2023 Apps with love. All rights reserved.
 //
 
@@ -49,13 +48,9 @@ public struct LogsListView: View {
 
     @ViewBuilder var EmptyLogsList: some View {
         if !networkLogger.didStart {
-            Text(LS.Strings.trackingInfo)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .padding()
+            PanelEmptyState(text: LS.Strings.trackingInfo, systemImage: "network.slash")
         } else if viewModel.filteredLogs.isEmpty {
-            Text(LS.Strings.emptyListOfLogs)
-                .foregroundStyle(.secondary)
+            PanelEmptyState(text: LS.Strings.emptyListOfLogs, systemImage: "network")
         }
     }
 
@@ -83,6 +78,7 @@ public struct LogsListView: View {
     }
 
     @ViewBuilder var LogsOptions: some View {
+        // One line when it fits; with large text the buttons move below the count, then below each other.
         ViewThatFits(in: .horizontal) {
             HStack(alignment: .center) {
                 NumberOfRequestsText
@@ -97,10 +93,14 @@ public struct LogsListView: View {
                     FilterLogsButton
                 }
             }
+            VStack(alignment: .leading, spacing: 4) {
+                NumberOfRequestsText
+                SortingOrderToggleButton
+                FilterLogsButton
+            }
         }
         .font(.footnote)
         .buttonStyle(.borderless)
-        .padding(.vertical, 6)
         .padding(.horizontal, 16)
     }
 
@@ -115,8 +115,11 @@ public struct LogsListView: View {
             viewModel.isFilterActive = true
         } label: {
             Label(LS.Strings.filters, systemImage: (viewModel.isFilterChangedByUser ? Image.AppIcon.filtersSet : .filtersUnset).rawValue)
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
         }
-        .padding(4)
+        .padding(.horizontal, 4)
+        .accessibilityValue(viewModel.isFilterChangedByUser ? LS.Panel.active : "")
     }
 
     @ViewBuilder var SortingOrderToggleButton: some View {
@@ -124,8 +127,10 @@ public struct LogsListView: View {
             viewModel.toggleSortingOrder()
         } label: {
             Label(viewModel.sortingOrderTitle, systemImage: viewModel.sortingOrderIcon.rawValue)
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
         }
-        .padding(4)
+        .padding(.horizontal, 4)
         .disabled(viewModel.isSortingOrderButtonDisabled)
     }
 
@@ -139,6 +144,8 @@ public struct LogsListView: View {
                     LogUrl(url: log.url)
                     LogInfo(method: log.method, statusCode: log.statusCode, duration: log.duration)
                 }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(accessibilityLabel(of: log))
             }
         }
         .listStyle(.plain)
@@ -152,7 +159,7 @@ public struct LogsListView: View {
         let datePart = DatesWorker.extractDate(date)
         let timePart = DatesWorker.extractTime(date)
 
-        HStack(spacing: 6) {
+        FlowLayout(spacing: 6) {
             Text(datePart)
                 .foregroundStyle(.secondary)
             Text(timePart)
@@ -171,7 +178,7 @@ public struct LogsListView: View {
 
     @ViewBuilder
     private func LogInfo(method: String, statusCode: Int, duration: Int) -> some View {
-        HStack {
+        FlowLayout {
             Text(method)
             Text(verbatim: "\(statusCode)")
             Text(verbatim: "(\(duration)ms)")
@@ -184,6 +191,13 @@ public struct LogsListView: View {
         }
         .font(.callout)
         .foregroundStyle(viewModel.colorFor(statusCode: statusCode))
+    }
+
+    /// Method, status, URL and duration first; the time last.
+    private func accessibilityLabel(of log: NetworkLog) -> String {
+        let status = log.statusCode > 0 ? "\(log.statusCode)" : LS.Network.failed
+        let slow = log.duration > viewModel.slowRequestThresholdMs ? ", \(LS.Network.slow)" : ""
+        return "\(log.method) \(status), \(log.url), \(log.duration) ms\(slow), \(DatesWorker.extractTime(log.date))"
     }
 }
 

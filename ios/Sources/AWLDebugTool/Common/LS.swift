@@ -101,6 +101,9 @@ enum LS {
     struct Buttons {
         static let deselectAllBtn: String = "Deselect all"
         static let selectAllBtn: String = "Select all"
+        /// VoiceOver values of the collapsible filter groups.
+        static let expanded = "Expanded"
+        static let collapsed = "Collapsed"
     }
     
     struct Deeplinks {
@@ -266,9 +269,12 @@ enum LS {
         static let showPerformanceOverlay = "Show performance overlay"
         static let measure = "Measure performance"
         static let cpu = "CPU"
+        static let ram = "RAM"
+        static let collecting = "Collecting data..."
         static let battery = "Battery"
         static let batteryUnknown = "Battery: n/a"
         static let freeze = "UI freeze"
+        static let thermalState = "Thermal state"
 
         static func freezes(count: Int, longestMs: Int) -> String {
             count == 0 ? "\(freeze): none" : "\(freeze): \(count)× (longest \(longestMs) ms)"

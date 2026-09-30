@@ -215,6 +215,8 @@ final class AppLogsStore: ObservableObject {
     }
 
     var config = AWLDebugConfig.LogsConfig()
+    /// `false` until the first read of the unified log has finished; the Logs page shows a spinner until then.
+    @Published private(set) var hasReadOSLog = false
 
     private let defaults: UserDefaults
     /// Unified-log entries up to this date are read; `clear()` moves it forward.
@@ -251,7 +253,12 @@ final class AppLogsStore: ObservableObject {
     func readOSLog() async {
         guard config.readOSLog, !isReading else { return }
         isReading = true
-        defer { isReading = false }
+        defer {
+            isReading = false
+            if !hasReadOSLog {
+                hasReadOSLog = true
+            }
+        }
 
         let reader = OSLogReader(subsystems: config.subsystems)
         let since = readUntil

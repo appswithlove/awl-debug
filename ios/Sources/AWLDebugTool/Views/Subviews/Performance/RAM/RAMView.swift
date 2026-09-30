@@ -2,21 +2,28 @@
 //  RAMDebugView.swift
 //  AWLDebugTool
 //
-//  Created by Yanis Plumit on 12.06.2026.
-//
 
 import SwiftUI
 
 struct RAMView: View {
     @StateObject private var vm: RAMViewModel
+    @ScaledMetric(relativeTo: .caption2) private var chartHeight: CGFloat = 60
 
     init(ramMonitor: RAMMonitor) {
         _vm = .init(wrappedValue: RAMViewModel(ramMonitor: ramMonitor))
     }
 
     var body: some View {
+        if vm.history.isEmpty {
+            CollectingDataRow(title: LS.Performance.ram, systemImage: "memorychip")
+        } else {
+            metrics
+        }
+    }
+
+    private var metrics: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Label("RAM: \(Self.fmt(vm.current?.footprint ?? 0))", systemImage: "memorychip")
+            Label("\(LS.Performance.ram): \(Self.fmt(vm.current?.footprint ?? 0))", systemImage: "memorychip")
 
             if let snap = vm.current {
                 // App
@@ -46,11 +53,12 @@ struct RAMView: View {
                             minValue: 0,
                             capacity: vm.historyCapacity,
                             color: .blue,
-                            labelSign: "mb")
+                            labelSign: " MB")
             }
-            .frame(height: 60)
+            .frame(height: chartHeight)
             .background(Color.secondary.opacity(0.1))
-            .cornerRadius(4)
+            .clipShape(RoundedRectangle(cornerRadius: 4))
+            .accessibilityHidden(true)
         }
     }
 
@@ -62,6 +70,7 @@ struct RAMView: View {
             Text(Self.fmt(bytes))
                 .font(.caption.monospacedDigit())
         }
+        .accessibilityElement(children: .combine)
     }
 
     private static func fmt(_ bytes: UInt64) -> String {

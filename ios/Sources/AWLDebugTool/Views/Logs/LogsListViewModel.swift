@@ -2,8 +2,6 @@
 //  LogsListViewModel.swift
 //  AWLDebugTool
 //
-//  Created by Yanis Plumit on 07.07.2026.
-//
 
 import SwiftUI
 
@@ -101,11 +99,11 @@ final class LogsListViewModel: ObservableObject {
 
     func colorFor(statusCode: Int) -> Color {
         switch statusCode {
-        case 200...299: return .green
-        case 300...399: return .blue
-        case 400...499: return .orange
-        case 500...599: return .red
-        default: return .purple
+        case 200...299: return .statusPositive
+        case 300...399: return .statusRedirect
+        case 400...499: return .statusWarning
+        case 500...599: return .statusError
+        default: return .statusInfo
         }
     }
 

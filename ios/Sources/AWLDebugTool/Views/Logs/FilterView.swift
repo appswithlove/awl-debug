@@ -2,8 +2,6 @@
 //  FilterView.swift
 //
 //
-//  Created by Hrvoje Hajduković on 27.06.2024..
-//
 
 import SwiftUI
 
@@ -44,9 +42,13 @@ struct FilterView: View {
     @ViewBuilder private var RequestMethodsSection: some View {
         Section {
             if filtersStorage.isRequestMethodsContentShown {
-                ActionButtonsSection(deselectAction: networkLogger.deselectAllMethods,
-                                     selectAction: networkLogger.selectAllMethods)
-                RequestMethodsList
+                if networkLogger.methods.isEmpty {
+                    NoValuesYet
+                } else {
+                    ActionButtonsSection(deselectAction: networkLogger.deselectAllMethods,
+                                         selectAction: networkLogger.selectAllMethods)
+                    RequestMethodsList
+                }
             }
         } header: {
             FilterHeader(title: LS.Headers.requestMethods,
@@ -84,9 +86,13 @@ struct FilterView: View {
     @ViewBuilder private var ResponseCodesSection: some View {
         Section {
             if filtersStorage.isResponseCodesContentShown {
-                ActionButtonsSection(deselectAction: networkLogger.deselectAllCodes,
-                                     selectAction: networkLogger.selectAllCodes)
-                ResponseCodesList
+                if networkLogger.codes.isEmpty {
+                    NoValuesYet
+                } else {
+                    ActionButtonsSection(deselectAction: networkLogger.deselectAllCodes,
+                                         selectAction: networkLogger.selectAllCodes)
+                    ResponseCodesList
+                }
             }
         } header: {
             FilterHeader(title: LS.Headers.responseCodes,
@@ -124,9 +130,13 @@ struct FilterView: View {
     @ViewBuilder private var EndpointsSection: some View {
         Section {
             if filtersStorage.isEndpointsContentShown {
-                ActionButtonsSection(deselectAction: networkLogger.deselectAllEndpoints,
-                                     selectAction: networkLogger.selectAllEndpoints)
-                EndpointsList
+                if networkLogger.endpoints.isEmpty {
+                    NoValuesYet
+                } else {
+                    ActionButtonsSection(deselectAction: networkLogger.deselectAllEndpoints,
+                                         selectAction: networkLogger.selectAllEndpoints)
+                    EndpointsList
+                }
             }
         } header: {
             FilterHeader(title: LS.Headers.endpoints,
@@ -157,32 +167,54 @@ struct FilterView: View {
     }
     
     // MARK: - Filter Subviews
+
+    /// Values come from the captured traffic; without requests there is nothing to filter yet.
+    private var NoValuesYet: some View {
+        Text(LS.Strings.emptyListOfLogs)
+            .foregroundStyle(.secondary)
+    }
     
+    /// The whole header toggles the group; VoiceOver reads it as one button with its state.
     @ViewBuilder
     private func FilterHeader(title: String, isExpanded: Bool, action: @escaping () -> Void) -> some View {
-        HStack {
-            Text(title)
-            Spacer()
-            Button {
-                action()
-            } label: {
+        Button(action: action) {
+            HStack {
+                Text(title)
+                Spacer()
                 Image.with(icon: isExpanded ? .chevronUp : .chevronDown)
+                    .foregroundStyle(.tint)
                     .padding(6)
+                    .accessibilityHidden(true)
             }
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(.isHeader)
+        .accessibilityValue(isExpanded ? LS.Buttons.expanded : LS.Buttons.collapsed)
     }
     
     @ViewBuilder
     private func ActionButtonsSection(deselectAction: @escaping () -> Void,
                                       selectAction: @escaping() -> Void) -> some View {
-        HStack {
-            Spacer()
-            ActionButton(title: LS.Buttons.deselectAllBtn) {
-                deselectAction()
+        ViewThatFits(in: .horizontal) {
+            HStack {
+                Spacer()
+                ActionButton(title: LS.Buttons.deselectAllBtn) {
+                    deselectAction()
+                }
+                ActionButton(title: LS.Buttons.selectAllBtn) {
+                    selectAction()
+                }
             }
-            ActionButton(title: LS.Buttons.selectAllBtn) {
-                selectAction()
+            VStack(alignment: .trailing) {
+                ActionButton(title: LS.Buttons.deselectAllBtn) {
+                    deselectAction()
+                }
+                ActionButton(title: LS.Buttons.selectAllBtn) {
+                    selectAction()
+                }
             }
+            .frame(maxWidth: .infinity, alignment: .trailing)
         }
         .padding(.vertical, 4)
     }
