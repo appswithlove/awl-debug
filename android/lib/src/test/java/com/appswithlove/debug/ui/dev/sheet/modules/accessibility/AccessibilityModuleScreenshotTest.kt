@@ -49,6 +49,29 @@ class AccessibilityModuleScreenshotTest {
     }
 
     @Test
+    @Config(fontScale = 2f)
+    fun systemFontScaleLarge() {
+        composeTestRule.setContent {
+            DevTheme {
+                Box(
+                    Modifier
+                        .background(MaterialTheme.colorScheme.surface)
+                        .padding(horizontal = 16.dp)
+                ) {
+                    AccessibilityModule(
+                        systemFontScale = 2f,
+                        settings = AccessibilitySettings(),
+                        onSettingsChanged = {},
+                    )
+                }
+            }
+        }
+
+        composeTestRule.onRoot()
+            .captureRoboImage("src/test/screenshots/AccessibilityModule_system_font200.png")
+    }
+
+    @Test
     fun manualFontScale() {
         composeTestRule.setContent {
             DevTheme {

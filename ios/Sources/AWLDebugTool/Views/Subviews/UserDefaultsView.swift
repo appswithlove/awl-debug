@@ -16,39 +16,42 @@ struct UserDefaultsView: View {
     @State private var isCleared = false
 
     var body: some View {
-        Section {
-            ForEach(AppDataCleaner.Area.allCases) { area in
-                Button {
-                    toggle(area)
-                } label: {
-                    HStack {
-                        Text(area.title)
-                            .foregroundStyle(Color(UIColor.label))
-                        Spacer()
-                        if selection.contains(area) {
-                            Image(systemName: "checkmark")
+        Form {
+            Section {
+                ForEach(AppDataCleaner.Area.allCases) { area in
+                    Button {
+                        toggle(area)
+                    } label: {
+                        HStack {
+                            Text(area.title)
+                                .foregroundStyle(Color(UIColor.label))
+                            Spacer()
+                            if selection.contains(area) {
+                                Image(systemName: "checkmark")
+                            }
                         }
                     }
+                    .accessibilityAddTraits(selection.contains(area) ? .isSelected : [])
                 }
-                .accessibilityAddTraits(selection.contains(area) ? .isSelected : [])
             }
 
-            if isCleared {
-                Text(LS.ClearData.done)
-                    .font(.footnote)
-                Button(LS.ClearData.closeApp, role: .destructive) {
-                    exit(0)
+            Section {
+                if isCleared {
+                    Text(LS.ClearData.done)
+                        .font(.footnote)
+                    Button(LS.ClearData.closeApp, role: .destructive) {
+                        exit(0)
+                    }
+                } else {
+                    ProprietaryActionButton(text: LS.ClearData.button,
+                                            icon: .clear,
+                                            iconColor: IconColor.deletion,
+                                            action: { isConfirming = true })
+                        .disabled(selection.isEmpty)
                 }
-            } else {
-                ProprietaryActionButton(text: LS.ClearData.button,
-                                        icon: .clear,
-                                        iconColor: IconColor.deletion,
-                                        action: { isConfirming = true })
-                    .disabled(selection.isEmpty)
             }
-        } header: {
-            Text(LS.ClearData.title)
         }
+        .panelPage(LS.ClearData.title)
         .alert(LS.ClearData.confirmTitle, isPresented: $isConfirming) {
             Button(LS.Alert.btnCancel, role: .cancel) {}
             Button(LS.ClearData.confirm, role: .destructive, action: clear)

@@ -31,11 +31,11 @@ struct AddDeeplinkView: View {
             .navigationBarTitleDisplayMode(.inline)
             .navigationTitle(LS.Deeplinks.addDeeplink)
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button(LS.Headers.btnClose) { onDismiss() }
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(LS.Alert.btnCancel) { onDismiss() }
                 }
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(LS.Alert.btnOK) {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(LS.Deeplinks.save) {
                         onAdd(title.trimmingCharacters(in: .whitespaces),
                               url.trimmingCharacters(in: .whitespaces))
                         onDismiss()

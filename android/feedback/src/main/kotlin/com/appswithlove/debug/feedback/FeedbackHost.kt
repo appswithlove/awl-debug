@@ -1,7 +1,10 @@
 package com.appswithlove.debug.feedback
 
+import android.app.Activity
 import android.content.Context
+import android.content.ContextWrapper
 import android.hardware.SensorManager
+import android.os.Build
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.clickable
@@ -35,6 +38,11 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.appswithlove.debug.api.DevTrigger
+import com.appswithlove.debug.api.bridge.AwlDebugInternalApi
+import com.appswithlove.debug.api.bridge.DevBridge
+import com.appswithlove.debug.api.bridge.FeedbackEntry
+import com.appswithlove.debug.feedback.attachments.captureLogsAttachment
 import com.appswithlove.debug.feedback.queue.FeedbackQueue
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -49,6 +57,8 @@ internal class FeedbackDraft(
     val screenshot: ImageBitmap,
     val metadataJson: (reporter: FeedbackReporter?) -> String,
     val idempotencyKey: String = UUID.randomUUID().toString(),
+    /** `logs.txt`, `null` without the debug panel. */
+    val logs: ByteArray? = null,
 )
 
 internal class FeedbackController(
@@ -71,9 +81,11 @@ internal class FeedbackController(
                 Log.w(LOG_TAG, "Nothing recorded yet, cannot take a screenshot")
                 return@launch
             }
+            val screenshot = layer.toImageBitmap()
             draft = FeedbackDraft(
-                screenshot = layer.toImageBitmap(),
+                screenshot = screenshot,
                 metadataJson = { reporter -> buildMetadataJson(currentConfig, device, extra, timestamp, reporter) },
+                logs = captureLogsAttachment(currentConfig, device, timestamp),
             )
         }
     }
@@ -90,7 +102,8 @@ internal val LocalFeedbackController = staticCompositionLocalOf<FeedbackControll
  *
  * Place it around the app content and outside of overlays that must not show up in the screenshot.
  * Dialogs, popups and bottom sheets draw in their own windows and are never part of the screenshot.
- * Shaking the device starts a report too, unless [FeedbackConfig.shakeToReport] is off.
+ * The gestures in [FeedbackConfig.triggers] start a report too, as do [AwlFeedback.start] and the
+ * "Send feedback" entry that a `DevSheet` shows while a configured host is on screen.
  * With a `null` [config] the content is passed through and [FeedbackLauncher] reports that feedback is not configured.
  */
 @Composable
@@ -107,11 +120,16 @@ fun FeedbackHost(config: FeedbackConfig?, content: @Composable () -> Unit) {
     } else {
         Modifier
     }
-    if (config?.shakeToReport == true) {
+    val triggers = config?.triggers.orEmpty()
+    if (DevTrigger.Shake in triggers) {
         ShakeToReport(onShake = controller::start)
+    }
+    if (DevTrigger.Screenshot in triggers) {
+        ScreenshotToReport(onScreenshot = controller::start)
     }
     if (config != null) {
         RetryQueuedReports()
+        RegisterFeedbackEntry(controller = controller, triggers = triggers)
     }
     CompositionLocalProvider(LocalFeedbackController provides controller) {
         Box(modifier = recording, propagateMinConstraints = true) {
@@ -153,6 +171,52 @@ private fun RetryQueuedReports() {
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
+}
+
+/**
+ * Offers this host to the debug panel and [AwlFeedback.start]. The host resumed last wins, so with several
+ * activities the one on screen takes the reports.
+ */
+@OptIn(AwlDebugInternalApi::class)
+@Composable
+private fun RegisterFeedbackEntry(controller: FeedbackController, triggers: Set<DevTrigger>) {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(controller, triggers, context, lifecycleOwner) {
+        val entry = FeedbackEntry(
+            triggers = triggers,
+            pendingCount = FeedbackQueue.shared(context).pendingCount,
+            start = controller::start,
+        )
+        DevBridge.feedbackLauncher.value = entry
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) DevBridge.feedbackLauncher.value = entry
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            DevBridge.feedbackLauncher.compareAndSet(entry, null)
+        }
+    }
+}
+
+/** Listens for system screenshots of the host activity. Android 14 (API 34) and later; does nothing below. */
+@Composable
+private fun ScreenshotToReport(onScreenshot: () -> Unit) {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) return
+    val activity = LocalContext.current.findActivity() ?: return
+    val currentOnScreenshot by rememberUpdatedState(onScreenshot)
+    DisposableEffect(activity) {
+        val callback = Activity.ScreenCaptureCallback { currentOnScreenshot() }
+        activity.registerScreenCaptureCallback(activity.mainExecutor, callback)
+        onDispose { activity.unregisterScreenCaptureCallback(callback) }
+    }
+}
+
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
 }
 
 /** Listens for shakes only while the host lifecycle is resumed. */

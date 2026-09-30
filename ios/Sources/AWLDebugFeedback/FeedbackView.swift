@@ -118,7 +118,7 @@ private struct ScreenshotMarkup: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing)
                 .accessibilityElement(children: .ignore)
-                .accessibilityLabel("Screenshot. Draw on it to mark the issue.")
+                .accessibilityLabel("Screenshot. Draw to mark the problem.")
 
             MarkupToolbar(session: session)
         }
@@ -130,27 +130,31 @@ private struct ScreenshotMarkup: View {
 private struct DescriptionField: View {
     @ObservedObject var session: FeedbackSession
     let focusedField: FocusState<FeedbackField?>.Binding
+    /// Room for about four lines; with the largest text sizes capped, so the screenshot keeps its space.
+    @ScaledMetric(relativeTo: .body) private var editorHeight: CGFloat = 96
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(alignment: .top, spacing: 8) {
                 TextEditor(text: $session.text)
                     .focused(focusedField, equals: .description)
-                    .frame(height: 96)
+                    .frame(height: min(editorHeight, 180))
                     .scrollContentBackground(.hidden)
                     .padding(4)
                     .background(Color(uiColor: .tertiarySystemFill), in: RoundedRectangle(cornerRadius: 8))
                     .overlay(alignment: .topLeading) {
                         if session.text.isEmpty {
-                            Text("Describe the issue")
+                            Text("What happened?")
                                 .foregroundStyle(.secondary)
                                 .padding(.horizontal, 9)
                                 .padding(.vertical, 12)
                                 .allowsHitTesting(false)
+                                // The editor itself carries the label; the placeholder would be read twice.
+                                .accessibilityHidden(true)
                         }
                     }
                     .disabled(session.phase == .sending)
-                    .accessibilityLabel("Description")
+                    .accessibilityLabel("What happened?")
 
                 MicButton(session: session)
             }
@@ -163,8 +167,9 @@ private struct DescriptionField: View {
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
-                Text("\(session.text.count)/\(FeedbackSession.maxTextLength)")
-                    .foregroundStyle(session.text.count > FeedbackSession.maxTextLength ? .red : .secondary)
+                // Verbatim: a localized key would group the digits ("5'000"); the spec and Android show "{n}/5000".
+                Text(verbatim: "\(session.textLength)/\(FeedbackSession.maxTextLength)")
+                    .foregroundStyle(.secondary)
                     .monospacedDigit()
             }
             .font(.caption)
@@ -176,12 +181,19 @@ private struct DescriptionField: View {
 private struct ReporterRow: View {
     @ObservedObject var session: FeedbackSession
     let focusedField: FocusState<FeedbackField?>.Binding
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    /// Name and email side by side; one below the other with the accessibility text sizes.
+    private var fieldsLayout: AnyLayout {
+        dynamicTypeSize.isAccessibilitySize ? AnyLayout(VStackLayout(spacing: 8)) : AnyLayout(HStackLayout(spacing: 8))
+    }
 
     var body: some View {
         Group {
             if session.isEditingReporter {
-                HStack(spacing: 8) {
+                fieldsLayout {
                     TextField("Your name", text: $session.reporterName)
+                        .accessibilityLabel("Your name")
                         .textContentType(.name)
                         .textInputAutocapitalization(.words)
                         .autocorrectionDisabled()
@@ -189,6 +201,7 @@ private struct ReporterRow: View {
                         .focused(focusedField, equals: .reporterName)
                         .onSubmit { focusedField.wrappedValue = .reporterEmail }
                     TextField("Email (optional)", text: $session.reporterEmail)
+                        .accessibilityLabel("Email (optional)")
                         .textContentType(.emailAddress)
                         .keyboardType(.emailAddress)
                         .textInputAutocapitalization(.never)
@@ -200,17 +213,31 @@ private struct ReporterRow: View {
                 .textFieldStyle(.roundedBorder)
                 .font(.subheadline)
             } else {
-                HStack(alignment: .firstTextBaseline) {
-                    Text("Sent as \(session.reporterName.trimmed)")
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                    Spacer()
-                    Button("Change", action: session.changeReporter)
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .firstTextBaseline) {
+                        sentAs
+                            .lineLimit(1)
+                        Spacer()
+                        changeButton
+                    }
+                    VStack(alignment: .leading, spacing: 4) {
+                        sentAs
+                        changeButton
+                    }
                 }
                 .font(.subheadline)
             }
         }
         .disabled(session.phase == .sending || session.isFinished)
+    }
+
+    private var sentAs: some View {
+        Text("Sent as \(session.reporterName.trimmed)")
+            .foregroundStyle(.secondary)
+    }
+
+    private var changeButton: some View {
+        Button("Change", action: session.changeReporter)
     }
 }
 
@@ -237,15 +264,35 @@ private struct FailureRow: View {
     let retry: () -> Void
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline) {
-            Label(message, systemImage: "exclamationmark.triangle.fill")
-                .foregroundStyle(.red)
-                .font(.footnote)
-            Spacer()
-            Button("Retry", action: retry)
-                .font(.footnote.bold())
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .firstTextBaseline) {
+                messageLabel
+                Spacer()
+                retryButton
+            }
+            VStack(alignment: .leading, spacing: 8) {
+                messageLabel
+                retryButton
+            }
         }
         .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(.red.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    /// Red icon, text in the primary color: red text on the tinted background is too faint to read.
+    private var messageLabel: some View {
+        Label {
+            Text(message)
+        } icon: {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(.red)
+        }
+        .font(.footnote)
+    }
+
+    private var retryButton: some View {
+        Button("Retry", action: retry)
+            .font(.footnote.bold())
     }
 }
