@@ -229,6 +229,13 @@ internal fun FeedbackDialog(
                             onValueChange = { text = it.take(MAX_TEXT_LENGTH) },
                             enabled = !isSending,
                             label = { Text(stringResource(R.string.feedback_text_label)) },
+                            supportingText = {
+                                Text(
+                                    text = stringResource(R.string.feedback_counter, text.length, MAX_TEXT_LENGTH),
+                                    modifier = Modifier.fillMaxWidth(),
+                                    textAlign = TextAlign.End,
+                                )
+                            },
                             minLines = 2,
                             maxLines = 5,
                             trailingIcon = {

@@ -9,6 +9,7 @@ import android.widget.TextView
 import androidx.compose.ui.node.RootForTest
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getAllSemanticsNodes
+import androidx.compose.ui.semantics.getOrNull
 import kotlin.math.roundToInt
 
 /**
@@ -60,4 +61,32 @@ private fun View.windowRect(): Rect {
     val location = IntArray(2)
     getLocationInWindow(location)
     return Rect(location[0], location[1], location[0] + width, location[1] + height)
+}
+
+/**
+ * A value that changes when the text of an editable field in [root]'s window changes, so the recorder notices
+ * typing, which happens in the keyboard's own window. Password fields only add their length. Main thread only.
+ */
+internal fun editableTextFingerprint(root: View): Int {
+    var fingerprint = 1
+    fun add(value: Int) {
+        fingerprint = 31 * fingerprint + value
+    }
+    fun visit(view: View) {
+        if (view.visibility != View.VISIBLE) return
+        if (view is TextView && view.onCheckIsTextEditor()) {
+            add(if (view.isPasswordField()) view.length() else view.text.toString().hashCode())
+        }
+        if (view is RootForTest) {
+            view.semanticsOwner.getAllSemanticsNodes(mergingEnabled = false).forEach { node ->
+                val text = node.config.getOrNull(SemanticsProperties.EditableText) ?: return@forEach
+                add(if (SemanticsProperties.Password in node.config) text.length else text.text.hashCode())
+            }
+        }
+        if (view is ViewGroup) {
+            for (index in 0 until view.childCount) visit(view.getChildAt(index))
+        }
+    }
+    visit(root)
+    return fingerprint
 }

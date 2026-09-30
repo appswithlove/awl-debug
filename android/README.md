@@ -311,7 +311,7 @@ DevModulesConfig(
 )
 ```
 
-- 3 frames per second, only while testers touch the screen or the keyboard is open, for one second after that plus two frames. An idle app records nothing.
+- 3 frames per second, only while testers touch the screen, type, or open or close the keyboard, for one second after that plus two frames. An idle app records nothing, also with the keyboard open.
 - Frames go to `cache/awl-debug/recording/current` as a ring buffer of the chosen length (30 s, 1 min, 5 min, 10 min of active frames). On the next start they move to `last`, so the recording survives a crash; the module then shows "Last recording available".
 - Nothing is recorded while the panel is open or the app is in the background. Dialog windows (`AlertDialog`, `ModalBottomSheet`) are not part of the activity window and are missing. Windows with `FLAG_SECURE` are recorded black.
 - Password fields are black: `EditText`/`TextView` with a password `inputType` and Compose fields with password semantics (`PasswordVisualTransformation`, `BasicSecureTextField`). Mark anything else:
