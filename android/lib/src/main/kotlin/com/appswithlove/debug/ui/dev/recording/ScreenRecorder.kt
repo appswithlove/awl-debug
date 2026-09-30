@@ -149,7 +149,7 @@ internal object ScreenRecorder {
     /** Folder for exported files, inside the file provider's `cacheDir/awl-debug`; `null` before the first start. */
     fun exportDir(name: String): File? = if (prefs == null) null else File(cacheRoot, name)
 
-    /** Lets feedback attach the recording (contract "Anhang video / frames / timeline"). */
+    /** Lets feedback attach the recording as the parts `video`, `frames` and `timeline`. */
     @OptIn(AwlDebugInternalApi::class)
     private fun registerFeedbackBridge() {
         DevBridge.hasRecording = { _currentFrameCount.value > 0 || _lastRecording.value != null }

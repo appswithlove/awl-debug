@@ -16,7 +16,7 @@ internal data class FeedbackRecording(val files: RecordingFiles?)
 
 /**
  * Turns the frames of a recording folder into `recording.mp4`, `frames.jpg` and `timeline.md`, either all frames as a
- * ZIP to share or the last minute for feedback (limits of the feedback contract). Blocking, call it off the main thread.
+ * ZIP to share or the last minute for feedback (within the feedback service limits). Blocking, call it off the main thread.
  */
 internal object RecordingExporter {
     const val FPS = 3
