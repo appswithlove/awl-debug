@@ -423,4 +423,37 @@ final class RemoteReportingTests: XCTestCase {
         XCTAssertTrue((0...100).contains(cpu))
         XCTAssertGreaterThan(try XCTUnwrap(sample["ramBytes"] as? Int), 0)
     }
+
+    func testUIFreezeIsTheLongestGapBetweenFrames() throws {
+        let tracker = FrameGapTracker()
+        tracker.start()
+        defer { tracker.stop() }
+        let framesRun = expectation(description: "frames run")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { framesRun.fulfill() }
+        wait(for: [framesRun], timeout: 2)
+        _ = tracker.takeLongestStallMs()
+
+        // Tests run on the main thread: this blocks it like a frozen UI.
+        Thread.sleep(forTimeInterval: 1.5)
+        XCTAssertGreaterThanOrEqual(try XCTUnwrap(tracker.takeLongestStallMs()), 1_400, "counted before the next frame")
+
+        let framesResume = expectation(description: "frames resume")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { framesResume.fulfill() }
+        wait(for: [framesResume], timeout: 2)
+        XCTAssertLessThan(try XCTUnwrap(tracker.takeLongestStallMs()), 1_000, "the same stall is not counted twice")
+    }
+
+    func testLimitsHoldForMultiByteTextAndUppercaseScheme() throws {
+        var log = NetworkLog(id: UUID(), method: "GET", url: "HTTPS://api.example.ch/a", date: Date(), duration: 5, statusCode: 0)
+        log.requestHeaders = [.init(name: "X-Note", value: String(repeating: "😀", count: 3_000))]
+        log.errorDescription = String(repeating: "é", count: 1_200)
+        let reporter = makeReporter()
+        reporter.record(log)
+        reporter.flush()
+
+        let entry = try XCTUnwrap((try batches(reporter).first?["networkLogs"] as? [[String: Any]])?.first)
+        XCTAssertEqual(entry["url"] as? String, "https://api.example.ch/a")
+        XCTAssertEqual((entry["requestHeaders"] as? [String: String])?["x-note"]?.utf16.count, 4_096)
+        XCTAssertEqual((entry["error"] as? String)?.count, 1_000)
+    }
 }

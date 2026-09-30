@@ -42,7 +42,8 @@ final class RemoteReporter {
          buffer: ReportingBuffer,
          appUserId: String?,
          now: @escaping () -> Int64 = { ReportingJSON.millis(Date()) },
-         uptime: @escaping () -> TimeInterval = { ProcessInfo.processInfo.systemUptime },
+         // Keeps counting while the device sleeps, unlike `systemUptime`, so a locked phone still ends the session.
+         uptime: @escaping () -> TimeInterval = { TimeInterval(clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW)) / 1_000_000_000 },
          samplesMetrics: Bool = true,
          uploads: Bool = true) {
         self.config = config

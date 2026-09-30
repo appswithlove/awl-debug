@@ -35,8 +35,22 @@ enum ReportingJSON {
     }
 
     static func shortString(_ value: String?) -> String {
-        let trimmed = String((value ?? "").trimmingCharacters(in: .whitespacesAndNewlines).prefix(maxShortString))
+        let trimmed = clip((value ?? "").trimmingCharacters(in: .whitespacesAndNewlines), maxShortString)
         return trimmed.isEmpty ? "unknown" : trimmed
+    }
+
+    /// `value` cut to at most `maxLength` UTF-16 units, which is never less than the service counts
+    /// (JSON Schema counts code points, JavaScript UTF-16 units), without splitting a character's scalars apart.
+    static func clip(_ value: String, _ maxLength: Int) -> String {
+        guard value.utf16.count > maxLength else { return value }
+        var length = 0
+        var scalars = String.UnicodeScalarView()
+        for scalar in value.unicodeScalars {
+            length += scalar.utf16.count
+            guard length <= maxLength else { break }
+            scalars.append(scalar)
+        }
+        return String(scalars)
     }
 
     /// Lowercase hex SHA-256 of `appKey:appUserId`; the plain id never leaves the device.
@@ -54,13 +68,15 @@ enum ReportingJSON {
     /// `nil` for requests the service cannot store, such as non-HTTP URLs.
     static func networkLog(_ log: NetworkLog, captureBodies: Bool, maxBodyBytes: Int) -> [String: Any]? {
         guard log.method.range(of: "^[A-Z]{1,16}$", options: .regularExpression) != nil,
-              log.url.range(of: "^(https?|wss?)://", options: [.regularExpression, .caseInsensitive]) != nil else {
+              let schemeEnd = log.url.range(of: "^(https?|wss?)://", options: [.regularExpression, .caseInsensitive])?.upperBound else {
             return nil
         }
+        // The service accepts lowercase schemes only.
+        let url = log.url[..<schemeEnd].lowercased() + log.url[schemeEnd...]
         var json: [String: Any] = [
             "ts": timestamp(millis(log.date)),
             "method": log.method,
-            "url": String(log.url.prefix(maxURL)),
+            "url": clip(url, maxURL),
             "durationMs": max(log.duration, 0),
             "requestBytes": max(log.requestBytes, 0),
             "responseBytes": max(log.responseBytes, 0),
@@ -68,7 +84,7 @@ enum ReportingJSON {
         if (100...599).contains(log.statusCode) {
             json["status"] = log.statusCode
         } else {
-            let error = log.errorCode ?? log.errorDescription.map { String($0.prefix(maxError)) }
+            let error = log.errorCode ?? log.errorDescription.map { clip($0, maxError) }
             json["error"] = (error?.isEmpty ?? true) ? "connection" : error
         }
         if let headers = headers(log.requestHeaders) {
@@ -153,7 +169,7 @@ enum ReportingJSON {
         guard !order.isEmpty else { return nil }
         var result: [String: String] = [:]
         for name in order.prefix(maxHeaders) {
-            result[name] = redactedHeaders.contains(name) ? NetworkRedactor.placeholder : String(merged[name, default: ""].prefix(maxHeaderValue))
+            result[name] = redactedHeaders.contains(name) ? NetworkRedactor.placeholder : clip(merged[name, default: ""], maxHeaderValue)
         }
         return result
     }
@@ -173,7 +189,7 @@ enum ReportingJSON {
             "originalBytes": max(body.originalBytes, 0),
         ]
         if let contentType = body.contentType {
-            json["contentType"] = String(contentType.prefix(maxShortString))
+            json["contentType"] = clip(contentType, maxShortString)
         }
         return json
     }

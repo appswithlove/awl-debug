@@ -102,6 +102,7 @@ final class FrameGapTracker: NSObject {
     private var displayLink: CADisplayLink?
     private var lastTimestamp: CFTimeInterval?
     private var longestStall: CFTimeInterval?
+    private var frameDuration: CFTimeInterval?
 
     func start() {
         guard displayLink == nil else { return }
@@ -111,6 +112,7 @@ final class FrameGapTracker: NSObject {
         link.add(to: .main, forMode: .common)
         displayLink = link
         lastTimestamp = nil
+        longestStall = nil
     }
 
     func stop() {
@@ -119,9 +121,14 @@ final class FrameGapTracker: NSObject {
         lastTimestamp = nil
     }
 
-    /// Longest stall in ms since the last call, `nil` without at least two frames.
-    func takeLongestStallMs() -> Int? {
+    /// Longest stall in ms since the last call, `nil` before the first frame. A stall that has just ended
+    /// counts here even if no frame followed it yet; the next frame then only measures from now.
+    func takeLongestStallMs(now: CFTimeInterval = CACurrentMediaTime()) -> Int? {
         defer { longestStall = nil }
+        if let lastTimestamp, let frameDuration {
+            longestStall = max(longestStall ?? 0, now - lastTimestamp - frameDuration, 0)
+            self.lastTimestamp = max(lastTimestamp, now)
+        }
         return longestStall.map { Int(($0 * 1000).rounded()) }
     }
 
@@ -131,6 +138,7 @@ final class FrameGapTracker: NSObject {
             let stall = max(link.timestamp - lastTimestamp - frameDuration, 0)
             longestStall = max(longestStall ?? 0, stall)
         }
-        lastTimestamp = link.timestamp
+        lastTimestamp = max(lastTimestamp ?? 0, link.timestamp)
+        self.frameDuration = frameDuration
     }
 }
