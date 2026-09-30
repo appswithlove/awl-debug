@@ -105,7 +105,10 @@ internal fun FeedbackDialog(
     val isSending = sendState == SendState.Sending
     val keyboard = remember(draft) { KeyboardDismissal() }
     val savedReporter = remember(draft) { reporterStore.load(fallback = config.reporter) }
-    var isEditingReporter by remember(draft) { mutableStateOf(savedReporter == null) }
+    // A saved or preset email the service would reject opens the fields, so the tester sees it and can fix it.
+    var isEditingReporter by remember(draft) {
+        mutableStateOf(savedReporter == null || savedReporter.email.orEmpty().let { it.isNotBlank() && !it.trim().isValidEmail() })
+    }
     var reporterName by remember(draft) { mutableStateOf(savedReporter?.name.orEmpty()) }
     var reporterEmail by remember(draft) { mutableStateOf(savedReporter?.email.orEmpty()) }
     val isEmailValid = reporterEmail.isBlank() || reporterEmail.trim().isValidEmail()
