@@ -89,6 +89,7 @@ import com.appswithlove.debug.domain.storage.DevStore
 import com.appswithlove.debug.ui.component.DevSwitch
 import com.appswithlove.debug.ui.dev.sheet.modules.performance.PerformanceMonitor
 import com.appswithlove.debug.ui.dev.sheet.modules.performance.PerformanceOverlayHost
+import com.appswithlove.debug.reporting.RemoteReportingModule
 import com.appswithlove.debug.ui.dev.sheet.modules.AppInfoModule
 import com.appswithlove.debug.ui.dev.sheet.modules.FcmPushTokenModule
 import com.appswithlove.debug.ui.dev.sheet.modules.LogsModule
@@ -778,6 +779,8 @@ private fun DevSheetContent(
                             showVersionOverlay = showVersionOverlay,
                             onShowVersionOverlayChanged = onShowVersionOverlayChanged,
                         )
+
+                        RemoteReportingModule()
 
                         feedbackEntry?.let { entry ->
                             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))

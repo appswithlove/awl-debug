@@ -520,6 +520,10 @@ AwlDebug.flushReports()
 
 A session starts with the app in the foreground and ends when it goes to the background; back within 30 minutes, the same session continues. Data is buffered in `files/awl-debug/reporting/` (at most 10 MB, oldest entries dropped first) and packed into batches of up to 2000 requests and 2000 samples. Values are redacted as in the Network module, bodies are off by default, and the SDK's own requests to the service are never recorded. The no-op artifact has the same functions and does nothing.
 
+Batches go out gzip-compressed every 30 s, when the app goes to the background and on "Flush now", over the SDK's own HTTP client (never through your interceptors). Offline or on server errors they stay in the buffer and are retried with the same batch ID, backing off from 30 s to 1 h and respecting `Retry-After`. A rejected batch (400, 413, 422) is dropped; an invalid key (401) or reporting switched off in the dashboard (403) stops sending until the next app start.
+
+The panel shows a Remote reporting row below App Info: on/off, pending entries, last send, errors, "Flush now", the "Send session data" switch (on by default, stored per device) and the session ID (tap to copy, to find the session in the dashboard).
+
 ## Local development
 
 Build and test:

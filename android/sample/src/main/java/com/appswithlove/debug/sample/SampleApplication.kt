@@ -19,6 +19,7 @@ class SampleApplication : Application() {
                     distribution = AwlDistribution.Debug,
                 ),
             )
+            AwlDebug.setUserIdentifier("42") // only a hash of it is sent
         }
     }
 }
