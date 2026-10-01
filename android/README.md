@@ -147,7 +147,7 @@ DevSheet(
 
 | Parameter | Default | Description |
 |---|---|---|
-| `devConfig` | `null` | Build info shown in the App Info module: version name and code, flavor, build type, plus optional `customParams: Map<String, String>` |
+| `devConfig` | `null` | Build info shown in the App Info module: version name and code, flavor, build type, plus optional `customParams: Map<String, String>`. Tapping the header collapses App Info to one line (app, version (code), Android version, flavor and build type); the choice is saved on the device. |
 | `modulesConfig` | `DevModulesConfig()` | Which built-in modules are shown and their inputs, see [Modules](#modules) |
 | `triggers` | `setOf(DevTrigger.ThreeFingerTap)` | Gestures that open the sheet, see [Triggers](#triggers) |
 | `customModules` | empty | Composable lambda appended at the bottom of the sheet, see [Custom modules](#custom-modules) |

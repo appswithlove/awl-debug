@@ -53,6 +53,7 @@ internal class DevStore(context: Context) {
         private val PERFORMANCE_OVERLAY_Y_KEY = floatPreferencesKey("PERFORMANCE_OVERLAY_Y_KEY")
 
         private val VERSION_OVERLAY_VISIBLE_KEY = booleanPreferencesKey("VERSION_OVERLAY_VISIBLE_KEY")
+        private val APP_INFO_EXPANDED_KEY = booleanPreferencesKey("APP_INFO_EXPANDED_KEY")
         private val SAVED_DEEPLINKS_KEY = stringPreferencesKey("SAVED_DEEPLINKS_KEY")
         private val A11Y_USE_SYSTEM_FONT_SCALE_KEY = booleanPreferencesKey("A11Y_USE_SYSTEM_FONT_SCALE_KEY")
         private val A11Y_FONT_SCALE_KEY = floatPreferencesKey("A11Y_FONT_SCALE_KEY")
@@ -64,6 +65,13 @@ internal class DevStore(context: Context) {
 
     suspend fun setVersionOverlayVisible(visible: Boolean) {
         dataStore.edit { preferences -> preferences[VERSION_OVERLAY_VISIBLE_KEY] = visible }
+    }
+
+    /** Whether App Info on the start page shows all lines or one summary line. Expanded by default. */
+    val appInfoExpanded: Flow<Boolean> = dataStore.data.map { it[APP_INFO_EXPANDED_KEY] ?: true }
+
+    suspend fun setAppInfoExpanded(expanded: Boolean) {
+        dataStore.edit { preferences -> preferences[APP_INFO_EXPANDED_KEY] = expanded }
     }
 
     /** Overlay visibility and position (dp from the top start corner). */

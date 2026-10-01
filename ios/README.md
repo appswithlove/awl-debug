@@ -147,7 +147,7 @@ The start page shows App Info, the sections of [extensions](#extensions) and the
 
 | Module | What it does |
 |---|---|
-| App Info | App name, version, build, device model (for example `iPhone17,1`, never the device name), iOS version, locale, time and internet status. Long-press a value to copy it. "Show version overlay" shows `AWL <version> (<build>)` at the top left, above sheets too. |
+| App Info | App name, version, build, device model (for example `iPhone17,1`, never the device name), iOS version, locale, time and internet status. Long-press a value to copy it. "Show version overlay" shows `AWL <version> (<build>)` at the top left, above sheets too. Tap the header to collapse it to one line (app, version (build), iOS version, internet status); the choice is saved on the device and kept by Clear App Data. |
 | Logs | See [Logs](#logs) |
 | Network | See [Network](#network) |
 | Performance | CPU (the process's share of all cores, 0–100 %), RAM, main-thread latency and battery level, with a draggable overlay. A main-thread ping that waits longer than 700 ms counts as a UI freeze. Measuring runs only while "Measure performance" is on or the overlay is visible. |

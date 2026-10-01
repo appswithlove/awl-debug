@@ -31,6 +31,7 @@ final class AppDataCleanerTests: XCTestCase {
         defaults.set(true, forKey: "onboardingDone")
         defaults.set(250, forKey: "AWLDebugTool_networkLogsLimit")
         defaults.set("dark", forKey: "DebugView.userPreferredColorScheme")
+        defaults.set(false, forKey: Constants.UserDefaultsKey.appInfoExpanded)
 
         cleaner.clear([.userDefaults])
 
@@ -38,6 +39,7 @@ final class AppDataCleanerTests: XCTestCase {
         XCTAssertNil(defaults.object(forKey: "onboardingDone"))
         XCTAssertEqual(defaults.integer(forKey: "AWLDebugTool_networkLogsLimit"), 250)
         XCTAssertEqual(defaults.string(forKey: "DebugView.userPreferredColorScheme"), "dark")
+        XCTAssertEqual(defaults.object(forKey: Constants.UserDefaultsKey.appInfoExpanded) as? Bool, false)
     }
 
     func testFilesAreDeletedButToolFoldersKept() throws {
