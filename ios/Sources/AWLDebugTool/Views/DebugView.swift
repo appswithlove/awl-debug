@@ -20,6 +20,7 @@ public struct DebugView: View {
     
     @StateObject private var vm = DebugViewModel()
     @AppStorage(Constants.UserDefaultsKey.versionOverlayVisible) private var isVersionOverlayVisible = true
+    @AppStorage(Constants.UserDefaultsKey.appInfoExpanded) private var isAppInfoExpanded = true
 
     private var fcmToken: String?
     private let customView: (() -> any View)?
@@ -34,7 +35,8 @@ public struct DebugView: View {
             Form {
                 AboutView(isOnline: networkReachabilityManager.isConnected)
 
-                if VersionOverlayPresenter.shared.isAvailable {
+                // Part of App Info, so it collapses with it (on Android the switch sits inside App Info).
+                if VersionOverlayPresenter.shared.isAvailable && isAppInfoExpanded {
                     Section {
                         Toggle(LS.VersionOverlay.toggle, isOn: $isVersionOverlayVisible)
                             .onChange(of: isVersionOverlayVisible) { _ in

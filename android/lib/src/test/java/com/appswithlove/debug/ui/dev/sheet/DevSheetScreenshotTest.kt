@@ -1,5 +1,6 @@
 package com.appswithlove.debug.ui.dev.sheet
 
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -55,6 +56,27 @@ class DevSheetScreenshotTest {
     }
 
     @Test
+    fun homeAppInfoCollapsed() {
+        openPanel()
+        composeTestRule.onNodeWithText("App Info").performClick()
+        composeTestRule.waitUntil(5_000) {
+            composeTestRule.onAllNodes(hasText("· Android", substring = true)).fetchSemanticsNodes().isNotEmpty()
+        }
+        captureScreenRoboImage("src/test/screenshots/DevSheet_home_app_info_collapsed.png")
+    }
+
+    @Test
+    @Config(fontScale = 2f)
+    fun homeAppInfoCollapsedLargeFont() {
+        openPanel()
+        composeTestRule.onNodeWithText("App Info").performClick()
+        composeTestRule.waitUntil(5_000) {
+            composeTestRule.onAllNodes(hasText("· Android", substring = true)).fetchSemanticsNodes().isNotEmpty()
+        }
+        captureScreenRoboImage("src/test/screenshots/DevSheet_home_app_info_collapsed_font200.png")
+    }
+
+    @Test
     fun homeWithExtensionSections() {
         val status = DevExtensionSection(
             id = "status",
@@ -94,7 +116,11 @@ class DevSheetScreenshotTest {
 
     private fun openPanel() {
         val devStore = DevStore(ApplicationProvider.getApplicationContext())
-        runBlocking { devStore.setDevToolActivated(true) }
+        runBlocking {
+            devStore.setDevToolActivated(true)
+            // DataStore is shared by all tests in this process; start expanded like a fresh install.
+            devStore.setAppInfoExpanded(true)
+        }
         val viewModel = DevViewModel(devStore)
         composeTestRule.setContent {
             DevSheet(viewModel = viewModel, logHistory = LogHistory(), devConfig = DevConfig.Preview) {}

@@ -19,6 +19,10 @@ internal object TablerIcons {
 
     val ChevronLeft: ImageVector by lazyIcon("TablerChevronLeft", "M15 6l-6 6l6 6")
 
+    val ChevronDown: ImageVector by lazyIcon("TablerChevronDown", "M6 9l6 6l6 -6")
+
+    val ChevronUp: ImageVector by lazyIcon("TablerChevronUp", "M6 15l6 -6l6 6")
+
     val ArrowNarrowDownDashed: ImageVector by lazyIcon(
         "TablerArrowNarrowDownDashed",
         "M12 5v.5m0 3v1.5m0 3v6",

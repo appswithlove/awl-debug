@@ -223,6 +223,7 @@ internal fun DevSheet(
 
     val savedVersionOverlay by devStore.versionOverlayVisible.collectAsStateWithLifecycle(initialValue = null)
     val showVersionOverlay = savedVersionOverlay ?: modulesConfig.showVersionOverlay
+    val appInfoExpanded by devStore.appInfoExpanded.collectAsStateWithLifecycle(initialValue = true)
     if (modulesConfig.showScreenRecordingModule) {
         ScreenRecordingEffect(config = modulesConfig.screenRecording, isPanelOpen = state.value.isShown)
     }
@@ -283,6 +284,10 @@ internal fun DevSheet(
                 onShowVersionOverlayChanged = { visible ->
                     overlayScope.launch { devStore.setVersionOverlayVisible(visible) }
                 },
+                appInfoExpanded = appInfoExpanded,
+                onAppInfoExpandedChanged = { expanded ->
+                    overlayScope.launch { devStore.setAppInfoExpanded(expanded) }
+                },
                 logHistory = logHistory,
                 actioner = { action -> viewModel.submitAction(action) },
                 customModules = customModules,
@@ -316,6 +321,8 @@ private fun DevSheetContent(
     devConfig: DevConfig? = null,
     showVersionOverlay: Boolean = false,
     onShowVersionOverlayChanged: ((Boolean) -> Unit)? = null,
+    appInfoExpanded: Boolean = true,
+    onAppInfoExpandedChanged: ((Boolean) -> Unit)? = null,
     modulesConfig: DevModulesConfig = DevModulesConfig(),
     actioner: (DevAction) -> Unit,
     customModules: @Composable ColumnScope.() -> Unit = {},
@@ -776,6 +783,8 @@ private fun DevSheetContent(
                             devConfig = devConfig,
                             showVersionOverlay = showVersionOverlay,
                             onShowVersionOverlayChanged = onShowVersionOverlayChanged,
+                            isExpanded = appInfoExpanded,
+                            onExpandedChange = onAppInfoExpandedChanged,
                         )
 
                         ExtensionSections(
