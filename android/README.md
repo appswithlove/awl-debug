@@ -18,6 +18,7 @@ Made by [Apps with love](https://appswithlove.com).
   - [2. Repositories](#2-repositories)
   - [3. Additional build types](#3-additional-build-types)
 - [How the artifacts fit together](#how-the-artifacts-fit-together)
+  - [Store builds](#store-builds)
 - [Usage](#usage)
   - [DevSheet](#devsheet)
   - [Modules](#modules)
@@ -30,7 +31,8 @@ Made by [Apps with love](https://appswithlove.com).
   - [Timber integration](#timber-integration)
   - [Kermit integration](#kermit-integration)
   - [Activate and deactivate](#activate-and-deactivate)
-  - [Feedback](#feedback)
+  - [Extensions](#extensions)
+- [Migrating from 0.6](#migrating-from-06)
 - [Local development](#local-development)
 - [Releasing](#releasing)
 - [License](#license)
@@ -49,6 +51,7 @@ Made by [Apps with love](https://appswithlove.com).
 - Test crashes
 - App info from your build config plus custom key/value pairs
 - Custom modules: append your own composables to the sheet
+- Extensions: other libraries add their own rows below App Info and read logs, requests and the last screen recording
 - No-op artifact for release builds
 
 ## Installation
@@ -57,12 +60,14 @@ Made by [Apps with love](https://appswithlove.com).
 
 ```kotlin
 dependencies {
-    debugImplementation("com.appswithlove.debug:debug:0.6.1")
-    releaseImplementation("com.appswithlove.debug:debug-no-op:0.6.1")
+    debugImplementation("com.appswithlove.debug:debug:2.0.0")
+    releaseImplementation("com.appswithlove.debug:debug-no-op:2.0.0")
 }
 ```
 
 Two lines, one per build type: the `debug` build gets the real panel, the `release` build gets a stub with the same API and empty bodies. Your app code stays identical for both. Details in [How the artifacts fit together](#how-the-artifacts-fit-together).
+
+Until 2.0.0 is on Maven Central, publish the snapshot from this repository to your local Maven repository, see [Local development](#local-development).
 
 ### 2. Repositories
 
@@ -84,8 +89,8 @@ No token, no extra repository.
 `debugImplementation` and `releaseImplementation` only cover the two default build types. If your app declares more (`staging`, `qa`, ...), each one needs its own line, otherwise that build type has neither artifact and fails to compile:
 
 ```kotlin
-stagingImplementation("com.appswithlove.debug:debug:0.6.1")       // internal build: real panel
-qaImplementation("com.appswithlove.debug:debug-no-op:0.6.1")      // goes to external testers: stub
+stagingImplementation("com.appswithlove.debug:debug:2.0.0")       // internal build: real panel
+qaImplementation("com.appswithlove.debug:debug-no-op:2.0.0")      // goes to external testers: stub
 ```
 
 Rule of thumb: `debug` for builds that stay inside the team, `debug-no-op` for anything that leaves the building.
@@ -96,12 +101,11 @@ awl-debug ships as a real + no-op pair with a shared API, the same pattern [Leak
 
 | Artifact | Contents | Weight |
 |---|---|---|
-| `debug-api` | Contract types only: `DevConfig`, `DevModulesConfig`, `DevNetworkConfig`, `DeeplinkItem`, `SessionProvider`, `FcmTokenProvider`. Pulled in transitively by both AARs, never referenced directly. | a few KB |
+| `debug-api` | Contract types only: `DevConfig`, `DevModulesConfig`, `DevNetworkConfig`, `DeeplinkItem`, `SessionProvider`, `FcmTokenProvider`, and the [extension API](#extensions). Pulled in transitively by both AARs. | a few KB |
 | `debug` | The real panel: Compose sheet, trigger gestures, log collector, HTTP interceptor, all modules, charts. | ~430 KB plus its Compose, Material 3 and Vico dependencies |
-| `feedback` / `feedback-no-op` | Optional in-app feedback (see [Feedback](#feedback)) and its stub, same pairing rule. The no-op renders your content only, has no shake detection and no `INTERNET` permission. | |
 | `debug-no-op` | The same public functions and classes with empty bodies. `DevSheet` renders your `content` and nothing else; `DevLogTree`, `DevKermitLogWriter` and `DevHttpLogInterceptor` discard everything. Depends only on `debug-api`. | ~14 KB |
 
-Both AARs expose identical signatures under identical package names, so the same call sites compile against either. The build enforces this: `apiCheck` compares each module's public API with its dump in `api/`, and `apiParityCheck` fails when `lib` and `lib-no-op` (or `feedback` and `feedback-no-op`) differ. The shared types live in `debug-api` exactly once, so the two AARs can never collide on the classpath.
+Both AARs expose identical signatures under identical package names, so the same call sites compile against either. The build enforces this: `apiCheck` compares each module's public API with its dump in `api/`, and `apiParityCheck` fails when `lib` and `lib-no-op` differ. The shared types live in `debug-api` exactly once, so the two AARs can never collide on the classpath.
 
 What this buys you:
 
@@ -111,6 +115,16 @@ What this buys you:
 - No conditionals in app code. Plant the tree, add the interceptor, wrap your root composable, done.
 
 The contract types live under `com.appswithlove.debug.api.*`, for example `com.appswithlove.debug.api.DevConfig` and `com.appswithlove.debug.api.session.SessionProvider`.
+
+### Store builds
+
+Any build type that reaches the Play Store or external testers must use `debug-no-op`. To check a release APK, look for the `FileProvider` that only the `debug` artifact declares; the count must be `0`:
+
+```
+apkanalyzer manifest print app-release.apk | grep -ci awldebug
+```
+
+The manifest is not obfuscated, so the check also works for minified builds. `apkanalyzer` is part of the Android SDK command-line tools.
 
 ## Usage
 
@@ -443,48 +457,57 @@ Switch(
 
 `DevSettings.activateDevTool(context, Boolean)` is a `suspend` function; `DevSettings.isDevToolActivated(context)` returns a `Flow<Boolean>`. Inside the sheet, the App Info module offers the same toggle.
 
-### Feedback
+### Extensions
 
-Testers report a problem straight from the app: the report carries a screenshot they can mark up (pen, arrow, colors, undo, and redact, which blacks out an area before the image leaves the device), a text (typed or dictated) and device and app metadata. It is sent as `multipart/form-data` to `{endpoint}/v1/feedback` with the `X-App-Key` header.
-
-```kotlin
-dependencies {
-    debugImplementation("com.appswithlove.debug:feedback:<version>")
-    releaseImplementation("com.appswithlove.debug:feedback-no-op:<version>")
-}
-```
-
-Wrap the app content in `FeedbackHost`. Shaking the device or taking a screenshot (Android 14+) starts a report, and the `DevSheet` shows "Send feedback" as its second entry while a configured `FeedbackHost` is on screen:
+Other libraries can add rows to the panel and read what it captured through `AwlDebugExtensions` in `debug-api` (package `com.appswithlove.debug.api.extension`). A library only needs `debug-api`; the app pairs `debug` and `debug-no-op` as usual.
 
 ```kotlin
-val feedbackConfig = FeedbackConfig(
-    endpoint = BuildConfig.FEEDBACK_ENDPOINT,
-    appKey = BuildConfig.FEEDBACK_APP_KEY,
-    appVersion = BuildConfig.VERSION_NAME,
-    buildNumber = BuildConfig.VERSION_CODE.toString(),
-    environment = BuildConfig.FLAVOR,
-    extraMetadata = { mapOf("screen" to currentScreenName()) },
+val items = MutableStateFlow(
+    listOf(
+        DevExtensionItem.Title("My extension: On", DevExtensionAction("Sync now") { sync() }),
+        DevExtensionItem.Text("3 waiting · Last sync 10:15"),
+        DevExtensionItem.Text("ID: 3f2a9c1e", DevTextStyle.Monospace, copyValue = "3f2a9c1e"),
+        DevExtensionItem.Switch("Enabled on this device", checked = true) { enabled -> setEnabled(enabled) },
+        DevExtensionItem.Link("Open my screen", badge = "2 new") { openMyScreen() },
+    ),
 )
-
-FeedbackHost(config = feedbackConfig) {
-    DevSheet {
-        MyApp()
-    }
-}
+val registration = AwlDebugExtensions.register(
+    DevExtensionSection(id = "my-extension", items = items, order = 10, claimedTriggers = setOf(DevTrigger.Shake)),
+)
+// Later, to remove the section:
+registration.close()
 ```
 
-Place `FeedbackHost` outside of the `DevSheet` as shown: the screenshot shows what `FeedbackHost` wraps, and dialogs and bottom sheets are never part of it.
+- **Placement:** sections appear on the start page directly below App Info, above the built-in modules; `customModules` stay at the bottom. They are sorted by `order` (lowest first), then by registration. A section with the `id` of a registered one replaces it, and a section without items is hidden. The panel draws the rows in its own style, with a divider between sections. A link closes the panel before its action runs. Callbacks run on the main thread, and the panel follows every change of `items`.
+- **`claimedTriggers`:** gestures the extension handles itself. While the section is registered, they no longer open the panel; when they are also in the `DevSheet` triggers, the panel logs a warning.
+- **Data:** everything is redacted like in the panel. Lists hold the newest entries, oldest first.
 
-Start a report from your own UI with `AwlFeedback.start()`, or place `FeedbackLauncher()` where you want an entry of your own. The no-op artifact does nothing on either.
+| Function | Returns |
+|---|---|
+| `logSnapshot(maxEntries)` | Log entries that match the Logs module's search and severity filter, together with that filter. `suspend` |
+| `networkSnapshot(maxEntries)` | Captured requests, without the Network module's filters |
+| `addNetworkListener { record -> }` | Every request `DevHttpLogInterceptor` finishes from now on, on a background thread. Works before any interceptor exists; close the returned handle to stop |
+| `hasRecording()` | Whether frames of a screen recording of this or the previous run exist |
+| `exportRecording(options)` | `recording.mp4`, `frames.jpg` and `timeline.md` within `DevRecordingExportOptions(lastSeconds, maxVideoBytes, maxTimelineBytes)`. A video above the limit is encoded once more at half the size; if it is still too large, all files are `null`. `suspend`, runs off the main thread |
+| `isDebugArtifactPresent` | `true` once the `debug` artifact is in use |
 
-| Parameter | Default | Description |
-|---|---|---|
-| `extraMetadata` | empty | Read when a report starts. Up to 30 entries, keys up to 64 characters (empty keys are dropped), values up to 500. A `screen` entry becomes the report's screen (up to 200 characters). |
-| `triggers` | `Shake`, `Screenshot` | `DevTrigger`s that start a report while the app is in the foreground. `Screenshot` needs Android 14 (API 34). A trigger in both `triggers` and the `DevSheet` triggers starts feedback only and logs a warning. Replaces `shakeToReport`, which is deprecated |
-| `distribution` | `null` | `AwlDistribution.Debug`, `Internal` or `Store`. Only sent when set, because older feedback services reject unknown metadata fields |
-| `reporter` | `null` | `FeedbackReporter(name, email)` prefills the reporter. Without it the first report asks for a name (email optional); "Sent as {name}" with "Change" afterwards. Needs a service that accepts `reporter` |
+- **No-op:** with `debug-no-op` the same calls compile. Sections are never shown, listeners are never called, snapshots are empty or `null`, and there is no recording.
+- **Compatibility:** records such as `DevLogRecord` and `DevNetworkRecord` are plain classes, not data classes, so later versions can add fields without breaking binary compatibility.
 
-A `null` config passes the content through and `FeedbackLauncher` shows "Feedback not configured", so builds without endpoint or key still work.
+The sample registers a demo section in `SampleApplication` (see `DemoExtension.kt`).
+
+## Migrating from 0.6
+
+Version 2.0 keeps the artifacts, packages and the `DevSheet` call. Check these changes:
+
+- **Interceptor:** `DevHttpLogInterceptor` takes a `DevNetworkConfig` instead of a `DevLogCollector`. `DevHttpLogInterceptor()` stays valid. Requests now appear in the Network module, with a one-line summary in Logs.
+- **Triggers:** `DevSheet` has a new `triggers` parameter after `modulesConfig`. If you pass `customModules` or later parameters by position, name them. A trigger only opens the sheet; it no longer closes an open one.
+- **`isAlwaysActive`:** it no longer changes the activation stored on the device. Use `DevSettings.activateDevTool` for that.
+- **`FileProvider`:** the authority is `${applicationId}.awldebug.fileprovider` instead of `${applicationId}.fileprovider`, so it no longer clashes with your app's provider. Remove workarounds such as `tools:node="remove"` for the library's provider.
+- **Manifest:** the library no longer sets `android:allowBackup="false"` on your app; drop a `tools:replace="android:allowBackup"` you added for it. The `debug` artifact declares `DETECT_SCREEN_CAPTURE` for the screenshot trigger.
+- **Logs:** `Log` has the new optional fields `tag` and `throwable`; `DevLogTree` now keeps the Timber tag and throwable.
+
+New modules are shown by default: Network (once a `DevHttpLogInterceptor` exists), Clear App Data and Screen Recording, where recording stays off until a tester turns it on. The version overlay is on by default too; turn it off with `DevModulesConfig(showVersionOverlay = false)`. Also new: saved and delayed deeplinks, session invalidation, `DevKermitLogWriter`, `AwlDebug.handleDeeplinkIntent` and the [extension API](#extensions).
 
 ## Local development
 
@@ -494,11 +517,11 @@ Build and test:
 ./gradlew build
 ```
 
-`build` includes `apiCheck`. After an intended public API change, run `./gradlew apiDump` and commit the updated `api/*.api` files. Change `lib` and `lib-no-op` (and `feedback` and `feedback-no-op`) together, their dumps must stay identical.
+`build` includes `apiCheck`. After an intended public API change, run `./gradlew apiDump` and commit the updated `api/*.api` files. Change `lib` and `lib-no-op` together, their dumps must stay identical.
 
-The libraries compile against OkHttp 4.12, the lowest supported version, so they do not force an upgrade on apps. Apps on OkHttp 5 get their version through Gradle resolution. To build and test against another version, pass `-PokhttpVersion`, for example `./gradlew :lib:testDebugUnitTest :feedback:testDebugUnitTest -PokhttpVersion=5.3.2`.
+The libraries compile against OkHttp 4.12, the lowest supported version, so they do not force an upgrade on apps. Apps on OkHttp 5 get their version through Gradle resolution. To build and test against another version, pass `-PokhttpVersion`, for example `./gradlew :lib:testDebugUnitTest -PokhttpVersion=5.3.2`.
 
-Run the sample app from `sample/` to try the panel. It plants `DevLogTree`, fires an HTTP request and exposes a switch that activates the dev tool.
+Run the sample app from `sample/` to try the panel. It plants `DevLogTree`, fires an HTTP request, registers a demo extension section and exposes a switch that activates the dev tool.
 
 To test an unreleased version in another project, publish to your local Maven repository. The flag skips GPG signing, which is only needed for Maven Central:
 
@@ -523,9 +546,11 @@ dependencies {
 
 ## Releasing
 
-1. Bump `VERSION_NAME` in `gradle.properties` and merge to `main` via pull request.
+Android and iOS share one version number.
+
+1. Bump `VERSION_NAME` in `android/gradle.properties` and merge to `main` via pull request.
 2. Open a pull request from `main` to `production`. It requires one approval.
-3. Merging runs the `Publish` workflow: build and test, sign, upload all three artifacts to Maven Central, create a GitHub release tagged with the version.
+3. Merging runs the `Publish` workflow: build and test, sign, upload all three artifacts to Maven Central, create a GitHub release tagged with the version. Swift Package Manager resolves the iOS package from the same tag.
 
 The publish job waits for the Central Portal to validate the deployment and fails with the portal's reasons if it is rejected. Artifacts appear on Maven Central roughly 15 to 30 minutes after a successful run.
 

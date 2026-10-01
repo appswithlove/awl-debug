@@ -27,13 +27,19 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import com.appswithlove.debug.R
 import com.appswithlove.debug.api.DevScreenRecordingConfig
+import com.appswithlove.debug.api.extension.DevRecordingExport
+import com.appswithlove.debug.api.extension.DevRecordingExportOptions
 import java.io.File
 import java.lang.ref.WeakReference
 import java.util.Locale
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 
 /**
  * Records the resumed activity's window as JPEG frames, 3 per second, only while testers interact:
@@ -74,9 +80,11 @@ internal object ScreenRecorder {
     private val mainHandler = Handler(Looper.getMainLooper())
     private val touches = TouchTracker()
     private val isEncoding = AtomicBoolean(false)
+    private val exportLock = Mutex()
 
     private var prefs: SharedPreferences? = null
     private lateinit var buffer: RecordingBuffer
+    private lateinit var cacheRoot: File
     private lateinit var worker: Handler
     private var resumedActivity: WeakReference<Activity>? = null
     private var isPanelOpen = false
@@ -100,7 +108,8 @@ internal object ScreenRecorder {
             prefs = preferences
             _isOn.value = preferences.getBoolean(KEY_ON, config.isOnByDefault)
             _maxDurationSeconds.value = preferences.getInt(KEY_MAX_DURATION, config.maxDurationSeconds).coerceAtLeast(1)
-            buffer = RecordingBuffer(File(application.cacheDir, "awl-debug/recording"))
+            cacheRoot = File(application.cacheDir, "awl-debug")
+            buffer = RecordingBuffer(File(cacheRoot, "recording"))
             worker = Handler(HandlerThread("awl-debug-recording").apply { start() }.looper)
             worker.post {
                 runCatching { buffer.rotate() }.onFailure { Log.w(TAG, "Could not prepare the recording folder", it) }
@@ -131,6 +140,29 @@ internal object ScreenRecorder {
             worker.post {
                 buffer.trim(maxFrames())
                 _currentFrameCount.value = buffer.frameCount
+            }
+        }
+    }
+
+    /** Folder with the frames of this run, or of the previous run with [last]; `null` before the first start. */
+    fun recordingDir(last: Boolean): File? = if (prefs == null) null else if (last) buffer.lastDir else buffer.currentDir
+
+    /** Folder for exported files, inside the file provider's `cacheDir/awl-debug`; `null` before the first start. */
+    fun exportDir(name: String): File? = if (prefs == null) null else File(cacheRoot, name)
+
+    /** `true` while frames of this or the previous run exist. */
+    fun hasRecording(): Boolean = _currentFrameCount.value > 0 || _lastRecording.value != null
+
+    /**
+     * Exports this run's frames within [options], or the previous run's when this one has none, into the same
+     * folder each time. Returns `null` before the first start or without frames.
+     */
+    suspend fun export(options: DevRecordingExportOptions): DevRecordingExport? {
+        if (prefs == null) return null
+        return exportLock.withLock {
+            withContext(Dispatchers.IO) {
+                val source = if (_currentFrameCount.value > 0) buffer.currentDir else buffer.lastDir
+                RecordingExporter.export(source, File(cacheRoot, "recording-extension"), options)
             }
         }
     }

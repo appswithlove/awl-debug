@@ -1,6 +1,9 @@
 package com.appswithlove.debug.ui.dev.log
 
 import com.appswithlove.debug.api.DevNetworkConfig
+import com.appswithlove.debug.api.bridge.AwlDebugInternalApi
+import com.appswithlove.debug.api.extension.AwlDebugExtensions
+import com.appswithlove.debug.extension.toRecord
 import com.appswithlove.debug.ui.dev.network.BodyCapture
 import com.appswithlove.debug.ui.dev.network.NetworkCollector
 import com.appswithlove.debug.ui.dev.network.NetworkEntry
@@ -93,8 +96,10 @@ class DevHttpLogInterceptor(
         return response
     }
 
+    @OptIn(AwlDebugInternalApi::class)
     private fun record(entry: NetworkEntry) {
         store.add(entry)
+        AwlDebugExtensions.publishNetworkRecord(entry.toRecord())
         logCollector.log(Log(entry.severity(), entry.summary(), tag = LOG_TAG))
     }
 

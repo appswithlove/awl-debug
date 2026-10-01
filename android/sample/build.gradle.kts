@@ -1,4 +1,3 @@
-import java.util.Properties
 import org.gradle.kotlin.dsl.withType
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
@@ -23,13 +22,6 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
-
-        // Local feedback service for device checks, e.g. feedback.endpoint=http://10.0.2.2:3300; never committed.
-        val localProperties = Properties().apply {
-            rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
-        }
-        buildConfigField("String", "FEEDBACK_ENDPOINT", "\"${localProperties.getProperty("feedback.endpoint", "")}\"")
-        buildConfigField("String", "FEEDBACK_APP_KEY", "\"${localProperties.getProperty("feedback.appKey", "")}\"")
     }
 
     buildTypes {
@@ -78,8 +70,6 @@ dependencies {
     implementation(libs.androidx.material3)
     debugImplementation(project(":lib"))
     releaseImplementation(project(":lib-no-op"))
-    debugImplementation(project(":feedback"))
-    releaseImplementation(project(":feedback-no-op"))
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

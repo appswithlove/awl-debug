@@ -30,6 +30,7 @@ object HttpUtils {
 
     val request = Request.Builder()
         .url("https://api.open-meteo.com/v1/forecast?latitude=52.52&longitude=13.41&current_weather=true")
+        .header("Authorization", "Bearer sample-token") // shows up as [REDACTED]
         .get()
         .build()
 
