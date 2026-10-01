@@ -70,7 +70,7 @@ object AwlDebugExtensions {
     fun networkSnapshot(maxEntries: Int): List<DevNetworkRecord> =
         provider?.networkSnapshot(maxEntries.coerceAtLeast(0)).orEmpty()
 
-    /** `true` while frames of a screen recording of this or the previous app run exist. */
+    /** `true` while screen recording is switched on and frames of this or the previous app run exist. */
     fun hasRecording(): Boolean = provider?.hasRecording() == true
 
     /**

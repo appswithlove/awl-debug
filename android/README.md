@@ -487,7 +487,7 @@ registration.close()
 | `logSnapshot(maxEntries)` | Log entries that match the Logs module's search and severity filter, together with that filter. `suspend` |
 | `networkSnapshot(maxEntries)` | Captured requests, without the Network module's filters |
 | `addNetworkListener { record -> }` | Every request `DevHttpLogInterceptor` finishes from now on, on a background thread. Works before any interceptor exists; close the returned handle to stop |
-| `hasRecording()` | Whether frames of a screen recording of this or the previous run exist |
+| `hasRecording()` | Whether screen recording is switched on and frames of this or the previous run exist. Frames left after switching recording off don't count |
 | `exportRecording(options)` | `recording.mp4`, `frames.jpg` and `timeline.md` within `DevRecordingExportOptions(lastSeconds, maxVideoBytes, maxTimelineBytes)`. A video above the limit is encoded once more at half the size; if it is still too large, all files are `null`. `suspend`, runs off the main thread |
 | `isDebugArtifactPresent` | `true` once the `debug` artifact is in use |
 

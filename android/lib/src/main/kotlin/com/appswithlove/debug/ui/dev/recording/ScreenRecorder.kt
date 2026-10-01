@@ -150,8 +150,8 @@ internal object ScreenRecorder {
     /** Folder for exported files, inside the file provider's `cacheDir/awl-debug`; `null` before the first start. */
     fun exportDir(name: String): File? = if (prefs == null) null else File(cacheRoot, name)
 
-    /** `true` while frames of this or the previous run exist. */
-    fun hasRecording(): Boolean = _currentFrameCount.value > 0 || _lastRecording.value != null
+    /** `true` while recording is on and frames of this or the previous run exist; frames left after switching off do not count. */
+    fun hasRecording(): Boolean = _isOn.value && (_currentFrameCount.value > 0 || _lastRecording.value != null)
 
     /**
      * Exports this run's frames within [options], or the previous run's when this one has none, into the same

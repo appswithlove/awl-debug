@@ -53,8 +53,12 @@ public enum AWLDebugExtensions {
         AWLDebugTool.shared.networkLogger.snapshot(maxEntries: maxEntries).map(AWLDebugNetworkRecord.init)
     }
 
-    /// `true` when the current or the previous run's screen recording has frames.
+    /// `true` while screen recording is switched on and the current or the previous run's recording has frames.
+    /// Frames left on disk after the tester switched recording off do not count.
     public static var hasRecording: Bool {
+        guard ExtensionState.shared.isRecordingOn else {
+            return false
+        }
         let storage = RecordingStorage()
         return [storage.currentFolder, storage.lastFolder].contains { RecordingStorage.newestFrameDate(in: $0) != nil }
     }
@@ -105,6 +109,7 @@ final class ExtensionState: @unchecked Sendable {
 
     private let lock = NSLock()
     private var _isStarted = false
+    private var _isRecordingOn = false
     private var keptPrefixes: [String] = []
     private var networkObservers: [UUID: @Sendable (AWLDebugNetworkRecord) -> Void] = [:]
     private let networkQueue = DispatchQueue(label: "com.appswithlove.debug.extensions.network", qos: .utility)
@@ -118,6 +123,19 @@ final class ExtensionState: @unchecked Sendable {
     func markStarted() {
         lock.lock()
         _isStarted = true
+        lock.unlock()
+    }
+
+    /// The tester's "Screen recording" switch, kept current by `ScreenRecorderModel`.
+    var isRecordingOn: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return _isRecordingOn
+    }
+
+    func setRecordingOn(_ isOn: Bool) {
+        lock.lock()
+        _isRecordingOn = isOn
         lock.unlock()
     }
 
