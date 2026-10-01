@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
-
-    <uses-permission android:name="android.permission.INTERNET" />
-    <!-- Retries queued reports and session batches when a network becomes available, waits for an unmetered one. -->
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <!-- DevTrigger.Screenshot, Android 14+. Normal permission, debug artifact only. -->
-    <uses-permission android:name="android.permission.DETECT_SCREEN_CAPTURE" />
-</manifest>
