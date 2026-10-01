@@ -18,8 +18,10 @@ final class DebugPanelPresenter: NSObject {
         didSet { updateRecognizers() }
     }
     var isAlwaysActive = false
-    /// Triggers AWLDebugFeedback handles; they start feedback instead of opening the panel.
-    var feedbackTriggers: () -> Set<AWLDebugTrigger> = { FeedbackBridge.current?.triggers ?? [] }
+    /// Triggers that AWLDebugFeedback or a registered extension section handles; they do not open the panel.
+    var feedbackTriggers: () -> Set<AWLDebugTrigger> = {
+        (FeedbackBridge.current?.triggers ?? []).union(ExtensionSectionRegistry.shared.claimedTriggers)
+    }
     private var warnedConflicts: Set<AWLDebugTrigger> = []
 
     private var window: UIWindow?
@@ -54,17 +56,25 @@ final class DebugPanelPresenter: NSObject {
 
     /// Opens the panel if `trigger` is configured and the tool is activated. Never closes it.
     func trigger(_ trigger: AWLDebugTrigger) {
+        if opensPanel(on: trigger) {
+            open()
+        }
+    }
+
+    /// `true` when `trigger` is configured, the tool is activated and no extension claims the trigger.
+    /// A claimed trigger logs a warning once.
+    func opensPanel(on trigger: AWLDebugTrigger) -> Bool {
         guard triggers.contains(trigger), isAlwaysActive || AWLDebugTool.isActivated else {
-            return
+            return false
         }
         if feedbackTriggers().contains(trigger) {
             if warnedConflicts.insert(trigger).inserted {
-                AWLDebugTool.log("Trigger \(trigger) is configured for the panel and for feedback; it opens feedback only.",
+                AWLDebugTool.log("Trigger \(trigger) is configured for the panel and claimed by an extension; it does not open the panel.",
                                  level: .warn, tag: "AWLDebug")
             }
-            return
+            return false
         }
-        open()
+        return true
     }
 
     func open() {

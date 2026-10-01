@@ -235,6 +235,48 @@ AWLDebugTool.flushReports()
 - Network errors, 5xx and 429 keep the batch and retry it with the same `batchId` after 30 s, 1 min, 2 min … up to 1 h, never before `Retry-After`. 400, 413, 415 and 422 drop the batch; 401 and 403 stop reporting until the next app start. The panel shows the reason.
 - The panel row "Remote reporting" (below About) shows on/off, the last successful send, pending batches and the session ID (tap to copy, to find the session in the dashboard). Testers can turn "Send session data" off per device: that ends the current session, and no new one starts until it is on again.
 
+## Extensions
+Other packages build on the tool through `AWLDebugExtensions`: they add rows to the panel and read what the tool records, without private API. Everything they read is already redacted, like in the panel.
+
+```swift
+#if DEBUG || STAGING
+import AWLDebugTool
+
+@MainActor
+final class MyModule {
+    private let section = AWLDebugExtensionSection(id: "my-module", order: 10)
+    private var registration: AWLDebugRegistration?
+
+    func install() {
+        section.items = [
+            .title("My module", action: AWLDebugExtensionAction("Refresh") { /* … */ }),
+            .text("Last sync 10:42"),
+            .text("Device ID: 1234", style: .monospace, copyValue: "1234"),  // tap to copy
+            .toggle("Upload", isOn: true) { isOn in /* store it, then update `items` */ },
+            .link("Open report", badge: "2 pending") { /* runs after the panel closed */ },
+        ]
+        section.claimedTriggers = [.shake]  // handled by the module; no longer opens the panel
+        registration = AWLDebugExtensions.register(section)
+    }
+}
+#endif
+```
+
+| API | Description |
+|---|---|
+| `register(_:)` | Shows the section on the start page below App Info, sorted by `order`, then by registration. The same `id` replaces a section; `cancel()` on the returned registration removes it. Rows are drawn in the panel's style; callbacks run on the main actor. |
+| `claimedTriggers` | Triggers the module handles itself. They do not open the panel; if `AWLDebugConfig.triggers` has one, the panel logs a warning. |
+| `observeNetwork(_:)` | Every request the Network module captures, redacted, on a background queue in the order they finish. Works before `start`. |
+| `networkSnapshot(maxEntries:)` | The newest requests of the Network module, ordered by start time. |
+| `logSnapshot(maxEntries:)` | The newest entries of the Logs module with its level and search filter applied, oldest first, plus the active filter. `nil` before `start`. |
+| `hasRecording`, `exportRecording(_:)` | The current screen recording, or the previous run's, as `recording.mp4`, `frames.jpg` and `timeline.md`. Options: `lastSeconds`, `maxVideoBytes` (too large: once more at half size, then `isVideoTooLarge`), `maxTimelineBytes`. |
+| `closePanel()` | Closes the panel and returns once it is gone, e.g. before a screenshot. |
+| `excludeFromCapture(_:)` | Marks the module's own request, so the Network module does not capture it. |
+| `keepOnClearAppData(userDefaultsPrefix:)` | "Clear App Data" keeps these `UserDefaults.standard` keys. |
+| `isStarted` | `AWLDebugTool.start` ran. |
+
+The Example's "Panel" screen adds a demo section.
+
 ## Store builds
 The SDK must never ship to the App Store. Compile every call behind a flag that store configurations do not define (e.g. `AWL_DEBUG`). Package products cannot be linked per configuration, so both products are dynamic frameworks. Store configurations then remove them:
 

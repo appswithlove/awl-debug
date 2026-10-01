@@ -7,7 +7,16 @@ public class NetworkLogger: ObservableObject {
     private(set) var config = AWLDebugConfig.NetworkConfig()
     
     @Published var didStart = false
-    @Published var networkTraffic: [NetworkLog] = []
+    @Published var networkTraffic: [NetworkLog] = [] {
+        didSet {
+            trafficLock.lock()
+            trafficCopy = networkTraffic
+            trafficLock.unlock()
+        }
+    }
+    /// `networkTraffic` for readers off the main thread.
+    private var trafficCopy: [NetworkLog] = []
+    private let trafficLock = NSLock()
     
     @Published var networkLogsLimit: Int = {
         let result = UserDefaults.standard.integer(forKey: Constants.UserDefaultsKey.networkLogsLimit)
@@ -132,8 +141,17 @@ public class NetworkLogger: ObservableObject {
     @MainActor
     func appendNetworkLog(_ log: NetworkLog) {
         RemoteReporting.shared.record(log)
+        ExtensionState.shared.publish(log)
         networkTraffic.append(log)
         cleanNetworkTrafficForLimit()
+    }
+
+    /// The newest `maxEntries` requests, ordered by start time. They are stored when they finish. Any thread.
+    func snapshot(maxEntries: Int) -> [NetworkLog] {
+        trafficLock.lock()
+        let traffic = trafficCopy
+        trafficLock.unlock()
+        return traffic.suffix(max(maxEntries, 0)).sorted { $0.date < $1.date }
     }
 
     @MainActor

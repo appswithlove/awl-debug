@@ -47,8 +47,9 @@ struct AppDataCleaner {
     }
 
     func clearUserDefaults() {
+        let keptPrefixes = Self.toolKeyPrefixes + ExtensionState.shared.keptUserDefaultsPrefixes
         let toolSettings = defaults.dictionaryRepresentation().filter { key, _ in
-            Self.toolKeyPrefixes.contains { key.hasPrefix($0) }
+            keptPrefixes.contains { key.hasPrefix($0) }
         }
         if let domainName = domainName {
             defaults.removePersistentDomain(forName: domainName)

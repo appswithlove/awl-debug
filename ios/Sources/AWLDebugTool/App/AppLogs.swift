@@ -1,7 +1,7 @@
 import Foundation
 import OSLog
 
-public enum AWLDebugLogLevel: String, CaseIterable, Codable {
+public enum AWLDebugLogLevel: String, CaseIterable, Codable, Sendable {
     case debug = "DEBUG"
     case info = "INFO"
     case warn = "WARN"

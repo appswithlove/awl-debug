@@ -42,15 +42,19 @@ final class RecordingExportTests: XCTestCase {
         }
     }
 
-    // AK-FB-9: H.264 MP4 at 3 fps from the last 60 s of frames, within the size limits.
-    func testFeedbackVideoIsH264WithTheLastSixtySecondsOfFrames() async throws {
+    private let maxVideoBytes = 25 * 1024 * 1024
+
+    // H.264 MP4 at 3 fps from the last 60 s of frames, within the size limits.
+    func testExportIsH264WithTheLastSixtySecondsOfFrames() async throws {
         let frames = try writeFrames(200)
 
-        let parts = await RecordingExport.feedbackParts(frames: frames, events: [], timeZone: utc)
+        let options = AWLDebugRecordingExportOptions(lastSeconds: 60, maxVideoBytes: maxVideoBytes, maxTimelineBytes: 256 * 1024)
+        let exported = await RecordingExport.export(frames: frames, events: [], options: options, timeZone: utc)
+        let parts = try XCTUnwrap(exported)
 
         let video = try XCTUnwrap(parts.video)
         XCTAssertEqual(String(decoding: video[4 ..< 8], as: UTF8.self), "ftyp")
-        XCTAssertLessThanOrEqual(video.count, RecordingExport.maxVideoBytes)
+        XCTAssertLessThanOrEqual(video.count, maxVideoBytes)
         let (asset, track) = try await videoTrack(of: video)
         let descriptions = try await track.load(.formatDescriptions)
         let description = try XCTUnwrap(descriptions.first)
@@ -64,31 +68,57 @@ final class RecordingExportTests: XCTestCase {
 
         let sheet = try XCTUnwrap(parts.frames)
         XCTAssertEqual(Array(sheet.prefix(3)), [0xFF, 0xD8, 0xFF])
-        XCTAssertLessThanOrEqual(sheet.count, RecordingExport.maxFramesBytes)
+        XCTAssertLessThanOrEqual(sheet.count, 5 * 1024 * 1024)
         let sheetImage = try XCTUnwrap(UIImage(data: sheet)?.cgImage)
         XCTAssertEqual(sheetImage.width, 4 * 270)
         XCTAssertEqual(sheetImage.height, 15 * 587, "60 tiles, 270 × 587 each")
 
         let timeline = String(decoding: try XCTUnwrap(parts.timeline), as: UTF8.self)
         XCTAssertTrue(timeline.contains("start: 2026-09-29T08:14:37.660Z · frames: 180 · fps: 3"), timeline)
-        XCTAssertFalse(parts.isTooLarge)
+        XCTAssertFalse(parts.isVideoTooLarge)
+    }
+
+    func testExportWithoutOptionsTakesAllFramesAndTimelineLimitLeavesItOut() async throws {
+        let frames = try writeFrames(7)
+
+        let allExport = await RecordingExport.export(frames: frames, events: [], options: .init(), timeZone: utc)
+        let all = try XCTUnwrap(allExport)
+        let (asset, track) = try await videoTrack(of: try XCTUnwrap(all.video))
+        XCTAssertEqual(try frameCount(of: track, in: asset), 7)
+        XCTAssertNotNil(all.frames)
+        let timeline = String(decoding: try XCTUnwrap(all.timeline), as: UTF8.self)
+        XCTAssertTrue(timeline.contains("frames: 7 · fps: 3"), timeline)
+
+        let lastSecondExport = await RecordingExport.export(frames: frames, events: [], options: .init(lastSeconds: 1, maxTimelineBytes: 10))
+        let lastSecond = try XCTUnwrap(lastSecondExport)
+        let (lastAsset, lastTrack) = try await videoTrack(of: try XCTUnwrap(lastSecond.video))
+        XCTAssertEqual(try frameCount(of: lastTrack, in: lastAsset), 3)
+        XCTAssertNil(lastSecond.timeline, "longer than 10 bytes")
+        XCTAssertNotNil(lastSecond.frames)
+        XCTAssertFalse(lastSecond.isVideoTooLarge)
+
+        let none = await RecordingExport.export(frames: [], events: [], options: .init())
+        XCTAssertNil(none, "no recording")
     }
 
     // Above the limit the video is encoded once more at half size, then left out together with sheet and timeline.
     func testTooLargeVideoIsHalvedThenLeftOut() async throws {
         let frames = try writeFrames(12)
-        let full = await RecordingExport.feedbackParts(frames: frames, events: [])
+        let fullExport = await RecordingExport.export(frames: frames, events: [], options: .init())
+        let full = try XCTUnwrap(fullExport)
         let fullSize = try XCTUnwrap(full.video).count
 
-        let halved = await RecordingExport.feedbackParts(frames: frames, events: [], maxVideoBytes: fullSize - 1)
+        let halvedExport = await RecordingExport.export(frames: frames, events: [], options: .init(maxVideoBytes: fullSize - 1))
+        let halved = try XCTUnwrap(halvedExport)
         let (_, track) = try await videoTrack(of: try XCTUnwrap(halved.video, "full \(fullSize)"))
         let halvedSize = try await track.load(.naturalSize)
         XCTAssertEqual(halvedSize, CGSize(width: 200, height: 436))
         XCTAssertNotNil(halved.frames)
         XCTAssertNotNil(halved.timeline)
 
-        let none = await RecordingExport.feedbackParts(frames: frames, events: [], maxVideoBytes: 100)
-        XCTAssertEqual(none.isTooLarge, true)
+        let noneExport = await RecordingExport.export(frames: frames, events: [], options: .init(maxVideoBytes: 100))
+        let none = try XCTUnwrap(noneExport)
+        XCTAssertEqual(none.isVideoTooLarge, true)
         XCTAssertNil(none.video)
         XCTAssertNil(none.frames)
         XCTAssertNil(none.timeline)

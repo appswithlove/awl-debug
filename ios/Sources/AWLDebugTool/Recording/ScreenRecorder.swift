@@ -256,7 +256,7 @@ extension ScreenRecorder {
     }
 
     /// Current recording, or the previous run's when the current one has no frames yet. Waits for pending frames.
-    func feedbackRecordingFolder() -> URL? {
+    func exportFolder() -> URL? {
         waitForPendingFrames()
         return [storage.currentFolder, storage.lastFolder].first { RecordingStorage.newestFrameDate(in: $0) != nil }
     }
