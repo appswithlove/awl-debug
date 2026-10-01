@@ -4,14 +4,14 @@
 //
 
 import SwiftUI
-#if DEBUG || STAGING
+#if AWL_DEBUG
 import AWLDebugTool
 #endif
 
 /// Store builds do not link AWLDebugTool, so the app wraps the marker in its own extension.
 extension View {
     @ViewBuilder func debugMasked() -> some View {
-#if DEBUG || STAGING
+#if AWL_DEBUG
         awlDebugMasked()
 #else
         self
