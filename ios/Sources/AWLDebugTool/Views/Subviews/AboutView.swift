@@ -1,7 +1,7 @@
 import SwiftUI
 import UIKit
 
-/// App Info: the lines every bug report needs, one `Label: value` row each, in the order of the spec.
+/// App Info: the lines every bug report needs, one `Label: value` row each, in the same order as on Android.
 /// The device name is left out on purpose (generic since iOS 16, and personal before).
 struct AboutView: View {
     let isOnline: Bool

@@ -2,8 +2,6 @@
 //  Constants+ResponseCodes.swift
 //  AWLDebugTool
 //
-//  Created by Yanis Plumit on 02.06.2026.
-//
 
 extension Constants {
     // https://developer.mozilla.org/en-US/docs/Web/HTTP/Status

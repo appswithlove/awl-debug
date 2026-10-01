@@ -2,8 +2,6 @@
 //  FCMPushTokenView.swift
 //  
 //
-//  Created by Hrvoje Hajduković on 20.09.2025..
-//
 
 import SwiftUI
 

@@ -2,8 +2,6 @@
 //  TextDocument.swift
 //  DebugTool
 //
-//  Created by Hrvoje Hajduković on 19.06.2023..
-//
 
 import SwiftUI
 import UniformTypeIdentifiers

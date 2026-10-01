@@ -2,8 +2,6 @@
 //  UIApplication+KeyWindow.swift
 //  AWLDebugTool
 //
-//  Created by Yanis Plumit on 15.09.2025.
-//
 
 import UIKit
 

@@ -2,8 +2,6 @@
 //  Image+Constants.swift
 //  AWLDebugTool
 //
-//  Created by Yanis Plumit on 02.06.2026.
-//
 
 import SwiftUI
 

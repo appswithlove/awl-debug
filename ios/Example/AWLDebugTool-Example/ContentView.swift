@@ -2,8 +2,6 @@
 //  ContentView.swift
 //  AWLDebugTool-Example
 //
-//  Created by Alain Stulz on 21.03.2024.
-//
 
 import SwiftUI
 

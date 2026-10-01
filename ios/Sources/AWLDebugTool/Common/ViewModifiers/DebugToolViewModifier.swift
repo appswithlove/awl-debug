@@ -2,8 +2,6 @@
 //  DebugToolViewModifier.swift
 //  DebugTool
 //
-//  Created by Hrvoje Hajduković on 21.06.2023..
-//
 
 import SwiftUI
 

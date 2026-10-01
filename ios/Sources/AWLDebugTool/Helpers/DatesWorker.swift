@@ -2,8 +2,6 @@
 //  DatesWorker.swift
 //  
 //
-//  Created by Hrvoje Hajduković on 04.09.2025..
-//
 
 import Foundation
 

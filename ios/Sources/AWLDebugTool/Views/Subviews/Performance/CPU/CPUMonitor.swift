@@ -2,8 +2,6 @@
 //  CPU.swift
 //  AWLDebugTool
 //
-//  Created by Yanis Plumit on 11.06.2026.
-//
 
 import Foundation
 import Combine

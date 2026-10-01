@@ -2,8 +2,6 @@
 //  AuthTestView.swift
 //  AWLDebugTool-Example
 //
-//  Created by Yanis Plumit on 30.06.2026.
-//
 
 #if DEBUG || STAGING
 import AWLDebugTool
