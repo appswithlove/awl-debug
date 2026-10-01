@@ -236,6 +236,19 @@ enum LS {
     }
 
     struct Session {
+        static let notSetup = "No session tokens configured"
+        static let notSetupMessage = "Add one provider per token source to AWLDebugConfig.sessionProviders to inspect the tokens here and test login, refresh and logout."
+        static let copyCode = "Copy code"
+        static let setupSnippet = """
+            var config = AWLDebugConfig()
+            config.sessionProviders = [
+                AWLTokenProvider(
+                    label: "Access Token",
+                    token: { await auth.accessToken }
+                )
+            ]
+            AWLDebugTool.start(config: config)
+            """
         static let loggedIn = "Logged in"
         static let loggedOut = "Logged out"
         static let reveal = "Reveal token"

@@ -64,4 +64,16 @@ class SessionDetailModuleTest {
 
         composeTestRule.onNodeWithText(token).assertExists()
     }
+
+    @Test
+    fun withoutProviders_showsHowToAddOne() {
+        composeTestRule.setContent {
+            DevTheme { SessionDetailModule(sessionManager = SessionManager(emptyList())) }
+        }
+
+        composeTestRule.onNodeWithText("No session tokens configured").assertExists()
+        composeTestRule.onNodeWithText("sessionProviders = listOf(", substring = true).assertExists()
+        composeTestRule.onNodeWithText("Copy code").assertIsEnabled()
+        composeTestRule.onNodeWithText("Logged out").assertDoesNotExist()
+    }
 }

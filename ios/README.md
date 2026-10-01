@@ -122,7 +122,8 @@ func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive respo
 | `isAlwaysActive` | `false` | Gestures open the panel even when `AWLDebugTool.isActivated` is `false` |
 | `network` | `NetworkConfig()` | Capture and redaction, see [Network](#network) |
 | `logs` | `LogsConfig()` | Unified-log reading, see [Logs](#logs) |
-| `sessionProviders` | empty | Token sources of the Session module; the module is hidden without providers |
+| `sessionProviders` | empty | Token sources of the Session module; without providers the module shows how to add one |
+| `showSessionModule` | `true` | Shows the Session module on the start page |
 | `screenRecording` | off, 5 min | See [Screen recording](#screen-recording) |
 | `showVersionOverlay` | `true` | Default of the version overlay; testers can switch it off in App Info |
 | `appGroupIdentifiers` | empty | App-group `UserDefaults` suites that Clear App Data also empties |
@@ -203,6 +204,7 @@ The Logs module shows the app's own unified-log entries (`os_log`, `Logger`, Ker
 Pass one provider per token source in `AWLDebugConfig.sessionProviders`. `AWLTokenProvider(label:token:…)` reads the token on demand, and a Kotlin Multiplatform `suspend` getter works too. For live updates, conform your own type to `AWLSessionProvider` and stream changes through `token: AsyncStream<String?>`.
 
 - The panel shows each token masked (first 6 and last 4 characters) with "Reveal token" and "Copy"; the pasteboard forgets it after 60 seconds.
+- Without providers the module page shows a code snippet to add one; `showSessionModule = false` hides the module.
 - Actions appear only when the app offers them: "Edit" and "Delete" with `setToken` (an empty value deletes), "Invalidate" (writes `<token>.invalid` through `setToken`, or calls `invalidate`), "Login", "Refresh" and "Logout". All are `async throws`; failures show "Action failed: …".
 
 ## Deeplinks

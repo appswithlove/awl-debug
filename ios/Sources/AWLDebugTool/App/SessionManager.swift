@@ -10,6 +10,7 @@ import UniformTypeIdentifiers
 @MainActor
 final class SessionManager: ObservableObject {
     @Published private(set) var entries: [SessionEntry] = []
+    @Published var isModuleShown = true
 
     var providers: [any AWLSessionProvider] = [] {
         didSet { entries = providers.map { SessionEntry(provider: $0) } }
