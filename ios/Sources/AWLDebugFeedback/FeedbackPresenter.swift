@@ -66,7 +66,7 @@ final class FeedbackPresenter {
         let session = FeedbackSession(screenshot: screenshot, config: config)
 
         let host = UIHostingController(rootView: FeedbackView(session: session) { [weak self] outcome in
-            self?.dismiss(restoring: previousKeyWindow, outcome: outcome)
+            self?.dismiss(restoring: previousKeyWindow, outcome: outcome, notice: session.recordingNotice)
         })
         host.modalPresentationStyle = .fullScreen
 
@@ -81,7 +81,7 @@ final class FeedbackPresenter {
         root.present(host, animated: true)
     }
 
-    private func dismiss(restoring previousKeyWindow: UIWindow?, outcome: FeedbackOutcome) {
+    private func dismiss(restoring previousKeyWindow: UIWindow?, outcome: FeedbackOutcome, notice: String?) {
         guard let window else {
             return
         }
@@ -94,11 +94,12 @@ final class FeedbackPresenter {
             }
             switch outcome {
             case .sent:
-                self?.sentConfirmation.show(in: scene, message: "Feedback sent", systemImage: "checkmark.circle.fill")
+                self?.sentConfirmation.show(in: scene, message: ["Feedback sent", notice].compactMap { $0 }.joined(separator: "\n"),
+                                            systemImage: "checkmark.circle.fill")
             case .queued:
                 self?.sentConfirmation.show(
                     in: scene,
-                    message: "Saved. It will be sent when you are online.",
+                    message: ["Saved. It will be sent when you are online.", notice].compactMap { $0 }.joined(separator: "\n"),
                     systemImage: "tray.and.arrow.up.fill"
                 )
             case .cancelled:

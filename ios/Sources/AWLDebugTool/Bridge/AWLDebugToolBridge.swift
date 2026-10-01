@@ -27,4 +27,29 @@ final class AWLDebugToolBridge: NSObject {
             DebugPanelPresenter.shared.close(completion: completion)
         }
     }
+
+    /// `true` when the current or the previous run's screen recording has frames.
+    @objc static var hasRecording: Bool {
+        let storage = RecordingStorage()
+        return [storage.currentFolder, storage.lastFolder].contains { RecordingStorage.newestFrameDate(in: $0) != nil }
+    }
+
+    /// Calls `completion` on the main thread with `recording.mp4`, `frames.jpg` and `timeline.md` of the current
+    /// recording, or of the previous run's without current frames. All `nil` without frames or when encoding fails;
+    /// the flag is `true` when the video stayed too large for the service even at half resolution.
+    @objc(feedbackRecording:)
+    static func feedbackRecording(_ completion: @escaping (Data?, Data?, Data?, Bool) -> Void) {
+        Task { @MainActor in
+            guard let folder = ScreenRecorder.shared.feedbackRecordingFolder() else {
+                completion(nil, nil, nil, false)
+                return
+            }
+            let frames = RecordingStorage.timedFrames(in: folder)
+            let events = RecordingStorage.events(in: folder)
+            let parts = await Task.detached(priority: .userInitiated) {
+                await RecordingExport.feedbackParts(frames: frames, events: events)
+            }.value
+            completion(parts.video, parts.frames, parts.timeline, parts.isTooLarge)
+        }
+    }
 }

@@ -2,8 +2,6 @@
 //  ScreenRecorderModel.swift
 //  AWLDebugTool
 //
-//  Created by Yanis Plumit on 15.09.2025.
-//
 
 import SwiftUI
 
@@ -91,7 +89,7 @@ public class ScreenRecorderModel: ObservableObject {
     @MainActor
     private func export(folder: URL) {
         isExportingVideo = true
-        ScreenRecorder.shared.exportVideo(folder: folder) { [weak self] hasFrames in
+        ScreenRecorder.shared.exportZip(folder: folder) { [weak self] hasFrames in
             self?.isExportingVideo = false
             self?.isRecordingEmpty = !hasFrames
         }

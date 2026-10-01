@@ -29,3 +29,23 @@ struct RecordingActivity {
         return true
     }
 }
+
+/// Keyboard rows for the timeline: one per change, and only for the app's keyboard. UIKit can report the keyboard
+/// showing or hiding twice in a row, and the keyboard of the SDK's own windows (e.g. the feedback form) is not the app
+/// being used, so it takes no frames either.
+struct RecordingKeyboard {
+    /// `true` while the keyboard is up for the app, `false` while it is up for an SDK window, `nil` while it is hidden.
+    private var isUpForApp: Bool?
+
+    /// The row for the keyboard about to show, if any.
+    mutating func willShow(forApp: Bool) -> String? {
+        defer { isUpForApp = forApp }
+        return forApp && isUpForApp != true ? "keyboard shown" : nil
+    }
+
+    /// The row for the keyboard that was hidden, if any.
+    mutating func didHide() -> String? {
+        defer { isUpForApp = nil }
+        return isUpForApp == true ? "keyboard hidden" : nil
+    }
+}

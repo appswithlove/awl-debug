@@ -173,6 +173,32 @@ final class ScreenRecordingTests: XCTestCase {
         XCTAssertFalse(ScreenRecorder.isTypingInApp(Notification(name: UITextField.textDidChangeNotification, object: UITextField())))
     }
 
+    func testKeyboardCountsForAppWindowsOnly() {
+        let appWindow = UIWindow(frame: CGRect(x: 0, y: 0, width: 300, height: 400))
+        let feedbackWindow = UIWindow(frame: CGRect(x: 0, y: 0, width: 300, height: 400))
+        feedbackWindow.accessibilityIdentifier = RecordingFrameRenderer.sdkWindowIdentifier
+
+        XCTAssertTrue(ScreenRecorder.isKeyboardForApp(keyWindow: appWindow))
+        XCTAssertFalse(ScreenRecorder.isKeyboardForApp(keyWindow: feedbackWindow),
+                       "the feedback form's keyboard is no activity and no timeline row")
+        XCTAssertTrue(ScreenRecorder.isKeyboardForApp(keyWindow: nil))
+    }
+
+    func testKeyboardRowsOnlyForTheAppsKeyboardOncePerChange() {
+        var keyboard = RecordingKeyboard()
+        // UIKit reports the app's keyboard showing and hiding twice.
+        XCTAssertEqual(keyboard.willShow(forApp: true), "keyboard shown")
+        XCTAssertNil(keyboard.willShow(forApp: true))
+        XCTAssertEqual(keyboard.didHide(), "keyboard hidden")
+        XCTAssertNil(keyboard.didHide())
+        // The feedback form's keyboard: no row, also when it hides twice.
+        XCTAssertNil(keyboard.willShow(forApp: false))
+        XCTAssertNil(keyboard.willShow(forApp: false))
+        XCTAssertNil(keyboard.didHide())
+        XCTAssertNil(keyboard.didHide())
+        XCTAssertEqual(keyboard.willShow(forApp: true), "keyboard shown")
+    }
+
     // AK-REC-5: after a crash the frames of the previous run are the last recording.
     func testRotationKeepsThePreviousRunAsLastRecording() throws {
         let root = FileManager.default.temporaryDirectory.appending(path: "recording-\(UUID().uuidString)")
