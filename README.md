@@ -1,15 +1,21 @@
 # awl-debug
 
-In-app debug tools for Android and iOS test builds: logs, network traffic, performance, permissions, deeplinks, session tokens and more. Release builds never contain the tool.
+In-app debug panel for Android and iOS test builds: logs, network traffic, performance, permissions, accessibility, deeplinks, session tokens, screen recording and more. Both platforms have the same modules and are configured the same way. Store builds never contain the tool.
 
 Made by [Apps with love](https://appswithlove.com).
 
-| Platform | Location | Install |
-|---|---|---|
-| Android | [`android/`](android/README.md) | Maven Central `com.appswithlove.debug:debug` + `debug-no-op` |
-| iOS | [`ios/`](ios/README.md) | Swift Package Manager, this repository's URL, product `AWLDebugTool` |
+| Platform | Documentation | Install | Store builds |
+|---|---|---|---|
+| Android | [`android/`](android/README.md) | Maven Central, `com.appswithlove.debug:debug` for test builds and `debug-no-op` for release builds | `debug-no-op` has the same API and no implementation |
+| iOS | [`ios/`](ios/README.md) | Swift Package Manager with this repository's URL, product `AWLDebugTool` | Code behind `#if AWL_DEBUG`, the dynamic framework removed by a build phase |
 
-> Version 2.0 unifies both platforms in this repository and is in development on `release/2.0`.
+Other libraries can add rows to the panel and read its logs, requests and screen recording through the extension API, described in both platform READMEs.
+
+## Versions
+
+Android and iOS share one version number; changes are in the [changelog](CHANGELOG.md). Version 2.0.0 is not released yet. Until then, iOS apps use the branch `release/2.0`, and Android apps publish a snapshot from this repository to their local Maven repository, see [Local development](android/README.md#local-development).
+
+Upgrade guides: [Android from 0.6](android/README.md#migrating-from-06) and [iOS from AWLDebugTool 1.x](ios/README.md#migrating-from-awldebugtool-1x).
 
 ## License
 
