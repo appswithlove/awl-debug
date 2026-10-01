@@ -43,6 +43,7 @@ import com.appswithlove.debug.api.bridge.AwlDebugInternalApi
 import com.appswithlove.debug.api.bridge.DevBridge
 import com.appswithlove.debug.api.bridge.FeedbackEntry
 import com.appswithlove.debug.feedback.attachments.captureLogsAttachment
+import com.appswithlove.debug.feedback.attachments.hasRecordingToAttach
 import com.appswithlove.debug.feedback.queue.FeedbackQueue
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -59,6 +60,8 @@ internal class FeedbackDraft(
     val idempotencyKey: String = UUID.randomUUID().toString(),
     /** `logs.txt`, `null` without the debug panel. */
     val logs: ByteArray? = null,
+    /** The debug panel has a screen recording to attach. */
+    val hasRecording: Boolean = false,
 )
 
 internal class FeedbackController(
@@ -86,6 +89,7 @@ internal class FeedbackController(
                 screenshot = screenshot,
                 metadataJson = { reporter -> buildMetadataJson(currentConfig, device, extra, timestamp, reporter) },
                 logs = captureLogsAttachment(currentConfig, device, timestamp),
+                hasRecording = hasRecordingToAttach(),
             )
         }
     }

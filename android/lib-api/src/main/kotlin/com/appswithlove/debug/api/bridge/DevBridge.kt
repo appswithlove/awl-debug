@@ -1,6 +1,7 @@
 package com.appswithlove.debug.api.bridge
 
 import com.appswithlove.debug.api.DevTrigger
+import java.io.File
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -23,6 +24,17 @@ object DevBridge {
      */
     val feedbackLauncher: MutableStateFlow<FeedbackEntry?> = MutableStateFlow(null)
 
+    /** `true` while the panel keeps frames of this or the previous app run. */
+    @Volatile
+    var hasRecording: (() -> Boolean)? = null
+
+    /**
+     * Prepares the screen recording for a report: this run's frames, or the previous run's when this one has none.
+     * Returns `null` without frames. Takes a while, call it off the main thread.
+     */
+    @Volatile
+    var lastRecording: (suspend () -> RecordingExport?)? = null
+
     /** Room left in the 1 MiB `logs.txt` for the header that the feedback artifact writes. */
     const val LOGS_ATTACHMENT_BODY_MAX_BYTES: Int = 1024 * 1024 - 4 * 1024
 }
@@ -39,4 +51,15 @@ class FeedbackEntry(
     val triggers: Set<DevTrigger>,
     val pendingCount: StateFlow<Int>,
     val start: () -> Unit,
+)
+
+/**
+ * Files of a recording for the feedback parts `video`, `frames` and `timeline`. [video] is `null` when it stayed above
+ * 25 MB even at half size; the other files are then `null` too.
+ */
+@AwlDebugInternalApi
+class RecordingExport(
+    val video: File?,
+    val frames: File?,
+    val timeline: File?,
 )

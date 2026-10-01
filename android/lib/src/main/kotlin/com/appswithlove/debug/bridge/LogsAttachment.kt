@@ -18,7 +18,7 @@ internal const val ATTACHMENT_MAX_LOGS = 500
 internal const val ATTACHMENT_MAX_REQUESTS = 50
 private const val INDENT = "    "
 
-/** Lets the feedback artifact attach logs and requests as the body of `logs.txt` (contract "Anhang logs"). */
+/** Lets the feedback artifact attach logs and requests as the body of `logs.txt`. */
 @OptIn(AwlDebugInternalApi::class)
 internal object LogsAttachment {
     fun register() {

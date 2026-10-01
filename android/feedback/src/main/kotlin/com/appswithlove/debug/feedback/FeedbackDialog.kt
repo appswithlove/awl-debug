@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.speech.RecognizerIntent
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -71,6 +72,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
 import androidx.core.view.WindowCompat
+import com.appswithlove.debug.feedback.attachments.captureRecordingAttachment
 import com.appswithlove.debug.feedback.attachments.logsPart
 import com.appswithlove.debug.feedback.queue.FeedbackQueue
 import com.appswithlove.debug.feedback.queue.SubmitResult
@@ -112,6 +114,9 @@ internal fun FeedbackDialog(
     var sendState by remember(draft) { mutableStateOf<SendState>(SendState.Idle) }
     var speechHint by remember(draft) { mutableStateOf<Int?>(null) }
     var attachLogs by remember(draft) { mutableStateOf(config.attachLogsByDefault) }
+    var attachRecording by remember(draft) { mutableStateOf(false) }
+    val appContext = LocalContext.current.applicationContext
+    val videoTooLargeMessage = stringResource(R.string.feedback_video_too_large)
     val isSending = sendState == SendState.Sending
     val keyboard = remember(draft) { KeyboardDismissal() }
     val savedReporter = remember(draft) { reporterStore.load(fallback = config.reporter) }
@@ -158,6 +163,8 @@ internal fun FeedbackDialog(
             val image = withContext(Dispatchers.Default) {
                 encodeMarkedScreenshot(draft.screenshot.asAndroidBitmap(), markup.marks.toList())
             }
+            val recording = if (attachRecording) captureRecordingAttachment() else null
+            if (recording?.isVideoTooLarge == true) Toast.makeText(appContext, videoTooLargeMessage, Toast.LENGTH_LONG).show()
             val report = FeedbackReport(
                 idempotencyKey = draft.idempotencyKey,
                 endpoint = config.endpoint,
@@ -167,7 +174,7 @@ internal fun FeedbackDialog(
                 parts = listOfNotNull(
                     FeedbackPart("screenshot", image.fileName, image.mimeType, image.bytes),
                     draft.logs?.takeIf { attachLogs }?.let(::logsPart),
-                ),
+                ) + recording?.parts.orEmpty(),
             )
             when (val result = queue.submit(report)) {
                 SubmitResult.Sent -> onSent()
@@ -280,6 +287,14 @@ internal fun FeedbackDialog(
                             checked = attachLogs,
                             enabled = !isSending,
                             onCheckedChange = { attachLogs = it },
+                        )
+                    }
+                    if (draft.hasRecording) {
+                        AttachmentSwitch(
+                            label = stringResource(R.string.feedback_attach_recording),
+                            checked = attachRecording,
+                            enabled = !isSending,
+                            onCheckedChange = { attachRecording = it },
                         )
                     }
                     // Live regions: TalkBack announces hints and errors when they appear.
