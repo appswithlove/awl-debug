@@ -269,6 +269,8 @@ enum LS {
         static let showPerformanceOverlay = "Show performance overlay"
         static let measure = "Measure performance"
         static let cpu = "CPU"
+        static let ram = "RAM"
+        static let collecting = "Collecting data..."
         static let battery = "Battery"
         static let batteryUnknown = "Battery: n/a"
         static let freeze = "UI freeze"

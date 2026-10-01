@@ -24,8 +24,11 @@ struct AppLogsView: View {
         }
         .overlay {
             if store.filteredEntries.isEmpty {
-                Text(LS.AppLogs.empty)
-                    .foregroundStyle(.secondary)
+                if store.config.readOSLog && !store.hasReadOSLog {
+                    ProgressView()
+                } else {
+                    PanelEmptyState(text: LS.AppLogs.empty, systemImage: "text.alignleft")
+                }
             }
         }
         .searchable(text: $store.searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: LS.AppLogs.search)

@@ -36,3 +36,19 @@ struct PerformanceView: View {
         .panelPage(LS.Performance.performanceSectionTitle)
     }
 }
+
+/// A value before its first sample: title and "Collecting data...".
+struct CollectingDataRow: View {
+    let title: String
+    let systemImage: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Label(title, systemImage: systemImage)
+            Text(LS.Performance.collecting)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
