@@ -246,6 +246,11 @@ final class ExtensionsTests: XCTestCase {
             storage.write(try XCTUnwrap(image.jpegData(compressionQuality: 0.6)),
                           capturedAt: start.addingTimeInterval(Double(index) / 3), maxFrames: 100)
         }
+        let wasRecordingOn = ExtensionState.shared.isRecordingOn
+        defer { ExtensionState.shared.setRecordingOn(wasRecordingOn) }
+        ExtensionState.shared.setRecordingOn(false)
+        XCTAssertFalse(AWLDebugExtensions.hasRecording, "Frames left after switching recording off do not count")
+        ExtensionState.shared.setRecordingOn(true)
         XCTAssertTrue(AWLDebugExtensions.hasRecording)
 
         let export = await AWLDebugExtensions.exportRecording(.init(lastSeconds: 1, maxTimelineBytes: 256 * 1024))

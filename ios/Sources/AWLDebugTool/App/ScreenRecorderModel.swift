@@ -69,6 +69,7 @@ public class ScreenRecorderModel: ObservableObject {
 
     @MainActor
     func startIfNeed() {
+        ExtensionState.shared.setRecordingOn(isOn)
         if isOn {
             ScreenRecorder.shared.start(maxDurationSeconds: maxVideoDuration.rawValue)
         } else {

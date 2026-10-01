@@ -288,7 +288,7 @@ final class MyModule {
 | `observeNetwork(_:)` | Every request the Network module captures, redacted, on a background queue in the order they finish. Works before `start`. |
 | `networkSnapshot(maxEntries:)` | The newest requests of the Network module, ordered by start time. |
 | `logSnapshot(maxEntries:)` | The newest entries of the Logs module with its level and search filter applied, oldest first, plus the active filter. `nil` before `start`. |
-| `hasRecording`, `exportRecording(_:)` | The current screen recording, or the previous run's, as `recording.mp4`, `frames.jpg` and `timeline.md`. Options: `lastSeconds`, `maxVideoBytes` (too large: once more at half size, then `isVideoTooLarge`), `maxTimelineBytes`. |
+| `hasRecording`, `exportRecording(_:)` | The current screen recording, or the previous run's (`hasRecording` only while screen recording is switched on), as `recording.mp4`, `frames.jpg` and `timeline.md`. Options: `lastSeconds`, `maxVideoBytes` (too large: once more at half size, then `isVideoTooLarge`), `maxTimelineBytes`. |
 | `closePanel()` | Closes the panel and returns once it is gone, for example before a screenshot. |
 | `excludeFromCapture(_:)` | Marks the module's own request, so the Network module doesn't capture it. |
 | `keepOnClearAppData(userDefaultsPrefix:)` | Clear App Data keeps these `UserDefaults.standard` keys. |
