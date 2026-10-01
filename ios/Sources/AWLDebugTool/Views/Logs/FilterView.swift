@@ -2,8 +2,6 @@
 //  FilterView.swift
 //
 //
-//  Created by Hrvoje Hajduković on 27.06.2024..
-//
 
 import SwiftUI
 
@@ -158,31 +156,47 @@ struct FilterView: View {
     
     // MARK: - Filter Subviews
     
+    /// The whole header toggles the group; VoiceOver reads it as one button with its state.
     @ViewBuilder
     private func FilterHeader(title: String, isExpanded: Bool, action: @escaping () -> Void) -> some View {
-        HStack {
-            Text(title)
-            Spacer()
-            Button {
-                action()
-            } label: {
+        Button(action: action) {
+            HStack {
+                Text(title)
+                Spacer()
                 Image.with(icon: isExpanded ? .chevronUp : .chevronDown)
+                    .foregroundStyle(.tint)
                     .padding(6)
+                    .accessibilityHidden(true)
             }
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(.isHeader)
+        .accessibilityValue(isExpanded ? LS.Buttons.expanded : LS.Buttons.collapsed)
     }
     
     @ViewBuilder
     private func ActionButtonsSection(deselectAction: @escaping () -> Void,
                                       selectAction: @escaping() -> Void) -> some View {
-        HStack {
-            Spacer()
-            ActionButton(title: LS.Buttons.deselectAllBtn) {
-                deselectAction()
+        ViewThatFits(in: .horizontal) {
+            HStack {
+                Spacer()
+                ActionButton(title: LS.Buttons.deselectAllBtn) {
+                    deselectAction()
+                }
+                ActionButton(title: LS.Buttons.selectAllBtn) {
+                    selectAction()
+                }
             }
-            ActionButton(title: LS.Buttons.selectAllBtn) {
-                selectAction()
+            VStack(alignment: .trailing) {
+                ActionButton(title: LS.Buttons.deselectAllBtn) {
+                    deselectAction()
+                }
+                ActionButton(title: LS.Buttons.selectAllBtn) {
+                    selectAction()
+                }
             }
+            .frame(maxWidth: .infinity, alignment: .trailing)
         }
         .padding(.vertical, 4)
     }

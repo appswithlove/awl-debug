@@ -2,8 +2,6 @@
 //  UserDefaultsView.swift
 //  
 //
-//  Created by Hrvoje Hajduković on 20.09.2025..
-//
 
 import SwiftUI
 
@@ -28,6 +26,7 @@ struct UserDefaultsView: View {
                             Spacer()
                             if selection.contains(area) {
                                 Image(systemName: "checkmark")
+                                    .accessibilityHidden(true)
                             }
                         }
                     }

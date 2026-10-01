@@ -39,7 +39,8 @@ struct FireDeeplinkView: View {
                         Text(LS.Deeplinks.fireNow)
                         Spacer()
                         Image(systemName: "bolt.fill")
-                            .foregroundColor(.blue)
+                            .foregroundStyle(.tint)
+                            .accessibilityHidden(true)
                     }
                 }
             } header: {
@@ -65,7 +66,8 @@ struct FireDeeplinkView: View {
                             ProgressView()
                         } else {
                             Image(systemName: "bell.fill")
-                                .foregroundColor(.orange)
+                                .foregroundStyle(.orange)
+                                .accessibilityHidden(true)
                         }
                     }
                 }
