@@ -18,7 +18,6 @@
 		0ED4400E2BAC9DD500B5D013 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0ED4400D2BAC9DD500B5D013 /* Preview Assets.xcassets */; };
 		CBC466692C2ACE4200B00AE2 /* AWLDebugTool in Frameworks */ = {isa = PBXBuildFile; productRef = CBC466682C2ACE4200B00AE2 /* AWLDebugTool */; };
 		CBCA0D1D2C2B52DB003605D4 /* AWLDebugTool in Frameworks */ = {isa = PBXBuildFile; productRef = CBCA0D1C2C2B52DB003605D4 /* AWLDebugTool */; };
-		A4F0FEED2E9A000100C0FFEE /* AWLDebugFeedback in Frameworks */ = {isa = PBXBuildFile; productRef = A4F0FEED2E9A000200C0FFEE /* AWLDebugFeedback */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -43,7 +42,6 @@
 			files = (
 				CBC466692C2ACE4200B00AE2 /* AWLDebugTool in Frameworks */,
 				CBCA0D1D2C2B52DB003605D4 /* AWLDebugTool in Frameworks */,
-				A4F0FEED2E9A000100C0FFEE /* AWLDebugFeedback in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -119,7 +117,6 @@
 			packageProductDependencies = (
 				CBC466682C2ACE4200B00AE2 /* AWLDebugTool */,
 				CBCA0D1C2C2B52DB003605D4 /* AWLDebugTool */,
-				A4F0FEED2E9A000200C0FFEE /* AWLDebugFeedback */,
 			);
 			productName = "AWLDebugTool-Example";
 			productReference = 0ED440022BAC9DD400B5D013 /* AWLDebugTool-Example.app */;
@@ -425,10 +422,6 @@
 		CBCA0D1C2C2B52DB003605D4 /* AWLDebugTool */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = AWLDebugTool;
-		};
-		A4F0FEED2E9A000200C0FFEE /* AWLDebugFeedback */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = AWLDebugFeedback;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

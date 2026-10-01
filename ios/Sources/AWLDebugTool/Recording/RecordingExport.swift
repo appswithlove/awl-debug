@@ -6,15 +6,6 @@ enum RecordingExport {
     static let framesFileName = "frames.jpg"
     static let timelineFileName = "timeline.md"
 
-    /// Limits of the feedback service: the last 60 s of active frames, video, contact sheet and timeline sizes.
-    static let feedbackMaxFrames = 60 * ScreenRecorder.framesPerSecond
-    static let maxVideoBytes = 25 * 1024 * 1024
-    static let maxFramesBytes = 5 * 1024 * 1024
-    static let maxTimelineBytes = 256 * 1024
-    static let feedbackOptions = AWLDebugRecordingExportOptions(lastSeconds: feedbackMaxFrames / ScreenRecorder.framesPerSecond,
-                                                                 maxVideoBytes: maxVideoBytes,
-                                                                 maxTimelineBytes: maxTimelineBytes)
-
     /// Encodes the newest `options.lastSeconds` of frames. Above `options.maxVideoBytes` once more at half resolution,
     /// then without any part; a longer timeline than `options.maxTimelineBytes` is left out. `nil` without a readable
     /// frame or when encoding fails.

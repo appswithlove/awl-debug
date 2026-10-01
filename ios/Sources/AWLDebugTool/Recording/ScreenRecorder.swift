@@ -130,7 +130,7 @@ final class ScreenRecorder: NSObject {
         }
     }
 
-    /// Typing in an app window. Typing in the SDK's own windows (e.g. the feedback form) is not the app being used,
+    /// Typing in an app window. Typing in the SDK's own windows (e.g. a form of an extension) is not the app being used,
     /// so it takes no frames of the screen below.
     static func isTypingInApp(_ notification: Notification) -> Bool {
         guard let window = (notification.object as? UIView)?.window else {
@@ -151,7 +151,7 @@ final class ScreenRecorder: NSObject {
         }
     }
 
-    /// The keyboard types into the key window. Typing a report in the SDK's own windows (e.g. the feedback form) is not
+    /// The keyboard types into the key window. Typing in the SDK's own windows (e.g. a form of an extension) is not
     /// the app being used: that keyboard takes no frames of the screen below and adds no timeline rows.
     static func isKeyboardForApp(keyWindow: UIWindow?) -> Bool {
         keyWindow.map(RecordingFrameRenderer.isAppWindow) ?? true

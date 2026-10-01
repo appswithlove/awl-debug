@@ -48,7 +48,6 @@ public class AWLDebugTool: ObservableObject {
         
         shared.networkLogger.start(config: config.network)
         ExtensionState.shared.markStarted()
-        RemoteReporting.shared.start(config: config.remoteReporting)
         Task { @MainActor in
             shared.appLogs.config = config.logs
         }

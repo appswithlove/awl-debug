@@ -2,7 +2,6 @@
 //  NetworkLog.swift
 //  AWLDebugTool
 //
-//  Created by Hrvoje Hajduković on 07.06.2023..
 //  Copyright © 2023 Apps with love. All rights reserved.
 //
 
@@ -39,5 +38,28 @@ struct NetworkLog: Codable, Identifiable {
         var truncated = false
         /// `false` for placeholders; only text bodies can be replayed with cURL.
         var isText = true
+    }
+}
+
+extension NetworkLog {
+    /// Short failure code for exports and extensions: `timeout`, `dns`, `tls`, `cancelled` or `connection`.
+    static func errorCode(for error: Error) -> String {
+        guard let urlError = error as? URLError else {
+            return "connection"
+        }
+        switch urlError.code {
+        case .timedOut:
+            return "timeout"
+        case .cannotFindHost, .dnsLookupFailed:
+            return "dns"
+        case .secureConnectionFailed, .serverCertificateHasBadDate, .serverCertificateUntrusted,
+             .serverCertificateHasUnknownRoot, .serverCertificateNotYetValid, .clientCertificateRejected,
+             .clientCertificateRequired, .appTransportSecurityRequiresSecureConnection:
+            return "tls"
+        case .cancelled:
+            return "cancelled"
+        default:
+            return "connection"
+        }
     }
 }

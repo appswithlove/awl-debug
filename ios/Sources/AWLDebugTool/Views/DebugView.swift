@@ -34,8 +34,6 @@ public struct DebugView: View {
             Form {
                 AboutView(isOnline: networkReachabilityManager.isConnected)
 
-                RemoteReportingView(state: RemoteReporting.shared.panel)
-
                 if VersionOverlayPresenter.shared.isAvailable {
                     Section {
                         Toggle(LS.VersionOverlay.toggle, isOn: $isVersionOverlayVisible)
@@ -45,12 +43,11 @@ public struct DebugView: View {
                     }
                 }
 
-                FeedbackEntryView()
-
+                // Sections of extensions (`AWLDebugExtensions.register`), directly below App Info.
                 ExtensionSectionsView(registry: .shared)
                 
-                // Fixed order, the same on Android: App-Info, Send feedback, Logs, Network, Performance, Permissions, Accessibility,
-                // Deeplinks, Session, FCM, Screen Recording, Clear App Data, Test Crashes, custom modules.
+                // Fixed order, the same on Android: App-Info, extension sections, Logs, Network, Performance, Permissions,
+                // Accessibility, Deeplinks, Session, FCM, Screen Recording, Clear App Data, Test Crashes, custom modules.
 
                 Section {
                     PanelModuleRow(title: LS.AppLogs.title, isActive: appLogs.isRecording) {

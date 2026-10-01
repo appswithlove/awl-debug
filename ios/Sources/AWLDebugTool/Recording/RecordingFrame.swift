@@ -18,7 +18,7 @@ struct RecordingTouch {
 }
 
 enum RecordingFrameRenderer {
-    /// `accessibilityIdentifier` of the SDK's own windows (panel, feedback); they are never recorded. The version overlay
+    /// `accessibilityIdentifier` of the SDK's own windows (panel, windows of extensions); they are never recorded. The version overlay
     /// is recorded, so the frames show which build it was.
     static let sdkWindowIdentifier = "AWLDebugWindow"
     static let jpegQuality: CGFloat = 0.6

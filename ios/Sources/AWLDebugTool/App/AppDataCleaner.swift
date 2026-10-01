@@ -23,8 +23,8 @@ struct AppDataCleaner {
         static let defaultSelection: Set<Area> = [.userDefaults]
     }
 
-    /// Keys of the tool's own settings in `UserDefaults.standard`, including the reporter of AWLDebugFeedback.
-    static let toolKeyPrefixes = ["AWLDebugTool", "AWLDebugFeedback", "DebugView."]
+    /// Keys of the tool's own settings in `UserDefaults.standard`; extensions add theirs with `keepOnClearAppData`.
+    static let toolKeyPrefixes = ["AWLDebugTool", "DebugView."]
     /// The tool's own folders inside the app's directories.
     static let toolDirectoryNames: Set<String> = ["AWLDebug", "AWLDebugTool"]
 

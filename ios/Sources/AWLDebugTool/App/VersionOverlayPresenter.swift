@@ -29,10 +29,10 @@ final class VersionOverlayPresenter {
         guard window == nil, let scene = scene ?? Self.activeScene() else {
             return
         }
-        // Not tagged as one of the SDK's windows: like the app, it is in screen recordings and feedback screenshots,
+        // Not tagged as one of the SDK's windows: like the app, it is in screen recordings and screenshots of extensions,
         // so they show which build it was.
         let window = PassthroughWindow(windowScene: scene)
-        // Above the app and its presentations, below the debug panel and the feedback tool.
+        // Above the app and its presentations, below the debug panel and the SDK's other windows.
         window.windowLevel = .statusBar
         window.isUserInteractionEnabled = false
         let host = UIHostingController(rootView: VersionOverlayView())
