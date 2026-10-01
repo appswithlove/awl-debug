@@ -3,12 +3,12 @@
 //  AWLDebugTool-Example
 //
 
-#if DEBUG || STAGING
+#if AWL_DEBUG
 import AWLDebugTool
 #endif
 import SwiftUI
 
-#if DEBUG || STAGING
+#if AWL_DEBUG
 let accessTokenProvider = AWLTokenProvider(
     label: "Access Token",
     token: { await AuthTestEngine.shared.accessToken },

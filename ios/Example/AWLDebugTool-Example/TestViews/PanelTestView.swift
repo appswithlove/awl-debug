@@ -3,7 +3,7 @@
 //  AWLDebugTool-Example
 //
 
-#if DEBUG || STAGING
+#if AWL_DEBUG
 import AWLDebugTool
 #endif
 import SwiftUI
@@ -12,7 +12,7 @@ import SwiftUI
 struct PanelTestView: View {
     @State private var isShowingSheet = false
     @State private var isShowingCover = false
-#if DEBUG || STAGING
+#if AWL_DEBUG
     @State private var isActivated = AWLDebugTool.isActivated
     @State private var isDemoSectionShown = DemoSection.isShown
 #endif
@@ -22,7 +22,7 @@ struct PanelTestView: View {
             OpenPanelButton()
             Button("Show sheet") { isShowingSheet = true }
             Button("Show full-screen cover") { isShowingCover = true }
-#if DEBUG || STAGING
+#if AWL_DEBUG
             Toggle("Gestures open the panel", isOn: $isActivated)
                 .onChange(of: isActivated) { AWLDebugTool.isActivated = $0 }
                 .padding(.horizontal)
@@ -55,7 +55,7 @@ private struct ModalContent: View {
     }
 }
 
-#if DEBUG || STAGING
+#if AWL_DEBUG
 /// A section on the panel's start page, added through `AWLDebugExtensions` the way a separate package would.
 @MainActor
 private enum DemoSection {
@@ -101,7 +101,7 @@ private enum DemoSection {
 private struct OpenPanelButton: View {
     var body: some View {
         Button("Open debug panel") {
-#if DEBUG || STAGING
+#if AWL_DEBUG
             AWLDebugTool.open()
 #endif
         }

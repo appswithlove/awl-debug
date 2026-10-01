@@ -7,7 +7,7 @@ import Security
 import SwiftUI
 import UserNotifications
 
-#if DEBUG || STAGING
+#if AWL_DEBUG
 import AWLDebugTool
 #endif
 
@@ -22,7 +22,7 @@ class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
     }
 
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
-#if DEBUG || STAGING
+#if AWL_DEBUG
         if AWLDebugTool.processDeeplinkNotificationIfNeeded(response) {
             completionHandler()
             return
@@ -40,7 +40,7 @@ struct AWLDebugTool_ExampleApp: App {
 
     init() {
         UNUserNotificationCenter.current().delegate = NotificationDelegate.shared
-#if DEBUG || STAGING
+#if AWL_DEBUG
         AWLDebugTool.start(
             deeplinks: .init(
                 deeplinks: [
@@ -67,7 +67,7 @@ struct AWLDebugTool_ExampleApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
-#if DEBUG || STAGING
+#if AWL_DEBUG
                 .includeDebugTool(customView: {
                     DebugPanelView()
                 })
@@ -78,7 +78,7 @@ struct AWLDebugTool_ExampleApp: App {
 
 // MARK: - Debug panel
 
-#if DEBUG || STAGING
+#if AWL_DEBUG
 class DebugPanelModel: ObservableObject {
     static let shared = DebugPanelModel()
 

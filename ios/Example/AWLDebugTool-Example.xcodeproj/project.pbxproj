@@ -17,8 +17,22 @@
 		0ED4400A2BAC9DD500B5D013 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0ED440092BAC9DD500B5D013 /* Assets.xcassets */; };
 		0ED4400E2BAC9DD500B5D013 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0ED4400D2BAC9DD500B5D013 /* Preview Assets.xcassets */; };
 		CBC466692C2ACE4200B00AE2 /* AWLDebugTool in Frameworks */ = {isa = PBXBuildFile; productRef = CBC466682C2ACE4200B00AE2 /* AWLDebugTool */; };
-		CBCA0D1D2C2B52DB003605D4 /* AWLDebugTool in Frameworks */ = {isa = PBXBuildFile; productRef = CBCA0D1C2C2B52DB003605D4 /* AWLDebugTool */; };
+		A1B2C3D40000000000000003 /* AWLDebugTool in Embed Frameworks */ = {isa = PBXBuildFile; productRef = CBC466682C2ACE4200B00AE2 /* AWLDebugTool */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 /* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		A1B2C3D40000000000000004 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				A1B2C3D40000000000000003 /* AWLDebugTool in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		0931C8C22FF3FDF3006DA18A /* ScreenRecordingTestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenRecordingTestView.swift; sourceTree = "<group>"; };
@@ -26,13 +40,12 @@
 		0931C8C62FF3FFD6006DA18A /* FactView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FactView.swift; sourceTree = "<group>"; };
 		A1B2C3D40000000000000001 /* PanelTestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PanelTestView.swift; sourceTree = "<group>"; };
 		0931C8C92FF40073006DA18A /* AuthTestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthTestView.swift; sourceTree = "<group>"; };
-		0ED440022BAC9DD400B5D013 /* AWLDebugTool-Example.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "AWLDebugTool-Example.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		0ED440022BAC9DD400B5D013 /* DebugExample.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DebugExample.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		0ED440052BAC9DD400B5D013 /* AWLDebugTool_ExampleApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AWLDebugTool_ExampleApp.swift; sourceTree = "<group>"; };
 		0ED440072BAC9DD400B5D013 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		0ED440092BAC9DD500B5D013 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		0ED4400B2BAC9DD500B5D013 /* AWLDebugTool_Example.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = AWLDebugTool_Example.entitlements; sourceTree = "<group>"; };
 		0ED4400D2BAC9DD500B5D013 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
-		0ED440142BAC9E6800B5D013 /* AWLDebugTool */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = AWLDebugTool; path = ../../../AWLDebugTool; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -41,7 +54,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				CBC466692C2ACE4200B00AE2 /* AWLDebugTool in Frameworks */,
-				CBCA0D1D2C2B52DB003605D4 /* AWLDebugTool in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -71,7 +83,7 @@
 		0ED440032BAC9DD400B5D013 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				0ED440022BAC9DD400B5D013 /* AWLDebugTool-Example.app */,
+				0ED440022BAC9DD400B5D013 /* DebugExample.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -92,7 +104,6 @@
 		0ED4400C2BAC9DD500B5D013 /* Preview Content */ = {
 			isa = PBXGroup;
 			children = (
-				0ED440142BAC9E6800B5D013 /* AWLDebugTool */,
 				0ED4400D2BAC9DD500B5D013 /* Preview Assets.xcassets */,
 			);
 			path = "Preview Content";
@@ -108,6 +119,8 @@
 				0ED43FFE2BAC9DD400B5D013 /* Sources */,
 				0ED43FFF2BAC9DD400B5D013 /* Frameworks */,
 				0ED440002BAC9DD400B5D013 /* Resources */,
+				A1B2C3D40000000000000004 /* Embed Frameworks */,
+				A1B2C3D40000000000000005 /* Remove the AWL debug SDK from store builds */,
 			);
 			buildRules = (
 			);
@@ -116,10 +129,9 @@
 			name = "AWLDebugTool-Example";
 			packageProductDependencies = (
 				CBC466682C2ACE4200B00AE2 /* AWLDebugTool */,
-				CBCA0D1C2C2B52DB003605D4 /* AWLDebugTool */,
 			);
 			productName = "AWLDebugTool-Example";
-			productReference = 0ED440022BAC9DD400B5D013 /* AWLDebugTool-Example.app */;
+			productReference = 0ED440022BAC9DD400B5D013 /* DebugExample.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -169,6 +181,28 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		A1B2C3D40000000000000005 /* Remove the AWL debug SDK from store builds */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Remove the AWL debug SDK from store builds";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/bash;
+			shellScript = "# Keeps the AWL debug SDK out of configurations without AWL_DEBUG (store builds), see ios/README.md.\n[[ \" ${OTHER_SWIFT_FLAGS:-} \" == *\" -DAWL_DEBUG \"* ]] && exit 0\ncd \"${TARGET_BUILD_DIR:?}/${WRAPPER_NAME:?}\" || exit 1\n# The framework, plus the package's resource bundle that Xcode copies to the app's root.\nrm -rf Frameworks/AWLDebugTool.framework AWLDebugTool_AWLDebugTool.bundle\nif otool -L \"${EXECUTABLE_NAME:?}\" | grep -q AWLDebug; then\n    echo \"error: the store build still links the AWL debug SDK\"; exit 1\nfi\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		0ED43FFE2BAC9DD400B5D013 /* Sources */ = {
@@ -316,7 +350,9 @@
 				DEVELOPMENT_TEAM = 9F6U4U3S57;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "AWL Debug";
 				INFOPLIST_KEY_NSCameraUsageDescription = "App need permission for camera";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
@@ -333,8 +369,9 @@
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.3;
 				MARKETING_VERSION = 1.0;
+				OTHER_SWIFT_FLAGS = "$(inherited) -DAWL_DEBUG";
 				PRODUCT_BUNDLE_IDENTIFIER = "com.appswithlove.AWLDebugTool-Example";
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = DebugExample;
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -356,7 +393,9 @@
 				DEVELOPMENT_TEAM = 9F6U4U3S57;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "AWL Debug";
 				INFOPLIST_KEY_NSCameraUsageDescription = "App need permission for camera";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
@@ -373,8 +412,12 @@
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.3;
 				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-Wl,-dead_strip_dylibs",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = "com.appswithlove.AWLDebugTool-Example";
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = DebugExample;
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -416,10 +459,6 @@
 
 /* Begin XCSwiftPackageProductDependency section */
 		CBC466682C2ACE4200B00AE2 /* AWLDebugTool */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = AWLDebugTool;
-		};
-		CBCA0D1C2C2B52DB003605D4 /* AWLDebugTool */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = AWLDebugTool;
 		};
