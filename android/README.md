@@ -31,6 +31,7 @@ Made by [Apps with love](https://appswithlove.com).
   - [Kermit integration](#kermit-integration)
   - [Activate and deactivate](#activate-and-deactivate)
   - [Feedback](#feedback)
+  - [Remote reporting](#remote-reporting)
 - [Local development](#local-development)
 - [Releasing](#releasing)
 - [License](#license)
@@ -485,6 +486,39 @@ Start a report from your own UI with `AwlFeedback.start()`, or place `FeedbackLa
 | `reporter` | `null` | `FeedbackReporter(name, email)` prefills the reporter. Without it the first report asks for a name (email optional); "Sent as {name}" with "Change" afterwards. Needs a service that accepts `reporter` |
 
 A `null` config passes the content through and `FeedbackLauncher` shows "Feedback not configured", so builds without endpoint or key still work.
+
+### Remote reporting
+
+Records sessions, the requests captured by `DevHttpLogInterceptor` and a performance sample every 5 s (CPU, RAM, battery, longest frame) for the feedback service, so problems show up across test devices without anyone exporting logs. Start it early, without Compose:
+
+```kotlin
+class MyApplication : Application() {
+    override fun onCreate() {
+        super.onCreate()
+        AwlDebug.startRemoteReporting(
+            this,
+            RemoteReportingConfig(
+                endpoint = BuildConfig.FEEDBACK_ENDPOINT,
+                appKey = BuildConfig.FEEDBACK_APP_KEY,
+                environment = BuildConfig.FLAVOR,
+                distribution = AwlDistribution.Internal,
+            ),
+        )
+    }
+}
+
+AwlDebug.setUserIdentifier(user.id) // after login, null after logout; only a SHA-256 hash leaves the device
+AwlDebug.flushReports()
+```
+
+| Parameter | Default | Description |
+|---|---|---|
+| `distribution` | required | With `AwlDistribution.Store` nothing is recorded or sent |
+| `captureBodies` | `false` | Also send captured request and response bodies |
+| `maxBodyBytes` | `65536` | Bodies are cut off after this many bytes (at most 65536) |
+| `onlyOnUnmeteredNetwork` | `false` | Only send over unmetered networks |
+
+A session starts with the app in the foreground and ends when it goes to the background; back within 30 minutes, the same session continues. Data is buffered in `files/awl-debug/reporting/` (at most 10 MB, oldest entries dropped first) and packed into batches of up to 2000 requests and 2000 samples. Values are redacted as in the Network module, bodies are off by default, and the SDK's own requests to the service are never recorded. The no-op artifact has the same functions and does nothing.
 
 ## Local development
 
