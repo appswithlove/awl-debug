@@ -7,6 +7,7 @@ import com.appswithlove.debug.ui.dev.log.LogCollector
 import com.appswithlove.debug.ui.dev.log.LogEntry
 import com.appswithlove.debug.ui.dev.network.NetworkCollector
 import com.appswithlove.debug.ui.dev.network.NetworkEntry
+import com.appswithlove.debug.ui.dev.network.networkErrorCode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
@@ -110,23 +111,7 @@ private fun NetworkEntry.attachmentText(formatter: SimpleDateFormat): String = b
         .append('\n')
     requestHeaders.forEach { (name, value) -> append(INDENT).append("> ").append(name.lowercase()).append(": ").append(value.clean()).append('\n') }
     responseHeaders.forEach { (name, value) -> append(INDENT).append("< ").append(name.lowercase()).append(": ").append(value.clean()).append('\n') }
-    if (isFailed) append(INDENT).append("! ").append(networkErrorCode(error)).append('\n')
-}
-
-/**
- * Short error code for a failed request, as in the session batch (`timeout`, `dns`, `tls`, `cancelled`,
- * `connection`). [error] is the `toString()` of the exception, so it starts with the class name.
- */
-internal fun networkErrorCode(error: String?): String {
-    val type = error?.substringBefore(':')?.trim().orEmpty()
-    val message = error?.substringAfter(':', "")?.trim().orEmpty()
-    return when {
-        type.endsWith("SocketTimeoutException") || type.endsWith("InterruptedIOException") && message == "timeout" -> "timeout"
-        type.endsWith("UnknownHostException") -> "dns"
-        type.startsWith("javax.net.ssl.") || type.contains("SSL") -> "tls"
-        message.equals("Canceled", ignoreCase = true) -> "cancelled"
-        else -> "connection"
-    }
+    if (isFailed) append(INDENT).append("! ").append(errorCode ?: networkErrorCode(error)).append('\n')
 }
 
 /** One line ending, no NUL bytes: the service rejects `logs.txt` with NUL bytes. */

@@ -182,6 +182,152 @@ public final class com/appswithlove/debug/api/bridge/RecordingExport {
 	public final fun getVideo ()Ljava/io/File;
 }
 
+public final class com/appswithlove/debug/api/extension/AwlDebugExtensions {
+	public static final field INSTANCE Lcom/appswithlove/debug/api/extension/AwlDebugExtensions;
+	public final fun addNetworkListener (Lkotlin/jvm/functions/Function1;)Ljava/lang/AutoCloseable;
+	public final fun exportRecording (Lcom/appswithlove/debug/api/extension/DevRecordingExportOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun getSections ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun hasRecording ()Z
+	public final fun installProvider (Lcom/appswithlove/debug/api/extension/DevExtensionProvider;)V
+	public final fun isDebugArtifactPresent ()Z
+	public final fun logSnapshot (ILkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun networkSnapshot (I)Ljava/util/List;
+	public final fun publishNetworkRecord (Lcom/appswithlove/debug/api/extension/DevNetworkRecord;)V
+	public final fun register (Lcom/appswithlove/debug/api/extension/DevExtensionSection;)Ljava/lang/AutoCloseable;
+}
+
+public final class com/appswithlove/debug/api/extension/DevExtensionAction {
+	public fun <init> (Ljava/lang/String;ZLkotlin/jvm/functions/Function0;)V
+	public synthetic fun <init> (Ljava/lang/String;ZLkotlin/jvm/functions/Function0;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun getEnabled ()Z
+	public final fun getOnClick ()Lkotlin/jvm/functions/Function0;
+	public final fun getText ()Ljava/lang/String;
+}
+
+public abstract interface class com/appswithlove/debug/api/extension/DevExtensionItem {
+}
+
+public final class com/appswithlove/debug/api/extension/DevExtensionItem$Link : com/appswithlove/debug/api/extension/DevExtensionItem {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function0;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function0;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun getBadge ()Ljava/lang/String;
+	public final fun getOnClick ()Lkotlin/jvm/functions/Function0;
+	public final fun getText ()Ljava/lang/String;
+}
+
+public final class com/appswithlove/debug/api/extension/DevExtensionItem$Switch : com/appswithlove/debug/api/extension/DevExtensionItem {
+	public fun <init> (Ljava/lang/String;ZLkotlin/jvm/functions/Function1;)V
+	public final fun getChecked ()Z
+	public final fun getOnCheckedChange ()Lkotlin/jvm/functions/Function1;
+	public final fun getText ()Ljava/lang/String;
+}
+
+public final class com/appswithlove/debug/api/extension/DevExtensionItem$Text : com/appswithlove/debug/api/extension/DevExtensionItem {
+	public fun <init> (Ljava/lang/String;Lcom/appswithlove/debug/api/extension/DevTextStyle;Ljava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;Lcom/appswithlove/debug/api/extension/DevTextStyle;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun getCopyValue ()Ljava/lang/String;
+	public final fun getStyle ()Lcom/appswithlove/debug/api/extension/DevTextStyle;
+	public final fun getText ()Ljava/lang/String;
+}
+
+public final class com/appswithlove/debug/api/extension/DevExtensionItem$Title : com/appswithlove/debug/api/extension/DevExtensionItem {
+	public fun <init> (Ljava/lang/String;Lcom/appswithlove/debug/api/extension/DevExtensionAction;)V
+	public synthetic fun <init> (Ljava/lang/String;Lcom/appswithlove/debug/api/extension/DevExtensionAction;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun getAction ()Lcom/appswithlove/debug/api/extension/DevExtensionAction;
+	public final fun getText ()Ljava/lang/String;
+}
+
+public abstract interface class com/appswithlove/debug/api/extension/DevExtensionProvider {
+	public abstract fun exportRecording (Lcom/appswithlove/debug/api/extension/DevRecordingExportOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun hasRecording ()Z
+	public abstract fun logSnapshot (ILkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun networkSnapshot (I)Ljava/util/List;
+}
+
+public final class com/appswithlove/debug/api/extension/DevExtensionSection {
+	public fun <init> (Ljava/lang/String;Lkotlinx/coroutines/flow/StateFlow;ILjava/util/Set;)V
+	public synthetic fun <init> (Ljava/lang/String;Lkotlinx/coroutines/flow/StateFlow;ILjava/util/Set;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun getClaimedTriggers ()Ljava/util/Set;
+	public final fun getId ()Ljava/lang/String;
+	public final fun getItems ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getOrder ()I
+}
+
+public final class com/appswithlove/debug/api/extension/DevLogRecord {
+	public fun <init> (JLjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+	public final fun getMessage ()Ljava/lang/String;
+	public final fun getSeverity ()Ljava/lang/String;
+	public final fun getTag ()Ljava/lang/String;
+	public final fun getThrowable ()Ljava/lang/String;
+	public final fun getTimestampMillis ()J
+}
+
+public final class com/appswithlove/debug/api/extension/DevLogSnapshot {
+	public fun <init> (Ljava/util/List;Ljava/util/List;Ljava/lang/String;)V
+	public final fun getRecords ()Ljava/util/List;
+	public final fun getSearchQuery ()Ljava/lang/String;
+	public final fun getSeverityFilter ()Ljava/util/List;
+}
+
+public final class com/appswithlove/debug/api/extension/DevNetworkBody {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;ZLjava/lang/Long;Z)V
+	public final fun getContentType ()Ljava/lang/String;
+	public final fun getOriginalBytes ()Ljava/lang/Long;
+	public final fun getText ()Ljava/lang/String;
+	public final fun getTruncated ()Z
+	public final fun isContent ()Z
+}
+
+public final class com/appswithlove/debug/api/extension/DevNetworkRecord {
+	public fun <init> (JLjava/lang/String;Ljava/lang/String;Ljava/lang/Integer;JLjava/util/List;Ljava/util/List;Lcom/appswithlove/debug/api/extension/DevNetworkBody;Lcom/appswithlove/debug/api/extension/DevNetworkBody;Ljava/lang/String;Ljava/lang/Long;Ljava/lang/Long;)V
+	public final fun getDurationMs ()J
+	public final fun getErrorCode ()Ljava/lang/String;
+	public final fun getMethod ()Ljava/lang/String;
+	public final fun getRequestBody ()Lcom/appswithlove/debug/api/extension/DevNetworkBody;
+	public final fun getRequestBytes ()Ljava/lang/Long;
+	public final fun getRequestHeaders ()Ljava/util/List;
+	public final fun getResponseBody ()Lcom/appswithlove/debug/api/extension/DevNetworkBody;
+	public final fun getResponseBytes ()Ljava/lang/Long;
+	public final fun getResponseHeaders ()Ljava/util/List;
+	public final fun getStartedAtMillis ()J
+	public final fun getStatus ()Ljava/lang/Integer;
+	public final fun getUrl ()Ljava/lang/String;
+}
+
+public final class com/appswithlove/debug/api/extension/DevRecordingExport {
+	public fun <init> (Ljava/io/File;Ljava/io/File;Ljava/io/File;)V
+	public final fun getFrames ()Ljava/io/File;
+	public final fun getTimeline ()Ljava/io/File;
+	public final fun getVideo ()Ljava/io/File;
+}
+
+public final class com/appswithlove/debug/api/extension/DevRecordingExportOptions {
+	public fun <init> ()V
+	public fun <init> (Ljava/lang/Integer;Ljava/lang/Long;Ljava/lang/Integer;)V
+	public synthetic fun <init> (Ljava/lang/Integer;Ljava/lang/Long;Ljava/lang/Integer;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/Integer;
+	public final fun component2 ()Ljava/lang/Long;
+	public final fun component3 ()Ljava/lang/Integer;
+	public final fun copy (Ljava/lang/Integer;Ljava/lang/Long;Ljava/lang/Integer;)Lcom/appswithlove/debug/api/extension/DevRecordingExportOptions;
+	public static synthetic fun copy$default (Lcom/appswithlove/debug/api/extension/DevRecordingExportOptions;Ljava/lang/Integer;Ljava/lang/Long;Ljava/lang/Integer;ILjava/lang/Object;)Lcom/appswithlove/debug/api/extension/DevRecordingExportOptions;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getLastSeconds ()Ljava/lang/Integer;
+	public final fun getMaxTimelineBytes ()Ljava/lang/Integer;
+	public final fun getMaxVideoBytes ()Ljava/lang/Long;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/appswithlove/debug/api/extension/DevTextStyle : java/lang/Enum {
+	public static final field Error Lcom/appswithlove/debug/api/extension/DevTextStyle;
+	public static final field Monospace Lcom/appswithlove/debug/api/extension/DevTextStyle;
+	public static final field Primary Lcom/appswithlove/debug/api/extension/DevTextStyle;
+	public static final field Secondary Lcom/appswithlove/debug/api/extension/DevTextStyle;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/appswithlove/debug/api/extension/DevTextStyle;
+	public static fun values ()[Lcom/appswithlove/debug/api/extension/DevTextStyle;
+}
+
 public final class com/appswithlove/debug/api/reporting/RemoteReportingConfig {
 	public static final field Companion Lcom/appswithlove/debug/api/reporting/RemoteReportingConfig$Companion;
 	public static final field MAX_BODY_BYTES I
