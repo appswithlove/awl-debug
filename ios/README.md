@@ -189,6 +189,8 @@ RootView()
 ```
 
 - Attach once, at the root. `feedbackTool(config: nil)` does nothing.
+- Triggers: `FeedbackConfig(triggers:)`, default `[.shake, .screenshot]` (replaces `shakeToReport`, which stays as a deprecated alias: `false` means `[.screenshot]`). A gesture set in both `AWLDebugConfig.triggers` and `FeedbackConfig.triggers` starts feedback only and logs a warning.
+- With `AWLDebugTool` in the app, the panel shows "Send feedback" (with "{n} pending" for queued reports) right below About, only while a configured `feedbackTool` is on screen. `AWLFeedback.start()` starts a report from code. Both close the panel first, so the screenshot shows the app only.
 - `distribution` is optional and only sent when set, because older feedback services reject unknown metadata keys.
 - Reporter: the first report asks for the tester's name (required) and email (optional), kept on the device (`UserDefaults`); later reports show "Sent as {name}" with "Change". `FeedbackConfig(reporter:)` fills it in until the tester enters their own. Sent as `reporter` in the metadata, so the feedback service must accept that key.
 - Markup: "Pen", "Arrow" (colours Red, Yellow, Green, Blue, Black) and "Redact", a black rectangle burnt into the screenshot before it leaves the device; the original is never sent.

@@ -19,4 +19,12 @@ final class AWLDebugToolBridge: NSObject {
             completion(Data(LogsAttachment.current(logs: store, network: AWLDebugTool.shared.networkLogger).utf8))
         }
     }
+
+    /// Closes the panel so it is not in the feedback screenshot, then calls `completion` on the main thread.
+    @objc(closePanel:)
+    static func closePanel(_ completion: @escaping () -> Void) {
+        Task { @MainActor in
+            DebugPanelPresenter.shared.close(completion: completion)
+        }
+    }
 }

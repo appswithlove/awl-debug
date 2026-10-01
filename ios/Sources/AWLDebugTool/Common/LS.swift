@@ -2,8 +2,6 @@
 //  LS.swift
 //  AWLDebugTool
 //
-//  Created by Yanis Plumit on 02.06.2026.
-//
 
 enum LS {
     static let logWatermark = "[AWL Debug Tool]"
@@ -228,6 +226,11 @@ enum LS {
 
     struct VersionOverlay {
         static let toggle = "Show version overlay"
+    }
+
+    enum Feedback {
+        static let entry = "Send feedback"
+        static func pending(_ count: Int) -> String { "\(count) pending" }
     }
 
     struct Session {

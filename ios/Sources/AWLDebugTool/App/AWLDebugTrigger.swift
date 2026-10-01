@@ -12,7 +12,7 @@ public enum AWLDebugTrigger: Hashable, CaseIterable {
     /// The tester shakes the device (Simulator: Device → Shake).
     case shake
 
-    /// Names used by AWLDebugFeedback to announce the triggers it handles, see `DebugPanelPresenter.feedbackTriggersNotification`.
+    /// Raw values of AWLDebugFeedback's `FeedbackTrigger`, see `FeedbackBridge.triggers`.
     init?(feedbackName: String) {
         switch feedbackName {
         case "screenshot": self = .screenshot
