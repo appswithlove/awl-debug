@@ -1,9 +1,8 @@
-package com.appswithlove.debug.reporting
+package com.appswithlove.debug.feedback.reporting
 
 import android.content.Context
 import android.os.SystemClock
-import com.appswithlove.debug.api.reporting.RemoteReportingConfig
-import com.appswithlove.debug.ui.dev.network.NetworkEntry
+import com.appswithlove.debug.api.extension.DevNetworkRecord
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import java.util.concurrent.Future
@@ -77,13 +76,13 @@ internal class RemoteReporter(
         publish()
     }
 
-    fun onNetworkEntry(entry: NetworkEntry) {
+    fun onNetworkRecord(record: DevNetworkRecord) {
         // The SDK's own requests to the service are never reported.
-        if (entry.url == endpoint || entry.url.startsWith("$endpoint/")) return
+        if (record.url == endpoint || record.url.startsWith("$endpoint/")) return
         if (!isRecording) return
         executor.execute {
-            val json = ReportingJson.networkLog(entry, config.captureBodies, maxBodyBytes) ?: return@execute
-            buffer.append(currentSession().id, entry.startedAtMillis, ReportingBuffer.EntryKind.Network, json)
+            val json = ReportingJson.networkLog(record, config.captureBodies, maxBodyBytes) ?: return@execute
+            buffer.append(currentSession().id, record.startedAtMillis, ReportingBuffer.EntryKind.Network, json)
             publish()
         }
     }

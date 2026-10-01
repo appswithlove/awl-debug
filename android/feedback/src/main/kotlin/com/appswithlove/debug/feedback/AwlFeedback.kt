@@ -3,8 +3,7 @@ package com.appswithlove.debug.feedback
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import com.appswithlove.debug.api.bridge.AwlDebugInternalApi
-import com.appswithlove.debug.api.bridge.DevBridge
+import java.util.concurrent.atomic.AtomicReference
 
 /** Starts reports from code, e.g. from an app's own menu. */
 object AwlFeedback {
@@ -12,18 +11,37 @@ object AwlFeedback {
      * Starts a report in the configured [FeedbackHost] that was shown last. Does nothing while a report is open
      * or when no configured [FeedbackHost] is shown. Safe to call from any thread.
      */
-    @OptIn(AwlDebugInternalApi::class)
     fun start() {
         val mainLooper = Looper.getMainLooper()
         if (Looper.myLooper() != mainLooper) {
             Handler(mainLooper).post(::start)
             return
         }
-        val entry = DevBridge.feedbackLauncher.value
-        if (entry == null) {
+        val host = ActiveFeedbackHost.current
+        if (host == null) {
             Log.w("Feedback", "AwlFeedback.start() ignored: no FeedbackHost with a config is shown")
             return
         }
-        entry.start()
+        host.start()
+    }
+}
+
+/** Starts a report in a [FeedbackHost]. */
+internal fun interface ReportStarter {
+    fun start()
+}
+
+/** The configured [FeedbackHost] resumed last; reports started from code or from the debug panel open there. */
+internal object ActiveFeedbackHost {
+    private val host = AtomicReference<ReportStarter?>(null)
+
+    val current: ReportStarter? get() = host.get()
+
+    fun set(starter: ReportStarter) {
+        host.set(starter)
+    }
+
+    fun clear(starter: ReportStarter) {
+        host.compareAndSet(starter, null)
     }
 }

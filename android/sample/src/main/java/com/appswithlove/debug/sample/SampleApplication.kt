@@ -1,16 +1,16 @@
 package com.appswithlove.debug.sample
 
 import android.app.Application
-import com.appswithlove.debug.AwlDebug
-import com.appswithlove.debug.api.AwlDistribution
-import com.appswithlove.debug.api.reporting.RemoteReportingConfig
+import com.appswithlove.debug.feedback.AwlDistribution
+import com.appswithlove.debug.feedback.reporting.AwlRemoteReporting
+import com.appswithlove.debug.feedback.reporting.RemoteReportingConfig
 
 class SampleApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         // Same local.properties values as feedback; without them nothing is recorded.
         if (BuildConfig.FEEDBACK_ENDPOINT.isNotEmpty()) {
-            AwlDebug.startRemoteReporting(
+            AwlRemoteReporting.start(
                 this,
                 RemoteReportingConfig(
                     endpoint = BuildConfig.FEEDBACK_ENDPOINT,
@@ -19,7 +19,7 @@ class SampleApplication : Application() {
                     distribution = AwlDistribution.Debug,
                 ),
             )
-            AwlDebug.setUserIdentifier("42") // only a hash of it is sent
+            AwlRemoteReporting.setUserIdentifier("42") // only a hash of it is sent
         }
     }
 }

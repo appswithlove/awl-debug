@@ -1,9 +1,9 @@
 package com.appswithlove.debug.feedback.attachments
 
 import android.util.Log
-import com.appswithlove.debug.api.bridge.AwlDebugInternalApi
-import com.appswithlove.debug.api.bridge.DevBridge
-import com.appswithlove.debug.api.bridge.RecordingExport
+import com.appswithlove.debug.api.extension.AwlDebugExtensions
+import com.appswithlove.debug.api.extension.DevRecordingExport
+import com.appswithlove.debug.api.extension.DevRecordingExportOptions
 import com.appswithlove.debug.feedback.FeedbackPart
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -12,22 +12,26 @@ import java.io.IOException
 
 private const val LOG_TAG = "Feedback"
 
+/** Limits of the feedback service: the last minute of activity, `video` up to 25 MB, `timeline` up to 256 KiB. */
+internal val FEEDBACK_RECORDING_OPTIONS = DevRecordingExportOptions(
+    lastSeconds = 60,
+    maxVideoBytes = 25L * 1024 * 1024,
+    maxTimelineBytes = 256 * 1024,
+)
+
 /** Parts `video`, `frames` and `timeline`; empty with [isVideoTooLarge] when the video exceeded 25 MB. */
 internal class RecordingAttachment(val parts: List<FeedbackPart>, val isVideoTooLarge: Boolean)
 
 /** Whether the debug panel has a recording to offer. */
-@OptIn(AwlDebugInternalApi::class)
-internal fun hasRecordingToAttach(source: (() -> Boolean)? = DevBridge.hasRecording): Boolean =
-    runCatching { source?.invoke() == true }.getOrDefault(false)
+internal fun hasRecordingToAttach(source: () -> Boolean = AwlDebugExtensions::hasRecording): Boolean =
+    runCatching { source() }.getOrDefault(false)
 
 /** Asks the debug panel for its recording; `null` without the panel, without frames, or when it fails. */
-@OptIn(AwlDebugInternalApi::class)
-internal suspend fun captureRecordingAttachment(): RecordingAttachment? = captureRecordingAttachment(DevBridge.lastRecording)
-
-@AwlDebugInternalApi
-internal suspend fun captureRecordingAttachment(source: (suspend () -> RecordingExport?)?): RecordingAttachment? {
+internal suspend fun captureRecordingAttachment(
+    source: suspend () -> DevRecordingExport? = { AwlDebugExtensions.exportRecording(FEEDBACK_RECORDING_OPTIONS) },
+): RecordingAttachment? {
     val export = try {
-        source?.invoke()
+        source()
     } catch (e: CancellationException) {
         throw e
     } catch (e: Exception) {

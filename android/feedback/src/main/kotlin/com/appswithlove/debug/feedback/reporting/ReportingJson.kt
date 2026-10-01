@@ -1,8 +1,7 @@
-package com.appswithlove.debug.reporting
+package com.appswithlove.debug.feedback.reporting
 
-import com.appswithlove.debug.ui.dev.network.CapturedBody
-import com.appswithlove.debug.ui.dev.network.NetworkEntry
-import com.appswithlove.debug.ui.dev.network.NetworkRedactor
+import com.appswithlove.debug.api.extension.DevNetworkBody
+import com.appswithlove.debug.api.extension.DevNetworkRecord
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -20,6 +19,7 @@ internal object ReportingJson {
     private const val MAX_URL = 8192
     private const val MAX_ERROR = 1000
     private const val MAX_SHORT_STRING = 200
+    private const val REDACTED = "[REDACTED]"
 
     private val METHOD = Regex("^[A-Z]{1,16}$")
     private val URL_SCHEME = Regex("^(https?|wss?)://")
@@ -43,25 +43,26 @@ internal object ReportingJson {
             .joinToString("") { "%02x".format(it) }
 
     /** Returns `null` for requests the service cannot store, such as non-HTTP URLs. */
-    fun networkLog(entry: NetworkEntry, captureBodies: Boolean, maxBodyBytes: Int): JsonObject? {
-        if (!METHOD.matches(entry.method) || !URL_SCHEME.containsMatchIn(entry.url)) return null
+    fun networkLog(record: DevNetworkRecord, captureBodies: Boolean, maxBodyBytes: Int): JsonObject? {
+        if (!METHOD.matches(record.method) || !URL_SCHEME.containsMatchIn(record.url)) return null
+        val status = record.status
         return buildJsonObject {
-            put("ts", timestamp(entry.startedAtMillis))
-            put("method", entry.method)
-            put("url", entry.url.take(MAX_URL))
-            if (entry.status in 100..599) {
-                put("status", entry.status)
+            put("ts", timestamp(record.startedAtMillis))
+            put("method", record.method)
+            put("url", record.url.take(MAX_URL))
+            if (status != null && status in 100..599) {
+                put("status", status)
             } else {
-                put("error", errorKind(entry.error))
+                put("error", record.errorCode ?: "connection")
             }
-            put("durationMs", entry.durationMs.coerceAtLeast(0))
-            entry.requestBytes?.takeIf { it >= 0 }?.let { put("requestBytes", it) }
-            entry.responseBytes?.takeIf { it >= 0 }?.let { put("responseBytes", it) }
-            headers(entry.requestHeaders)?.let { put("requestHeaders", it) }
-            headers(entry.responseHeaders)?.let { put("responseHeaders", it) }
+            put("durationMs", record.durationMs.coerceAtLeast(0))
+            record.requestBytes?.takeIf { it >= 0 }?.let { put("requestBytes", it) }
+            record.responseBytes?.takeIf { it >= 0 }?.let { put("responseBytes", it) }
+            headers(record.requestHeaders)?.let { put("requestHeaders", it) }
+            headers(record.responseHeaders)?.let { put("responseHeaders", it) }
             if (captureBodies) {
-                body(entry.requestBody, maxBodyBytes)?.let { put("requestBody", it) }
-                body(entry.responseBody, maxBodyBytes)?.let { put("responseBody", it) }
+                body(record.requestBody, maxBodyBytes)?.let { put("requestBody", it) }
+                body(record.responseBody, maxBodyBytes)?.let { put("responseBody", it) }
             }
         }
     }
@@ -99,19 +100,6 @@ internal object ReportingJson {
         )
     }
 
-    /** Maps the exception text recorded by the interceptor to the service's error kinds. */
-    fun errorKind(error: String?): String {
-        val text = error.orEmpty()
-        return when {
-            text.contains("SocketTimeoutException") || text.contains("InterruptedIOException: timeout") -> "timeout"
-            text.contains("UnknownHostException") -> "dns"
-            text.contains("SSL") -> "tls"
-            text.contains("Canceled", ignoreCase = true) -> "cancelled"
-            text.contains("ConnectException") || text.isBlank() -> "connection"
-            else -> text.take(MAX_ERROR)
-        }
-    }
-
     private fun headers(headers: List<Pair<String, String>>): JsonObject? {
         val merged = LinkedHashMap<String, String>()
         headers.forEach { (name, value) ->
@@ -122,12 +110,12 @@ internal object ReportingJson {
         if (merged.isEmpty()) return null
         return buildJsonObject {
             merged.entries.take(MAX_HEADERS).forEach { (name, value) ->
-                put(name, if (name in REDACTED_HEADERS) NetworkRedactor.REDACTED else value.take(MAX_HEADER_VALUE))
+                put(name, if (name in REDACTED_HEADERS) REDACTED else value.take(MAX_HEADER_VALUE))
             }
         }
     }
 
-    private fun body(body: CapturedBody?, maxBodyBytes: Int): JsonObject? {
+    private fun body(body: DevNetworkBody?, maxBodyBytes: Int): JsonObject? {
         if (body == null || !body.isContent) return null
         val limit = maxBodyBytes.coerceIn(0, MAX_BODY_BYTES)
         val bytes = body.text.toByteArray(Charsets.UTF_8)

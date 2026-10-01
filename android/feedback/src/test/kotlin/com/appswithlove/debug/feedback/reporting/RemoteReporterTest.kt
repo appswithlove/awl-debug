@@ -1,12 +1,10 @@
-package com.appswithlove.debug.reporting
+package com.appswithlove.debug.feedback.reporting
 
-import com.appswithlove.debug.api.AwlDistribution
+import com.appswithlove.debug.feedback.AwlDistribution
 import com.appswithlove.debug.api.DevNetworkConfig
-import com.appswithlove.debug.api.reporting.RemoteReportingConfig
+import com.appswithlove.debug.api.extension.AwlDebugExtensions
+import com.appswithlove.debug.api.extension.DevNetworkRecord
 import com.appswithlove.debug.ui.dev.log.DevHttpLogInterceptor
-import com.appswithlove.debug.ui.dev.log.DevLogCollector
-import com.appswithlove.debug.ui.dev.log.Log
-import com.appswithlove.debug.ui.dev.network.NetworkLogStore
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.longs.shouldBeLessThan
 import io.kotest.matchers.nulls.shouldBeNull
@@ -40,13 +38,14 @@ import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import java.io.File
 import java.util.concurrent.Executors
+import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
 import java.util.zip.GZIPInputStream
 
 /**
- * Builds real batches from requests captured by `DevHttpLogInterceptor`. Every batch is also written
- * to `lib/build/contract/` for a local schema check:
- * `uvx --from check-jsonschema check-jsonschema --schemafile <session-batch.v1.schema.json>` with every file in `lib/build/contract/`
+ * Builds real batches from requests that `DevHttpLogInterceptor` captures and hands to network listeners. Every batch
+ * is also written to `feedback/build/contract/` for a local schema check:
+ * `uvx --from check-jsonschema check-jsonschema --schemafile <session-batch.v1.schema.json>` with every file there.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -58,7 +57,8 @@ class RemoteReporterTest {
     private val context = RuntimeEnvironment.getApplication()
     private val server = MockWebServer().apply { start() }
     private val executor = Executors.newSingleThreadScheduledExecutor()
-    private val store = NetworkLogStore()
+    private val records = LinkedBlockingQueue<DevNetworkRecord>()
+    private val listener = AwlDebugExtensions.addNetworkListener { records += it }
     private var now = 1_790_000_000_000L
     private var elapsed = 0L
 
@@ -71,6 +71,7 @@ class RemoteReporterTest {
 
     @After
     fun tearDown() {
+        listener.close()
         server.shutdown()
         executor.shutdownNow()
     }
@@ -82,23 +83,20 @@ class RemoteReporterTest {
     ) = RemoteReporter(context, config, buffer, executor, appUserId, { now }, { elapsed }, { null })
 
     private val client by lazy {
-        val noLogs = object : DevLogCollector {
-            override fun setTrackLogs(track: Boolean) = Unit
-            override fun log(log: Log) = Unit
-            override fun setMaxSize(size: Int) = Unit
-        }
         OkHttpClient.Builder()
-            .addInterceptor(DevHttpLogInterceptor(DevNetworkConfig(), store, noLogs))
+            .addInterceptor(DevHttpLogInterceptor(DevNetworkConfig()))
             .readTimeout(300, TimeUnit.MILLISECONDS)
             .build()
     }
 
-    private fun call(request: Request) {
+    /** Sends [request] and returns what the network listener got for it; failed requests are captured too. */
+    private fun call(request: Request): DevNetworkRecord {
         try {
             client.newCall(request).execute().use { it.body?.string() }
         } catch (_: Exception) {
-            // Failed requests are captured too.
+            // Recorded as a failure.
         }
+        return checkNotNull(records.poll(5, TimeUnit.SECONDS)) { "No record for ${request.url}" }
     }
 
     private fun ReportingBuffer.batches(): List<JsonObject> = sealedBatches().map { file ->
@@ -118,7 +116,7 @@ class RemoteReporterTest {
         reporter.onForeground().get()
 
         server.enqueue(MockResponse().setBody("{\"token\":\"secret\"}").setHeader("Content-Type", "application/json"))
-        call(
+        val loginRecord = call(
             Request.Builder().url(server.url("/v1/login"))
                 .header("Authorization", "Bearer abc")
                 .header("X-Api-Key", "k")
@@ -126,10 +124,10 @@ class RemoteReporterTest {
                 .build(),
         )
         server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.NO_RESPONSE))
-        call(Request.Builder().url(server.url("/slow")).build())
+        val slowRecord = call(Request.Builder().url(server.url("/slow")).build())
         server.enqueue(MockResponse().setBody("ok"))
-        call(Request.Builder().url(server.url("/svc/v1/sessions/batch")).build()) // own traffic, never reported
-        store.entries.value.forEach(reporter::onNetworkEntry)
+        val ownRecord = call(Request.Builder().url(server.url("/svc/v1/sessions/batch")).build()) // own traffic, never reported
+        listOf(loginRecord, slowRecord, ownRecord).forEach(reporter::onNetworkRecord)
         reporter.onMetric(ReportingMetricSample(now, cpuPercent = 12.34, ramBytes = 1_000, batteryPercent = 80, uiFreezeMs = 0))
         reporter.onMetric(ReportingMetricSample(now)) // no values: left out
         now += 5_000
@@ -166,8 +164,7 @@ class RemoteReporterTest {
         val reporter = reporter(config.copy(captureBodies = true, maxBodyBytes = 10), buffer)
         reporter.onForeground().get()
         server.enqueue(MockResponse().setBody("0123456789abcdef").setHeader("Content-Type", "text/plain"))
-        call(Request.Builder().url(server.url("/text")).build())
-        store.entries.value.forEach(reporter::onNetworkEntry)
+        reporter.onNetworkRecord(call(Request.Builder().url(server.url("/text")).build()))
         reporter.flush().get()
 
         val body = buffer.batches().single().array("networkLogs")[0].jsonObject["responseBody"]!!.jsonObject

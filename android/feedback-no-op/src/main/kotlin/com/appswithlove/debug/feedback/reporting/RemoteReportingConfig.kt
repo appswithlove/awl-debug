@@ -1,10 +1,10 @@
-package com.appswithlove.debug.api.reporting
+package com.appswithlove.debug.feedback.reporting
 
-import com.appswithlove.debug.api.AwlDistribution
+import com.appswithlove.debug.feedback.AwlDistribution
 
 /**
  * Sends sessions, network requests and performance samples of test builds to the feedback service.
- * Pass it to `AwlDebug.startRemoteReporting` in `Application.onCreate`.
+ * Pass it to [AwlRemoteReporting.start] in `Application.onCreate`.
  *
  * Nothing is recorded or sent when [distribution] is [AwlDistribution.Store].
  *

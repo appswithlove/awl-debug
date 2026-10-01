@@ -4,9 +4,6 @@
 
     <!-- DevTrigger.Screenshot, Android 14+. Normal permission, debug artifact only. -->
     <uses-permission android:name="android.permission.DETECT_SCREEN_CAPTURE" />
-    <!-- Remote reporting: send batches, wait for a (unmetered) network. Debug artifact only. -->
-    <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <application>
         <provider

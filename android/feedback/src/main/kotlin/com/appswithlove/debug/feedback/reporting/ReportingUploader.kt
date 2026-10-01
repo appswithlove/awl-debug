@@ -1,4 +1,4 @@
-package com.appswithlove.debug.reporting
+package com.appswithlove.debug.feedback.reporting
 
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update

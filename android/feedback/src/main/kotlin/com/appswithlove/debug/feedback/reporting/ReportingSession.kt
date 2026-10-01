@@ -1,11 +1,10 @@
-package com.appswithlove.debug.reporting
+package com.appswithlove.debug.feedback.reporting
 
 import android.app.ActivityManager
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
-import com.appswithlove.debug.BuildConfig
-import com.appswithlove.debug.api.reporting.RemoteReportingConfig
+import com.appswithlove.debug.feedback.BuildConfig
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonPrimitive

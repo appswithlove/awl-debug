@@ -1,5 +1,3 @@
-@file:OptIn(AwlDebugInternalApi::class)
-
 package com.appswithlove.debug.ui.dev.sheet
 
 import android.app.Activity
@@ -47,7 +45,6 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
-import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -89,7 +86,6 @@ import com.appswithlove.debug.domain.storage.DevStore
 import com.appswithlove.debug.ui.component.DevSwitch
 import com.appswithlove.debug.ui.dev.sheet.modules.performance.PerformanceMonitor
 import com.appswithlove.debug.ui.dev.sheet.modules.performance.PerformanceOverlayHost
-import com.appswithlove.debug.reporting.RemoteReportingModule
 import com.appswithlove.debug.ui.dev.sheet.modules.AppInfoModule
 import com.appswithlove.debug.ui.dev.sheet.modules.FcmPushTokenModule
 import com.appswithlove.debug.ui.dev.sheet.modules.LogsModule
@@ -114,9 +110,6 @@ import com.appswithlove.debug.ui.dev.sheet.modules.session.SessionDetailModule
 import com.appswithlove.debug.ui.dev.sheet.modules.session.SessionManager
 import com.appswithlove.debug.ui.dev.sheet.modules.session.SessionModule
 import com.appswithlove.debug.api.DevTrigger
-import com.appswithlove.debug.api.bridge.AwlDebugInternalApi
-import com.appswithlove.debug.api.bridge.DevBridge
-import com.appswithlove.debug.api.bridge.FeedbackEntry
 import com.appswithlove.debug.api.extension.AwlDebugExtensions
 import com.appswithlove.debug.api.extension.DevExtensionSection
 import com.appswithlove.debug.ui.component.ScreenshotTrigger
@@ -242,10 +235,7 @@ internal fun DevSheet(
     }
 
     val extensionSections by AwlDebugExtensions.sections.collectAsStateWithLifecycle()
-    val feedbackEntry by feedbackEntryState()
-    val panelTriggers = remember(triggers, extensionSections, feedbackEntry) {
-        panelTriggers(triggers, extensionSections.claimedTriggers() + feedbackEntry?.triggers.orEmpty())
-    }
+    val panelTriggers = remember(triggers, extensionSections) { panelTriggers(triggers, extensionSections.claimedTriggers()) }
     val canTrigger = state.value.isActive || state.value.isAlwaysActive
     val openFromTrigger = { viewModel.submitAction(DevAction.ShowDevSheet(show = true)) }
     if (canTrigger && DevTrigger.Shake in panelTriggers) ShakeTrigger(onShake = openFromTrigger)
@@ -297,7 +287,6 @@ internal fun DevSheet(
                 actioner = { action -> viewModel.submitAction(action) },
                 customModules = customModules,
                 extensionSections = extensionSections,
-                feedbackEntry = feedbackEntry,
                 swipeToDismiss = swipeToDismiss,
                 onTrackLogsChanged = { viewModel.setTrackLogs(it) },
                 onMaxLogsChanged = { viewModel.setMaxLogSize(it) },
@@ -331,7 +320,6 @@ private fun DevSheetContent(
     actioner: (DevAction) -> Unit,
     customModules: @Composable ColumnScope.() -> Unit = {},
     extensionSections: List<DevExtensionSection> = emptyList(),
-    feedbackEntry: FeedbackEntry? = null,
     swipeToDismiss: Boolean = false,
     onTrackLogsChanged: (Boolean) -> Unit,
     onMaxLogsChanged: (Int) -> Unit,
@@ -795,20 +783,6 @@ private fun DevSheetContent(
                             onCopy = ::copyToClipboard,
                         )
 
-                        RemoteReportingModule()
-
-                        feedbackEntry?.let { entry ->
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
-                            FeedbackNavItem(
-                                entry = entry,
-                                onClick = {
-                                    // Close first: the report opens over the app, not over the panel.
-                                    hideBottomSheet()
-                                    entry.start()
-                                },
-                            )
-                        }
-
                         if (modulesConfig.showLogsModule) {
                             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                             val logsActive by logHistory.trackLogs.collectAsStateWithLifecycle()
@@ -924,7 +898,7 @@ private fun DevSheetContent(
                             )
                         }
 
-                        if (modulesConfig.hasAnyModuleEnabled || feedbackEntry != null || extensionSections.isNotEmpty()) {
+                        if (modulesConfig.hasAnyModuleEnabled || extensionSections.isNotEmpty()) {
                             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                         }
                         customModules()
@@ -1036,48 +1010,12 @@ private fun NavBarSwitch(label: String, checked: Boolean, onCheckedChange: (Bool
     )
 }
 
-/** The feedback flow a `FeedbackHost` offers, or `null` without one. */
-@Composable
-private fun feedbackEntryState(): State<FeedbackEntry?> = DevBridge.feedbackLauncher.collectAsStateWithLifecycle()
-
 /** [triggers] without those an extension claims; a trigger configured for both is left to the extension. */
 internal fun panelTriggers(triggers: Set<DevTrigger>, claimed: Set<DevTrigger>): Set<DevTrigger> {
     val shared = triggers intersect claimed
     if (shared.isEmpty()) return triggers
     Log.w("AwlDebug", "Triggers $shared are handled by an extension, not by the DevSheet")
     return triggers - shared
-}
-
-@Composable
-private fun FeedbackNavItem(entry: FeedbackEntry, onClick: () -> Unit) {
-    val pending by entry.pendingCount.collectAsStateWithLifecycle()
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(role = Role.Button, onClick = onClick)
-            .padding(vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = "Send feedback",
-                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight(800)),
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            if (pending > 0) {
-                Text(
-                    text = "$pending pending",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-        Icon(
-            painter = painterResource(R.drawable.ic_chevron_right),
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
-        )
-    }
 }
 
 @Composable

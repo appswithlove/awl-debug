@@ -13,6 +13,7 @@ android {
 
     defaultConfig {
         minSdk = 25
+        buildConfigField("String", "SDK_VERSION", "\"${project.property("VERSION_NAME")}\"")
     }
 
     compileOptions {
@@ -28,6 +29,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     testOptions {
@@ -47,6 +49,8 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.androidx.lifecycle.process)
     implementation(libs.okhttp)
 
     testImplementation(libs.junit)
@@ -54,6 +58,7 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.robolectric)
     testImplementation(libs.mockwebserver)
+    testImplementation(project(":lib"))
     testImplementation(platform(libs.androidx.compose.bom))
     testImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(platform(libs.androidx.compose.bom))

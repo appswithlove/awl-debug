@@ -1,6 +1,5 @@
 package com.appswithlove.debug.feedback
 
-import com.appswithlove.debug.api.AwlDistribution
 import com.appswithlove.debug.api.DevTrigger
 
 /**

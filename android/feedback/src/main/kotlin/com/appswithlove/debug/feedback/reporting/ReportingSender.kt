@@ -1,4 +1,4 @@
-package com.appswithlove.debug.reporting
+package com.appswithlove.debug.feedback.reporting
 
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
