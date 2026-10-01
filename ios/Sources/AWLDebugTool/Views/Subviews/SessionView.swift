@@ -5,25 +5,29 @@
 
 import SwiftUI
 
-/// Start-page row: one status dot per provider, opens the detail page. Hidden without providers.
+/// Start-page row: one status dot per provider, opens the detail page. Without providers it opens how to add one.
 struct SessionView: View {
     @ObservedObject var sessionManager: SessionManager
 
     var body: some View {
-        if !sessionManager.entries.isEmpty {
+        if sessionManager.isModuleShown {
             NavigationLink {
                 SessionDetailView(sessionManager: sessionManager)
             } label: {
-                // One line when it fits, the providers below the title with large text.
-                ViewThatFits(in: .horizontal) {
-                    HStack {
-                        Text(LS.Headers.session)
-                        Spacer()
-                        statusDots
-                    }
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(LS.Headers.session)
-                        statusDots
+                if sessionManager.entries.isEmpty {
+                    Text(LS.Headers.session)
+                } else {
+                    // One line when it fits, the providers below the title with large text.
+                    ViewThatFits(in: .horizontal) {
+                        HStack {
+                            Text(LS.Headers.session)
+                            Spacer()
+                            statusDots
+                        }
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(LS.Headers.session)
+                            statusDots
+                        }
                     }
                 }
             }
@@ -74,6 +78,11 @@ struct SessionDetailView: View {
 
     var body: some View {
         Form {
+            if sessionManager.entries.isEmpty {
+                Section {
+                    SessionSetupHint()
+                }
+            }
             ForEach(sessionManager.entries) { entry in
                 Section {
                     SessionCard(entry: entry)
@@ -81,6 +90,34 @@ struct SessionDetailView: View {
             }
         }
         .panelPage(LS.Headers.session)
+    }
+}
+
+/// Shown while the app passes no `sessionProviders`: how to add one.
+private struct SessionSetupHint: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(LS.Session.notSetup)
+                .font(.headline)
+            Text(LS.Session.notSetupMessage)
+                .foregroundStyle(.secondary)
+            ScrollView(.horizontal) {
+                Text(LS.Session.setupSnippet)
+                    .font(.caption.monospaced())
+                    .foregroundStyle(.secondary)
+                    .textSelection(.enabled)
+                    .fixedSize()
+                    .padding(8)
+            }
+            .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 8))
+            Button {
+                UIPasteboard.general.string = LS.Session.setupSnippet
+            } label: {
+                Label(LS.Session.copyCode, systemImage: "doc.on.doc")
+            }
+            .buttonStyle(.bordered)
+        }
+        .padding(.vertical, 4)
     }
 }
 

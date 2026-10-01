@@ -12,6 +12,7 @@ data class DevModulesConfig(
     val showFcmPushTokenModule: Boolean = true,
     val fcmTokenProvider: FcmTokenProvider? = null,
     val showTestCrashesModule: Boolean = true,
+    /** Without [sessionProviders] the module shows how to add one. */
     val showSessionModule: Boolean = true,
     val sessionProviders: List<SessionProvider> = emptyList(),
     /** Shown once a `DevHttpLogInterceptor` has been created. */
@@ -33,6 +34,6 @@ data class DevModulesConfig(
     val hasAnyModuleEnabled = showLogsModule || showPerformanceModule ||
             showPermissionsModule || showAccessibilityModule || showDeeplinksModule ||
             (showFcmPushTokenModule && fcmTokenProvider != null) || showTestCrashesModule ||
-            (showSessionModule && sessionProviders.isNotEmpty()) || showNetworkModule || showClearAppDataModule ||
+            showSessionModule || showNetworkModule || showClearAppDataModule ||
             showScreenRecordingModule
 }

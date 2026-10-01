@@ -195,7 +195,7 @@ DevSheet(
 | `showPermissionsModule` | `true` | Permissions |
 | `showAccessibilityModule` | `true` | Accessibility: font size (system, preset steps or 50–200 %) and appearance (System, Light, Dark) for the app content, saved on the device. On Android 12+ the appearance is applied app-wide through `UiModeManager.setApplicationNightMode`; the system keeps that per app, also after restarts. Choosing "System" sets it back to `MODE_NIGHT_AUTO` (follow the device), which also replaces a night mode your app set itself. |
 | `showDeeplinksModule` / `deeplinks` | `true` / empty | [Deeplinks](#deeplinks) |
-| `showSessionModule` / `sessionProviders` | `true` / empty | [Session](#session), hidden when the list is empty |
+| `showSessionModule` / `sessionProviders` | `true` / empty | [Session](#session); without providers the module shows how to add one |
 | `showFcmPushTokenModule` / `fcmTokenProvider` | `true` / `null` | [FCM push token](#fcm-push-token), hidden when `null` |
 | `showScreenRecordingModule` / `screenRecording` | `true` / off, 5 min | [Screen recording](#screen-recording) |
 | `showTestCrashesModule` | `true` | Test crashes |
@@ -273,7 +273,7 @@ DevSheet(
 }
 ```
 
-`token` must emit whenever the value changes (login, logout, refresh); that is how the module stays in sync without manual refreshes. The module is hidden when `sessionProviders` is empty.
+`token` must emit whenever the value changes (login, logout, refresh); that is how the module stays in sync without manual refreshes. Without `sessionProviders` the module page shows how to add one; `showSessionModule = false` hides the module.
 
 Token stores without a `Flow` can use `PollingSessionProvider`, which reads a suspend getter every second while the panel shows it:
 

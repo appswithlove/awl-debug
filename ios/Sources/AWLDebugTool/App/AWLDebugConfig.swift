@@ -6,8 +6,10 @@ public struct AWLDebugConfig {
     public var logs: LogsConfig
     /// App-group `UserDefaults` suites that "Clear App Data" also empties.
     public var appGroupIdentifiers: [String] = []
-    /// Token sources shown in the Session module; the module is hidden without providers.
+    /// Token sources shown in the Session module; without providers the module shows how to add one.
     public var sessionProviders: [any AWLSessionProvider] = []
+    /// Shows the Session module on the panel's start page.
+    public var showSessionModule: Bool = true
     /// Gestures and events that open the panel. A trigger that an extension claims (`AWLDebugExtensionSection.claimedTriggers`)
     /// does not open it.
     public var triggers: Set<AWLDebugTrigger> = [.threeFingerTap]

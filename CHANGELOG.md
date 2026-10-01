@@ -14,7 +14,7 @@ Upgrade guides: [Android from 0.6](android/README.md#migrating-from-06) and [iOS
 - Logs: credentials and sensitive JSON fields are redacted in messages, and the export follows the search and severity filters.
 - Performance: CPU, RAM, battery and UI freezes, with a draggable overlay. Sampling only runs while measuring is on or the overlay is visible.
 - Version overlay with the app's version and build, which testers can switch off.
-- Session: edit, delete, invalidate, log in, refresh and log out per token source.
+- Session: edit, delete, invalidate, log in, refresh and log out per token source. Without token sources the module shows how to add one; `showSessionModule` hides it.
 - Deeplinks: testers save their own deeplinks and schedule delayed deeplinks through a notification to test cold starts.
 - Accessibility: font size and Light, Dark or System appearance for the app.
 - Clear App Data.

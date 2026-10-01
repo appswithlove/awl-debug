@@ -34,16 +34,13 @@ class DevModulesConfigTest {
     }
 
     @Test
-    fun hasAnyModuleEnabled_sessionEnabledButNoProviders_isFalse() {
-        allDisabled().copy(showSessionModule = true).hasAnyModuleEnabled shouldBe false
+    fun hasAnyModuleEnabled_sessionEnabledWithoutProviders_isTrue() {
+        allDisabled().copy(showSessionModule = true).hasAnyModuleEnabled shouldBe true
     }
 
     @Test
-    fun hasAnyModuleEnabled_sessionEnabledWithProvider_isTrue() {
-        allDisabled().copy(
-            showSessionModule = true,
-            sessionProviders = listOf(FakeSessionProvider),
-        ).hasAnyModuleEnabled shouldBe true
+    fun hasAnyModuleEnabled_sessionDisabledWithProvider_isFalse() {
+        allDisabled().copy(sessionProviders = listOf(FakeSessionProvider)).hasAnyModuleEnabled shouldBe false
     }
 
     @Test

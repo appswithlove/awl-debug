@@ -332,7 +332,8 @@ private fun DevSheetContent(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val clipboard = LocalClipboard.current
     val sessionManager = remember {
-        if (modulesConfig.showSessionModule && modulesConfig.sessionProviders.isNotEmpty()) {
+        // Also without providers: the module page then shows how to add one.
+        if (modulesConfig.showSessionModule) {
             SessionManager(modulesConfig.sessionProviders)
         } else {
             null

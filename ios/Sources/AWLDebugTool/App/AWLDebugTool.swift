@@ -43,6 +43,7 @@ public class AWLDebugTool: ObservableObject {
         Task { @MainActor in
             shared.performance.updateSampling()
             shared.sessionManager.providers = sessionProviders
+            shared.sessionManager.isModuleShown = config.showSessionModule
             DebugPanelPresenter.shared.configure(triggers: config.triggers, isAlwaysActive: config.isAlwaysActive)
         }
         

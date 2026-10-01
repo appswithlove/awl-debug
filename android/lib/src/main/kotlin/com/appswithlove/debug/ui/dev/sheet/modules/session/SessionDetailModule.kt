@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.Canvas
 import android.os.PersistableBundle
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
@@ -92,6 +93,13 @@ internal fun SessionDetailModule(
             .padding(bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
+        if (states.isEmpty()) {
+            SessionSetupHint(
+                onCopy = {
+                    scope.launch { clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("Code", SESSION_SETUP_SNIPPET))) }
+                },
+            )
+        }
         states.forEachIndexed { index, state ->
             ProviderCard(
                 state = state,
@@ -260,6 +268,56 @@ private fun ProviderCard(
     }
 }
 
+/** Shown while the app passes no `sessionProviders`: how to add one. */
+@Composable
+private fun SessionSetupHint(onCopy: () -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            text = "No session tokens configured",
+            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        Text(
+            text = "Add one provider per token source to DevModulesConfig.sessionProviders to inspect the tokens " +
+                "here and test login, refresh and logout.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = SESSION_SETUP_SNIPPET,
+            style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            softWrap = false,
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
+                    shape = MaterialTheme.shapes.small,
+                )
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+        )
+        DevOutlinedButton(
+            text = "Copy code",
+            leadingIcon = { Icon(imageVector = TablerIcons.Copy, contentDescription = null, tint = LocalContentColor.current) },
+            onClick = onCopy,
+        )
+    }
+}
+
+private val SESSION_SETUP_SNIPPET = """
+    DevModulesConfig(
+        sessionProviders = listOf(
+            PollingSessionProvider(
+                label = "Access Token",
+            ) { auth.accessToken() },
+        ),
+    )
+""".trimIndent()
+
 @Composable
 private fun LoginStatus(isLoggedIn: Boolean) {
     val color = if (isLoggedIn) AppTheme.colors.positive else Color.Gray.copy(alpha = 0.5f)
@@ -350,6 +408,14 @@ private fun DeleteTokenDialog(
             TextButton(onClick = onDismiss) { Text("Cancel") }
         },
     )
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun SessionDetailModuleEmptyPreview() {
+    DevTheme {
+        SessionDetailModule(sessionManager = SessionManager(emptyList()))
+    }
 }
 
 @Preview(showBackground = true)
