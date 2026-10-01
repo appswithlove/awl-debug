@@ -77,6 +77,7 @@ internal object ScreenRecorder {
 
     private var prefs: SharedPreferences? = null
     private lateinit var buffer: RecordingBuffer
+    private lateinit var cacheRoot: File
     private lateinit var worker: Handler
     private var resumedActivity: WeakReference<Activity>? = null
     private var isPanelOpen = false
@@ -100,7 +101,8 @@ internal object ScreenRecorder {
             prefs = preferences
             _isOn.value = preferences.getBoolean(KEY_ON, config.isOnByDefault)
             _maxDurationSeconds.value = preferences.getInt(KEY_MAX_DURATION, config.maxDurationSeconds).coerceAtLeast(1)
-            buffer = RecordingBuffer(File(application.cacheDir, "awl-debug/recording"))
+            cacheRoot = File(application.cacheDir, "awl-debug")
+            buffer = RecordingBuffer(File(cacheRoot, "recording"))
             worker = Handler(HandlerThread("awl-debug-recording").apply { start() }.looper)
             worker.post {
                 runCatching { buffer.rotate() }.onFailure { Log.w(TAG, "Could not prepare the recording folder", it) }
@@ -134,6 +136,12 @@ internal object ScreenRecorder {
             }
         }
     }
+
+    /** Folder with the frames of this run, or of the previous run with [last]; `null` before the first start. */
+    fun recordingDir(last: Boolean): File? = if (prefs == null) null else if (last) buffer.lastDir else buffer.currentDir
+
+    /** Folder for exported files, inside the file provider's `cacheDir/awl-debug`; `null` before the first start. */
+    fun exportDir(name: String): File? = if (prefs == null) null else File(cacheRoot, name)
 
     /** Pauses recording while the panel covers the app. */
     fun setPanelOpen(open: Boolean) {
