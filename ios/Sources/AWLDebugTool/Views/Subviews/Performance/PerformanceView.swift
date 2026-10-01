@@ -18,7 +18,7 @@ struct PerformanceView: View {
             }
 
             if performance.isMeasuring || isOverlayVisible {
-                // Same order as the spec and Android: CPU, RAM, Battery, UI freeze.
+                // Same order as on Android: CPU, RAM, Battery, UI freeze.
                 Section {
                     CPUView(cpuMonitor: debugTool.cpuMonitor)
                 }

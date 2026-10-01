@@ -2,8 +2,6 @@
 //  CpuTestView.swift
 //  AWLDebugTool-Example
 //
-//  Created by Yanis Plumit on 30.06.2026.
-//
 
 import SwiftUI
 

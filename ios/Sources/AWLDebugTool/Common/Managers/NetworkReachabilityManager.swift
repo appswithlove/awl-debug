@@ -2,8 +2,6 @@
 //  NetworkReachabilityManager.swift
 //
 //
-//  Created by Hrvoje Hajduković on 19.09.2025..
-//
 
 import Network
 import SwiftUI

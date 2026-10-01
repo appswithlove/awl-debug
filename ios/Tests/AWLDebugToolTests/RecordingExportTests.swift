@@ -180,7 +180,7 @@ final class RecordingExportTests: XCTestCase {
         XCTAssertEqual(RecordingTimeline.touchEvent(phase: .ended, at: CGPoint(x: 500, y: -3), in: screen), "touch ended x=1.00 y=0.00")
     }
 
-    // AK-REC-6: the export ZIP holds recording.mp4, frames.jpg and timeline.md.
+    // The export ZIP holds recording.mp4, frames.jpg and timeline.md.
     func testZipHoldsVideoSheetAndTimeline() async throws {
         let frames = try writeFrames(6)
         let date = Date(timeIntervalSince1970: TimeInterval(start) / 1000)

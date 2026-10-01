@@ -2,8 +2,6 @@
 //  MonitorHelper.swift
 //  AWLDebugTool
 //
-//  Created by Yanis Plumit on 13.06.2026.
-//
 
 import Foundation
 import Combine

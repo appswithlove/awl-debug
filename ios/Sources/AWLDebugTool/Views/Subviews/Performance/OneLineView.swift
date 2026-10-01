@@ -2,8 +2,6 @@
 //  OneLineView.swift
 //  AWLDebugTool
 //
-//  Created by Yanis Plumit on 12.06.2026.
-//
 
 import SwiftUI
 

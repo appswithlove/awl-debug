@@ -5,7 +5,7 @@ import XCTest
 @MainActor
 final class ScreenRecordingTests: XCTestCase {
 
-    // AK-REC-1, AK-REC-2: secure fields and marked views are black in the stored frame.
+    // Secure fields and marked views are black in the stored frame.
     func testSecureFieldsAndMarkedViewsAreBlackInTheEncodedFrame() throws {
         let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 300, height: 400))
         let root = UIViewController()
@@ -57,7 +57,7 @@ final class ScreenRecordingTests: XCTestCase {
         XCTAssertFalse(isBlack(image, at: CGPoint(x: 250, y: 380)))
     }
 
-    // AK-REC-7: a sheet over a masked screen is recorded without the masks of the screen below.
+    // A sheet over a masked screen is recorded without the masks of the screen below.
     func testOpaqueViewOnTopHidesMasksBelowIt() {
         let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 300, height: 400))
         let secureField = UITextField(frame: CGRect(x: 20, y: 20, width: 200, height: 40))
@@ -75,7 +75,7 @@ final class ScreenRecordingTests: XCTestCase {
         XCTAssertEqual(RecordingFrameRenderer.maskedRects(in: window)?.count, 1, "a see-through view keeps the mask")
     }
 
-    // AK-REC-1: an opaque view only hides a mask where it is really drawn.
+    // An opaque view only hides a mask where it is really drawn.
     func testClippedOrSeeThroughViewsKeepTheMask() {
         let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 300, height: 400))
         let secureField = UITextField(frame: CGRect(x: 20, y: 20, width: 200, height: 40))
@@ -111,7 +111,7 @@ final class ScreenRecordingTests: XCTestCase {
         XCTAssertEqual(RecordingFrameRenderer.maskedRects(in: window), [], "opaque cover")
     }
 
-    // AK-REC-1: while views animate, drawHierarchy draws them between start and end, so a moving view covers
+    // While views animate, drawHierarchy draws them between start and end, so a moving view covers
     // nothing and a moving masked view skips the frame.
     func testMovingViewsNeitherCoverMasksNorGetMasked() async throws {
         let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 300, height: 400))
@@ -144,7 +144,7 @@ final class ScreenRecordingTests: XCTestCase {
         XCTAssertNil(RecordingFrameRenderer.capture(windows: [window], bounds: window.bounds))
     }
 
-    // AK-REC-3: no frames without activity.
+    // No frames without activity.
     func testNoFramesWithoutActivity() {
         var activity = RecordingActivity()
         let start = Date()
@@ -199,7 +199,7 @@ final class ScreenRecordingTests: XCTestCase {
         XCTAssertEqual(keyboard.willShow(forApp: true), "keyboard shown")
     }
 
-    // AK-REC-5: after a crash the frames of the previous run are the last recording.
+    // After a crash the frames of the previous run are the last recording.
     func testRotationKeepsThePreviousRunAsLastRecording() throws {
         let root = FileManager.default.temporaryDirectory.appending(path: "recording-\(UUID().uuidString)")
         defer { try? FileManager.default.removeItem(at: root) }
@@ -219,7 +219,7 @@ final class ScreenRecordingTests: XCTestCase {
         XCTAssertTrue(RecordingStorage.frames(in: nextRun.currentFolder).isEmpty)
     }
 
-    // AK-REC-7: the SDK's own windows and the keyboard are never recorded.
+    // The SDK's own windows and the keyboard are never recorded.
     func testSDKWindowsAreNotRecorded() {
         let appWindow = UIWindow(frame: .zero)
         let sdkWindow = UIWindow(frame: .zero)

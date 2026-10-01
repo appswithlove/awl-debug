@@ -2,8 +2,6 @@
 //  Bundle+Extensions.swift
 //  
 //
-//  Created by Hrvoje Hajduković on 22.09.2025..
-//
 
 import Foundation
 
