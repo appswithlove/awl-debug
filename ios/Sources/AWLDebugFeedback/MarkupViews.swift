@@ -71,11 +71,16 @@ struct MarkupToolbar: View {
             .bottomScrollAnchor()
         }
         .frame(width: 48)
+        // The buttons keep their 44 pt frames, so their symbols stop growing at a size that still fits;
+        // a long press shows them large (Large Content Viewer).
+        .dynamicTypeSize(...DynamicTypeSize.xxLarge)
         .disabled(session.phase != .editing)
     }
 
+    /// 44 pt buttons without gaps: all tools, colours, undo and clear fit beside the screenshot on a
+    /// 6.1" phone, so the column only scrolls with the keyboard up or on small phones.
     private var controls: some View {
-        VStack(spacing: 4) {
+        VStack(spacing: 0) {
             ForEach(MarkupTool.allCases, id: \.self) { tool in
                 ToolButton(tool: tool, isSelected: session.tool == tool) {
                     session.tool = tool
@@ -117,6 +122,9 @@ private struct ToolButton: View {
         }
         .accessibilityLabel(tool.name)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .accessibilityShowsLargeContentViewer {
+            Label(tool.name, systemImage: tool.systemImage)
+        }
     }
 }
 
@@ -142,7 +150,8 @@ private struct ColorSwatch: View {
                 .fill(Color(uiColor: color.uiColor))
                 .frame(width: 26, height: 26)
                 .overlay {
-                    Circle().stroke(Color(uiColor: .separator), lineWidth: 1)
+                    // Visible edge for Black in dark mode and Yellow in light mode.
+                    Circle().stroke(.primary.opacity(0.35), lineWidth: 1)
                 }
                 .padding(3)
                 .overlay {
@@ -157,6 +166,9 @@ private struct ColorSwatch: View {
         .buttonStyle(.plain)
         .accessibilityLabel(color.name)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .accessibilityShowsLargeContentViewer {
+            Label(color.name, systemImage: "circle.fill")
+        }
     }
 }
 
@@ -172,6 +184,9 @@ private struct IconButton: View {
                 .frame(width: 44, height: 44)
         }
         .accessibilityLabel(title)
+        .accessibilityShowsLargeContentViewer {
+            Label(title, systemImage: systemImage)
+        }
     }
 }
 
