@@ -18,6 +18,7 @@ Made by [Apps with love](https://appswithlove.com).
   - [2. Repositories](#2-repositories)
   - [3. Additional build types](#3-additional-build-types)
 - [How the artifacts fit together](#how-the-artifacts-fit-together)
+  - [Store builds](#store-builds)
 - [Usage](#usage)
   - [DevSheet](#devsheet)
   - [Modules](#modules)
@@ -31,6 +32,7 @@ Made by [Apps with love](https://appswithlove.com).
   - [Kermit integration](#kermit-integration)
   - [Activate and deactivate](#activate-and-deactivate)
   - [Extensions](#extensions)
+- [Migrating from 0.6](#migrating-from-06)
 - [Local development](#local-development)
 - [Releasing](#releasing)
 - [License](#license)
@@ -58,12 +60,14 @@ Made by [Apps with love](https://appswithlove.com).
 
 ```kotlin
 dependencies {
-    debugImplementation("com.appswithlove.debug:debug:0.6.1")
-    releaseImplementation("com.appswithlove.debug:debug-no-op:0.6.1")
+    debugImplementation("com.appswithlove.debug:debug:2.0.0")
+    releaseImplementation("com.appswithlove.debug:debug-no-op:2.0.0")
 }
 ```
 
 Two lines, one per build type: the `debug` build gets the real panel, the `release` build gets a stub with the same API and empty bodies. Your app code stays identical for both. Details in [How the artifacts fit together](#how-the-artifacts-fit-together).
+
+Until 2.0.0 is on Maven Central, publish the snapshot from this repository to your local Maven repository, see [Local development](#local-development).
 
 ### 2. Repositories
 
@@ -85,8 +89,8 @@ No token, no extra repository.
 `debugImplementation` and `releaseImplementation` only cover the two default build types. If your app declares more (`staging`, `qa`, ...), each one needs its own line, otherwise that build type has neither artifact and fails to compile:
 
 ```kotlin
-stagingImplementation("com.appswithlove.debug:debug:0.6.1")       // internal build: real panel
-qaImplementation("com.appswithlove.debug:debug-no-op:0.6.1")      // goes to external testers: stub
+stagingImplementation("com.appswithlove.debug:debug:2.0.0")       // internal build: real panel
+qaImplementation("com.appswithlove.debug:debug-no-op:2.0.0")      // goes to external testers: stub
 ```
 
 Rule of thumb: `debug` for builds that stay inside the team, `debug-no-op` for anything that leaves the building.
@@ -111,6 +115,16 @@ What this buys you:
 - No conditionals in app code. Plant the tree, add the interceptor, wrap your root composable, done.
 
 The contract types live under `com.appswithlove.debug.api.*`, for example `com.appswithlove.debug.api.DevConfig` and `com.appswithlove.debug.api.session.SessionProvider`.
+
+### Store builds
+
+Any build type that reaches the Play Store or external testers must use `debug-no-op`. To check a release APK, look for the `FileProvider` that only the `debug` artifact declares; the count must be `0`:
+
+```
+apkanalyzer manifest print app-release.apk | grep -ci awldebug
+```
+
+The manifest is not obfuscated, so the check also works for minified builds. `apkanalyzer` is part of the Android SDK command-line tools.
 
 ## Usage
 
@@ -482,6 +496,19 @@ registration.close()
 
 The sample registers a demo section in `SampleApplication` (see `DemoExtension.kt`).
 
+## Migrating from 0.6
+
+Version 2.0 keeps the artifacts, packages and the `DevSheet` call. Check these changes:
+
+- **Interceptor:** `DevHttpLogInterceptor` takes a `DevNetworkConfig` instead of a `DevLogCollector`. `DevHttpLogInterceptor()` stays valid. Requests now appear in the Network module, with a one-line summary in Logs.
+- **Triggers:** `DevSheet` has a new `triggers` parameter after `modulesConfig`. If you pass `customModules` or later parameters by position, name them. A trigger only opens the sheet; it no longer closes an open one.
+- **`isAlwaysActive`:** it no longer changes the activation stored on the device. Use `DevSettings.activateDevTool` for that.
+- **`FileProvider`:** the authority is `${applicationId}.awldebug.fileprovider` instead of `${applicationId}.fileprovider`, so it no longer clashes with your app's provider. Remove workarounds such as `tools:node="remove"` for the library's provider.
+- **Manifest:** the library no longer sets `android:allowBackup="false"` on your app; drop a `tools:replace="android:allowBackup"` you added for it. The `debug` artifact declares `DETECT_SCREEN_CAPTURE` for the screenshot trigger.
+- **Logs:** `Log` has the new optional fields `tag` and `throwable`; `DevLogTree` now keeps the Timber tag and throwable.
+
+New modules are shown by default: Network (once a `DevHttpLogInterceptor` exists), Clear App Data and Screen Recording, where recording stays off until a tester turns it on. The version overlay is on by default too; turn it off with `DevModulesConfig(showVersionOverlay = false)`. Also new: saved and delayed deeplinks, session invalidation, `DevKermitLogWriter`, `AwlDebug.handleDeeplinkIntent` and the [extension API](#extensions).
+
 ## Local development
 
 Build and test:
@@ -519,9 +546,11 @@ dependencies {
 
 ## Releasing
 
-1. Bump `VERSION_NAME` in `gradle.properties` and merge to `main` via pull request.
+Android and iOS share one version number.
+
+1. Bump `VERSION_NAME` in `android/gradle.properties` and merge to `main` via pull request.
 2. Open a pull request from `main` to `production`. It requires one approval.
-3. Merging runs the `Publish` workflow: build and test, sign, upload all three artifacts to Maven Central, create a GitHub release tagged with the version.
+3. Merging runs the `Publish` workflow: build and test, sign, upload all three artifacts to Maven Central, create a GitHub release tagged with the version. Swift Package Manager resolves the iOS package from the same tag.
 
 The publish job waits for the Central Portal to validate the deployment and fails with the portal's reasons if it is rejected. Artifacts appear on Maven Central roughly 15 to 30 minutes after a successful run.
 

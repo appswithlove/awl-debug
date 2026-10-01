@@ -66,7 +66,7 @@ internal fun LogsModule(
     val logsSettingTitle = "Number of logs per session"
     val showLogsPerSessionDialog = remember { mutableStateOf(false) }
     val expandedEntryIds = remember { mutableStateOf(emptySet<Long>()) }
-    // Time of a list entry as in the spec; the export keeps its own format.
+    // Time of a list entry; the export keeps its own format.
     val listTimeFormat = remember { SimpleDateFormat("HH:mm:ss.SSS", Locale.US) }
 
     // Search, list and actions stay visible while recording is off; only new entries are dropped.
