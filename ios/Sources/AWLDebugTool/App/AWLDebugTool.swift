@@ -14,6 +14,7 @@ public class AWLDebugTool: ObservableObject {
     @MainActor lazy var sessionManager = SessionManager()
     @MainActor lazy var appLogs = AppLogsStore()
     private(set) var appGroupIdentifiers: [String] = []
+    private(set) var showsFCMPushTokenModule = true
 
     /// Main initializer.
     ///
@@ -53,6 +54,7 @@ public class AWLDebugTool: ObservableObject {
             shared.appLogs.config = config.logs
         }
         shared.appGroupIdentifiers = config.appGroupIdentifiers
+        shared.showsFCMPushTokenModule = config.showFCMPushTokenModule
         Task { @MainActor in
             VersionOverlayPresenter.shared.isAvailable = config.showVersionOverlay
             VersionOverlayPresenter.shared.update()

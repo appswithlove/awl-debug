@@ -78,7 +78,9 @@ public struct DebugView: View {
                     SessionView(sessionManager: sessionManager)
                 }
 
-                FCMPushTokenView(fcmToken: fcmToken)
+                if debugTool.showsFCMPushTokenModule {
+                    FCMPushTokenView(fcmToken: fcmToken)
+                }
 
                 Section {
                     PanelModuleRow(title: LS.Headers.screenRecording, isActive: screenRecorder.isOn) {

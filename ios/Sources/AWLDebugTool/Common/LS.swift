@@ -13,6 +13,8 @@ enum LS {
         static let copied = "Copied"
         /// VoiceOver hint of an extension row that copies its value.
         static let copyHint = "Copies the value."
+        /// Button of a setup hint that copies its code snippet.
+        static let copyCode = "Copy code"
     }
     
     struct Strings {
@@ -29,6 +31,20 @@ enum LS {
         static let filters = "Filters"
     }
     
+    struct FCM {
+        static let notSetup = "No FCM push token"
+        static let notSetupMessage = "Pass the app's Firebase Cloud Messaging token to show and copy it here."
+        static let setupSnippet = """
+            // SwiftUI
+            ContentView()
+                .includeDebugTool(fcmToken: fcmToken)
+
+            // UIKit
+            AWLDebugTool.install(in: scene,
+                                 fcmToken: fcmToken)
+            """
+    }
+
     struct Headers {
         static let btnClose = "Close"
         static let btnDone = "Done"
@@ -81,8 +97,6 @@ enum LS {
     
     struct Actions {
         // MARK: - Logs
-        static let clearNetworkLogs = "Clear network logs"
-        static let exportNetworkLogs = "Export network logs"
         
         // MARK: - Setting
         static let openAppSettings = "Open app settings"
@@ -138,6 +152,16 @@ enum LS {
     }
 
     struct Network {
+        static let clear = "Clear"
+        static let export = "Export"
+        static let showAll = "Show all"
+        static let noMatches = "No requests match the search or filters"
+        static let dynamicDataInfo = "On: the filters only offer the methods and status codes of captured requests."
+
+        static func hiddenByFilters(hidden: Int, total: Int) -> String {
+            "Filters hide \(hidden) of \(total) \(total == 1 ? "request" : "requests")"
+        }
+
         static let copyCurl = "Copy cURL"
         static let copyUrl = "Copy URL"
         static let copyResponse = "Copy response"
@@ -238,7 +262,6 @@ enum LS {
     struct Session {
         static let notSetup = "No session tokens configured"
         static let notSetupMessage = "Add one provider per token source to AWLDebugConfig.sessionProviders to inspect the tokens here and test login, refresh and logout."
-        static let copyCode = "Copy code"
         static let setupSnippet = """
             var config = AWLDebugConfig()
             config.sessionProviders = [

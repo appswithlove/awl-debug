@@ -8,6 +8,7 @@
 import SwiftUI
 
 /// Network module page: captured requests with search, sorting, filters, export and the log limit.
+/// Like on Android, the controls sit directly above the requests and scroll away with them.
 public struct LogsListView: View {
     @StateObject private var viewModel = LogsListViewModel()
     @ObservedObject private var networkLogger = AWLDebugTool.shared.networkLogger
@@ -15,99 +16,128 @@ public struct LogsListView: View {
     public init() {}
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            LogsOptions
-            LogsList
-        }
-        .overlay {
-            EmptyLogsList
-        }
-        .panelPage(LS.Strings.logs) {
-            ActionsMenu
-        }
-        .sheet(isPresented: $viewModel.isFilterActive) {
-            FilterView(isFilterActive: $viewModel.isFilterActive)
-        }
-        .destructiveAlertViewModifier(isShowingAlert: $viewModel.isShowingDeleteNetworkLogs,
-                                      title: LS.Alert.deleteNLTitle,
-                                      message: LS.Alert.deleteNLMessage,
-                                      action: { viewModel.deleteNetworkLogs() })
-        .fileExporter(isPresented: $viewModel.isShowingFileExporter,
-                      document: viewModel.document,
-                      contentType: .plainText,
-                      defaultFilename: viewModel.filename
-        ) { result in
-            switch result {
-            case .success(let file):
-                print("\(LS.logWatermark) \(file)")
-            case .failure(let error):
-                print("\(LS.logWatermark) \(error)")
+        LogsList
+            .panelPage(LS.Strings.logs)
+            .sheet(isPresented: $viewModel.isFilterActive) {
+                FilterView(isFilterActive: $viewModel.isFilterActive)
             }
-        }
+            .destructiveAlertViewModifier(isShowingAlert: $viewModel.isShowingDeleteNetworkLogs,
+                                          title: LS.Alert.deleteNLTitle,
+                                          message: LS.Alert.deleteNLMessage,
+                                          action: { viewModel.deleteNetworkLogs() })
+            .fileExporter(isPresented: $viewModel.isShowingFileExporter,
+                          document: viewModel.document,
+                          contentType: .plainText,
+                          defaultFilename: viewModel.filename
+            ) { result in
+                switch result {
+                case .success(let file):
+                    print("\(LS.logWatermark) \(file)")
+                case .failure(let error):
+                    print("\(LS.logWatermark) \(error)")
+                }
+            }
     }
 
     @ViewBuilder var EmptyLogsList: some View {
         if !networkLogger.didStart {
             PanelEmptyState(text: LS.Strings.trackingInfo, systemImage: "network.slash")
-        } else if viewModel.filteredLogs.isEmpty {
+        } else if networkLogger.networkTraffic.isEmpty {
             PanelEmptyState(text: LS.Strings.emptyListOfLogs, systemImage: "network")
+        } else if viewModel.filteredLogs.isEmpty {
+            PanelEmptyState(text: LS.Network.noMatches, systemImage: "line.3.horizontal.decrease.circle")
         }
     }
 
-    @ViewBuilder var ActionsMenu: some View {
-        Menu {
-            Button(action: viewModel.exportNetworkLogs) {
-                Label(LS.Actions.exportNetworkLogs, systemImage: Image.AppIcon.export.rawValue)
+    /// Filters, export and clear as buttons, the active filters, "Dynamic data" and the log limit.
+    @ViewBuilder var Controls: some View {
+        // One line when it fits, one button per line with large text.
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 8) {
+                FilterLogsButton
+                ExportButton
+                ClearButton
             }
-            .disabled(viewModel.filteredLogs.isEmpty)
-            Picker(LS.Settings.logLimit, selection: $networkLogger.networkLogsLimit) {
-                ForEach(Constants.Defaults.defaultNumberOfLogs, id: \.self) {
-                    Text(verbatim: "\($0)")
+            VStack(alignment: .leading, spacing: 8) {
+                FilterLogsButton
+                ExportButton
+                ClearButton
+            }
+        }
+        .buttonStyle(.bordered)
+        // Inside a list a label otherwise shows only its icon.
+        .labelStyle(.titleAndIcon)
+
+        if viewModel.isFilterChangedByUser {
+            ViewThatFits(in: .horizontal) {
+                HStack {
+                    Text(viewModel.hiddenByFiltersText)
+                    Spacer()
+                    ShowAllButton
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(viewModel.hiddenByFiltersText)
+                    ShowAllButton
                 }
             }
-            .pickerStyle(.menu)
-            Button(role: .destructive) {
-                viewModel.isShowingDeleteNetworkLogs = true
-            } label: {
-                Label(LS.Actions.clearNetworkLogs, systemImage: Image.AppIcon.clear.rawValue)
-            }
-            .disabled(viewModel.isDeleteLogsButtonDisabled)
-        } label: {
-            Image(systemName: "ellipsis.circle")
+            .font(.footnote)
         }
+
+        Toggle(LS.Settings.dynamicData, isOn: $networkLogger.isDynamicDataModeOn)
+            .accessibilityHint(LS.Network.dynamicDataInfo)
+
+        Picker(LS.Settings.logLimit, selection: $networkLogger.networkLogsLimit) {
+            ForEach(Constants.Defaults.defaultNumberOfLogs, id: \.self) {
+                Text(verbatim: "\($0)")
+            }
+        }
+    }
+
+    @ViewBuilder var ExportButton: some View {
+        Button(action: viewModel.exportNetworkLogs) {
+            Label(LS.Network.export, systemImage: Image.AppIcon.export.rawValue)
+        }
+        .disabled(viewModel.filteredLogs.isEmpty)
+    }
+
+    @ViewBuilder var ClearButton: some View {
+        Button(role: .destructive) {
+            viewModel.isShowingDeleteNetworkLogs = true
+        } label: {
+            Label(LS.Network.clear, systemImage: Image.AppIcon.clear.rawValue)
+        }
+        .disabled(viewModel.isDeleteLogsButtonDisabled)
+    }
+
+    @ViewBuilder var ShowAllButton: some View {
+        Button(LS.Network.showAll, action: viewModel.showAllRequests)
+            .buttonStyle(.borderless)
     }
 
     @ViewBuilder var LogsOptions: some View {
-        // One line when it fits; with large text the buttons move below the count, then below each other.
+        // One line when it fits; with large text the sort button moves below the count.
         ViewThatFits(in: .horizontal) {
             HStack(alignment: .center) {
                 NumberOfRequestsText
                 Spacer()
                 SortingOrderToggleButton
-                FilterLogsButton
-            }
-            VStack(alignment: .leading, spacing: 4) {
-                NumberOfRequestsText
-                HStack {
-                    SortingOrderToggleButton
-                    FilterLogsButton
-                }
             }
             VStack(alignment: .leading, spacing: 4) {
                 NumberOfRequestsText
                 SortingOrderToggleButton
-                FilterLogsButton
             }
         }
         .font(.footnote)
+        .labelStyle(.titleAndIcon)
+        .textCase(nil)
         .buttonStyle(.borderless)
-        .padding(.horizontal, 16)
     }
 
     @ViewBuilder var NumberOfRequestsText: some View {
-        Text(LS.Strings.numberOfLogs) +
-        Text(verbatim: "\(viewModel.filteredLogs.count) / \(viewModel.networkLogsLimit)")
-            .bold()
+        (Text(LS.Strings.numberOfLogs) +
+         Text(verbatim: "\(viewModel.filteredLogs.count) / \(viewModel.networkLogsLimit)")
+            .bold())
+        .foregroundStyle(.primary)
     }
 
     @ViewBuilder var FilterLogsButton: some View {
@@ -115,10 +145,7 @@ public struct LogsListView: View {
             viewModel.isFilterActive = true
         } label: {
             Label(LS.Strings.filters, systemImage: (viewModel.isFilterChangedByUser ? Image.AppIcon.filtersSet : .filtersUnset).rawValue)
-                .frame(minHeight: 44)
-                .contentShape(Rectangle())
         }
-        .padding(.horizontal, 4)
         .accessibilityValue(viewModel.isFilterChangedByUser ? LS.Panel.active : "")
     }
 
@@ -135,17 +162,28 @@ public struct LogsListView: View {
     }
 
     @ViewBuilder var LogsList: some View {
-        List(viewModel.filteredLogs) { log in
-            NavigationLink {
-                LogDetailView(log: log)
-            } label: {
-                VStack(alignment: .leading) {
-                    LogDate(date: log.date)
-                    LogUrl(url: log.url)
-                    LogInfo(method: log.method, statusCode: log.statusCode, duration: log.duration)
+        List {
+            Section {
+                Controls
+            }
+            Section {
+                EmptyLogsList
+                    .listRowSeparator(.hidden)
+                ForEach(viewModel.filteredLogs) { log in
+                    NavigationLink {
+                        LogDetailView(log: log)
+                    } label: {
+                        VStack(alignment: .leading) {
+                            LogDate(date: log.date)
+                            LogUrl(url: log.url)
+                            LogInfo(method: log.method, statusCode: log.statusCode, duration: log.duration)
+                        }
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel(accessibilityLabel(of: log))
+                    }
                 }
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(accessibilityLabel(of: log))
+            } header: {
+                LogsOptions
             }
         }
         .listStyle(.plain)

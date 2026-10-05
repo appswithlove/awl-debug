@@ -25,14 +25,16 @@ final class LogsListViewModel: ObservableObject {
         self.networkLogger = networkLogger
     }
 
-    var filteredLogs: [NetworkLog] {
-        let searched = searchText.isEmpty ? networkLogger.networkTraffic : networkLogger.networkTraffic.filter {
+    private var searchedLogs: [NetworkLog] {
+        searchText.isEmpty ? networkLogger.networkTraffic : networkLogger.networkTraffic.filter {
             $0.method.localizedCaseInsensitiveContains(searchText) ||
             $0.url.localizedCaseInsensitiveContains(searchText) ||
             "\($0.statusCode)".contains(searchText)
         }
+    }
 
-        let filteredByRequestMethods = searched.filter { log in
+    var filteredLogs: [NetworkLog] {
+        let filteredByRequestMethods = searchedLogs.filter { log in
             networkLogger.methods[log.method] ?? false
         }
 
@@ -82,6 +84,18 @@ final class LogsListViewModel: ObservableObject {
         networkLogger.methods.values.contains(false) ||
         networkLogger.codes.values.contains(false) ||
         networkLogger.endpoints.values.contains(false)
+    }
+
+    /// Shown above the list while filters are on: "Filters hide 3 of 10 requests".
+    var hiddenByFiltersText: String {
+        let searched = searchedLogs.count
+        return LS.Network.hiddenByFilters(hidden: searched - filteredLogs.count, total: searched)
+    }
+
+    func showAllRequests() {
+        networkLogger.selectAllMethods()
+        networkLogger.selectAllCodes()
+        networkLogger.selectAllEndpoints()
     }
 
     func toggleSortingOrder() {
