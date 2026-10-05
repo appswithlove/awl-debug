@@ -10,6 +10,8 @@ public struct AWLDebugConfig {
     public var sessionProviders: [any AWLSessionProvider] = []
     /// Shows the Session module on the panel's start page.
     public var showSessionModule: Bool = true
+    /// Shows the FCM push token on the panel's start page; without a token it shows how to pass one.
+    public var showFCMPushTokenModule: Bool = true
     /// Gestures and events that open the panel. A trigger that an extension claims (`AWLDebugExtensionSection.claimedTriggers`)
     /// does not open it.
     public var triggers: Set<AWLDebugTrigger> = [.threeFingerTap]

@@ -124,6 +124,7 @@ func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive respo
 | `logs` | `LogsConfig()` | Unified-log reading, see [Logs](#logs) |
 | `sessionProviders` | empty | Token sources of the Session module; without providers the module shows how to add one |
 | `showSessionModule` | `true` | Shows the Session module on the start page |
+| `showFCMPushTokenModule` | `true` | Shows the FCM push token on the start page |
 | `screenRecording` | off, 5 min | See [Screen recording](#screen-recording) |
 | `showVersionOverlay` | `true` | Default of the version overlay; testers can switch it off in App Info |
 | `appGroupIdentifiers` | empty | App-group `UserDefaults` suites that Clear App Data also empties |
@@ -155,7 +156,7 @@ The start page shows App Info, the sections of [extensions](#extensions) and the
 | Accessibility | Font size (Dynamic Type, Extra Small to Accessibility XXXL) and appearance (System, Light, Dark) for the app's windows, without changing the device settings |
 | Deeplinks | See [Deeplinks](#deeplinks) |
 | Session | See [Session](#session) |
-| FCM Push Token | The token passed to `includeDebugTool(fcmToken:)`; long-press to copy. Hidden without a token. |
+| FCM Push Token | The token passed to `includeDebugTool(fcmToken:)` or `install(in:fcmToken:)`, with "Copy". Without a token the row opens a code snippet that shows how to pass it. `showFCMPushTokenModule = false` hides it. |
 | Screen Recording | See [Screen recording](#screen-recording) |
 | Clear App Data | After a confirmation, deletes the app's `UserDefaults` and, if selected, keychain items, files, and cookies with caches. The tool's own settings stay. |
 | Test Crashes | "Simulate crash - Runtime exception" and "Simulate crash - Index out of bounds" crash the app after a confirmation, to check that the app's crash reporting catches it. The message is "AWL Debug test crash". |
@@ -164,7 +165,7 @@ The start page shows App Info, the sections of [extensions](#extensions) and the
 
 The tool registers a `URLProtocol` and captures requests of `URLSession.shared` and of sessions created from `URLSessionConfiguration.default` or `.ephemeral` after `AWLDebugTool.start`. Ktor's Darwin engine uses such a session, so Kotlin Multiplatform apps need no extra code.
 
-The module lists requests with time, method, status, duration and host, and marks requests above `slowRequestThresholdMs` as "slow". Filters by method, status and host and the sort order are stored on the device. The detail shows headers and bodies and copies the request as cURL. "Export network logs" shares `awl-debug-network-<timestamp>.txt`.
+The module lists requests with time, method, status, duration and host, and marks requests above `slowRequestThresholdMs` as "slow". Above the list are "Filters", "Export" and "Clear", the "Dynamic data" switch (the filters then only offer the methods and status codes of captured requests) and "Number of logs per session". While filters hide requests, a line says how many and "Show all" turns them off. Filters by method, status and host and the sort order are stored on the device. The detail shows headers and bodies and copies the request as cURL. "Export" shares `awl-debug-network-<timestamp>.txt`.
 
 Values are redacted on the device before anything is stored:
 

@@ -44,4 +44,6 @@ Upgrade guides: [Android from 0.6](android/README.md#migrating-from-06) and [iOS
 - The Logs module reads the app's unified log, so `os_log`, `Logger` and Kermit entries appear without extra code.
 - The Permissions module shows the status of the declared permissions and never requests one.
 - Screen recording no longer swizzles methods and masks secure text fields.
+- The Network page shows "Filters", "Export", "Clear", "Dynamic data" and "Number of logs per session" above the list, and how many requests the filters hide.
+- The FCM push token row is always on the start page; without a token it shows how to pass one. New: `AWLDebugConfig.showFCMPushTokenModule`.
 - Deprecated: `start(isScreenRecordingOn:)`, `start(tokens:)` with `TokenDebugModel`, and `includeDebugTool(showDebugToolEvents:)`.

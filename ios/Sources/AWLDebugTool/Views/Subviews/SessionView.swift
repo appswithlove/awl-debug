@@ -80,7 +80,9 @@ struct SessionDetailView: View {
         Form {
             if sessionManager.entries.isEmpty {
                 Section {
-                    SessionSetupHint()
+                    // Shown while the app passes no `sessionProviders`.
+                    SetupHint(title: LS.Session.notSetup, message: LS.Session.notSetupMessage,
+                              snippet: LS.Session.setupSnippet)
                 }
             }
             ForEach(sessionManager.entries) { entry in
@@ -90,34 +92,6 @@ struct SessionDetailView: View {
             }
         }
         .panelPage(LS.Headers.session)
-    }
-}
-
-/// Shown while the app passes no `sessionProviders`: how to add one.
-private struct SessionSetupHint: View {
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(LS.Session.notSetup)
-                .font(.headline)
-            Text(LS.Session.notSetupMessage)
-                .foregroundStyle(.secondary)
-            ScrollView(.horizontal) {
-                Text(LS.Session.setupSnippet)
-                    .font(.caption.monospaced())
-                    .foregroundStyle(.secondary)
-                    .textSelection(.enabled)
-                    .fixedSize()
-                    .padding(8)
-            }
-            .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 8))
-            Button {
-                UIPasteboard.general.string = LS.Session.setupSnippet
-            } label: {
-                Label(LS.Session.copyCode, systemImage: "doc.on.doc")
-            }
-            .buttonStyle(.bordered)
-        }
-        .padding(.vertical, 4)
     }
 }
 
