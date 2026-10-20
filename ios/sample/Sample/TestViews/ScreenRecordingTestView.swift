@@ -1,6 +1,6 @@
 //
 //  ScreenRecordingTestView.swift
-//  AWLDebugTool-Example
+//  Sample
 //
 
 import SwiftUI

@@ -1,6 +1,6 @@
 //
-//  AWLDebugTool_ExampleApp.swift
-//  AWLDebugTool-Example
+//  SampleApp.swift
+//  Sample
 //
 
 import Security
@@ -36,7 +36,7 @@ class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
 // MARK: - App
 
 @main
-struct AWLDebugTool_ExampleApp: App {
+struct SampleApp: App {
 
     init() {
         UNUserNotificationCenter.current().delegate = NotificationDelegate.shared

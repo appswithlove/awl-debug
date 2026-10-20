@@ -9,15 +9,15 @@ cd android
 ./gradlew build
 ```
 
-`build` includes `apiCheck`. After an intended public API change, run `./gradlew apiDump` and commit the updated `api/*.api` files. Change `lib` and `lib-no-op` together; `apiParityCheck` fails when their public APIs differ.
+`build` includes `apiCheck`. After an intended public API change, run `./gradlew apiDump` and commit the updated `api/*.api` files. Change `debug` and `debug-no-op` together; `apiParityCheck` fails when their public APIs differ.
 
-| Module | Artifact | Contents |
-|---|---|---|
-| `lib-api` | `debug-api` | Contract types and the extension API, pulled in by both others |
-| `lib` | `debug` | The real panel |
-| `lib-no-op` | `debug-no-op` | The same public API with empty bodies |
+| Module and artifact | Contents |
+|---|---|
+| `debug-api` | Contract types and the extension API, pulled in by both others |
+| `debug` | The real panel |
+| `debug-no-op` | The same public API with empty bodies |
 
-The libraries compile against OkHttp 4.12, the lowest supported version. To test another one, pass `-PokhttpVersion`, for example `./gradlew :lib:testDebugUnitTest -PokhttpVersion=5.3.2`.
+The libraries compile against OkHttp 4.12, the lowest supported version. To test another one, pass `-PokhttpVersion`, for example `./gradlew :debug:testDebugUnitTest -PokhttpVersion=5.3.2`.
 
 The sample app in `android/sample/` plants `DevLogTree`, fires an HTTP request, registers a demo extension section and has a switch that activates the tool.
 
@@ -33,7 +33,7 @@ To try an unreleased version in another project, publish to the local Maven repo
 xcodebuild test -scheme AWLDebugTool -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
 ```
 
-The Example app in `ios/Example/` shows every module and registers a demo extension section. Debug defines `AWL_DEBUG`, Release is the store configuration: archive it and run the checks in [Store builds](README.md#store-builds). Its product is called `DebugExample` so the checks don't match the app's own name.
+The sample app in `ios/sample/` shows every module and registers a demo extension section. Debug defines `AWL_DEBUG`, Release is the store configuration: archive it and run the checks in [Store builds](README.md#store-builds). Its product is called `DebugSample` so the checks don't match the app's own name.
 
 To try an unreleased version in another app, add the package with a branch instead of a version.
 

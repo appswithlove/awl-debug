@@ -38,7 +38,7 @@ android {
 }
 
 dependencies {
-    api(project(":lib-api"))
+    api(project(":debug-api"))
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.foundation)
     implementation(libs.okhttp)

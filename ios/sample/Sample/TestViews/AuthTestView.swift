@@ -1,6 +1,6 @@
 //
 //  AuthTestView.swift
-//  AWLDebugTool-Example
+//  Sample
 //
 
 #if AWL_DEBUG

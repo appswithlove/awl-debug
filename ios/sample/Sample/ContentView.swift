@@ -1,6 +1,6 @@
 //
 //  ContentView.swift
-//  AWLDebugTool-Example
+//  Sample
 //
 
 import SwiftUI

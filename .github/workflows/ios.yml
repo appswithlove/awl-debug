@@ -13,6 +13,6 @@ jobs:
       - uses: actions/checkout@v4
       - name: Package tests
         run: xcodebuild test -scheme AWLDebugTool -destination 'platform=iOS Simulator,name=iPhone 16'
-      - name: Build Example
-        working-directory: ios/Example
-        run: xcodebuild build -project AWLDebugTool-Example.xcodeproj -scheme AWLDebugTool-Example -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO
+      - name: Build sample
+        working-directory: ios/sample
+        run: xcodebuild build -project Sample.xcodeproj -scheme Sample -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO

@@ -1,6 +1,6 @@
 //
 //  CpuTestView.swift
-//  AWLDebugTool-Example
+//  Sample
 //
 
 import SwiftUI
