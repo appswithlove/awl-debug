@@ -26,7 +26,7 @@ plugins {
 apiValidation {
     // Android libraries use AGP's built-in Kotlin, which the plugin does not detect.
     // They are covered by the tasks registered below instead.
-    ignoredProjects += listOf("sample", "debug", "debug-no-op")
+    ignoredProjects += listOf("example", "debug", "debug-no-op")
 }
 
 /** Dumps the public JVM API of an Android library variant with the validator's own dump format. */

@@ -19,7 +19,7 @@ cd android
 
 The libraries compile against OkHttp 4.12, the lowest supported version. To test another one, pass `-PokhttpVersion`, for example `./gradlew :debug:testDebugUnitTest -PokhttpVersion=5.3.2`.
 
-The sample app in `android/sample/` plants `DevLogTree`, fires an HTTP request, registers a demo extension section and has a switch that activates the tool.
+The example app in `android/example/` plants `DevLogTree`, fires an HTTP request, registers a demo extension section and has a switch that activates the tool.
 
 To try an unreleased version in another project, publish to the local Maven repository and put `mavenLocal()` first in that project's repositories:
 
@@ -33,7 +33,7 @@ To try an unreleased version in another project, publish to the local Maven repo
 xcodebuild test -scheme AWLDebugTool -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
 ```
 
-The sample app in `ios/sample/` shows every module and registers a demo extension section. Debug defines `AWL_DEBUG`, Release is the store configuration: archive it and run the checks in [Store builds](README.md#store-builds). Its product is called `DebugSample` so the checks don't match the app's own name.
+The example app in `ios/example/` shows every module and registers a demo extension section. Debug defines `AWL_DEBUG`, Release is the store configuration: archive it and run the checks in [Store builds](README.md#store-builds). Its product is called `DebugExample` so the checks don't match the app's own name.
 
 To try an unreleased version in another app, add the package with a branch instead of a version.
 

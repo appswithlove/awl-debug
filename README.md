@@ -393,7 +393,7 @@ registration.cancel()   // removes the section
 | `isDebugArtifactPresent` | `isStarted` | Whether the real tool runs |
 | | `closePanel()`, `excludeFromCapture(_:)`, `keepOnClearAppData(userDefaultsPrefix:)` | Close the panel, skip the extension's own requests, keep its settings |
 
-On Android a library only depends on `debug-api`; with `debug-no-op` the calls compile and do nothing. On iOS ship an extension as a dynamic framework too, so store builds remove it with `AWLDebugTool`. An extension window over the app sets `accessibilityIdentifier = "AWLDebugWindow"` so recordings leave it out. Both sample apps register a demo section.
+On Android a library only depends on `debug-api`; with `debug-no-op` the calls compile and do nothing. On iOS ship an extension as a dynamic framework too, so store builds remove it with `AWLDebugTool`. An extension window over the app sets `accessibilityIdentifier = "AWLDebugWindow"` so recordings leave it out. Both example apps register a demo section.
 
 ## Store builds
 
