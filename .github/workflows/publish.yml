@@ -15,6 +15,9 @@ jobs:
     environment: maven-central
     permissions:
       contents: write
+    defaults:
+      run:
+        working-directory: android
 
     steps:
       - uses: actions/checkout@v4
@@ -62,3 +65,5 @@ jobs:
             - `com.appswithlove.debug:debug:${{ steps.get_version.outputs.version }}`
             - `com.appswithlove.debug:debug-no-op:${{ steps.get_version.outputs.version }}`
             - `com.appswithlove.debug:debug-api:${{ steps.get_version.outputs.version }}`
+
+            Swift Package Manager: `.package(url: "https://github.com/appswithlove/awl-debug", from: "${{ steps.get_version.outputs.version }}")`
