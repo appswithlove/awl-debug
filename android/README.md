@@ -32,7 +32,7 @@ Made by [Apps with love](https://appswithlove.com).
   - [Kermit integration](#kermit-integration)
   - [Activate and deactivate](#activate-and-deactivate)
   - [Extensions](#extensions)
-- [Migrating from 0.6](#migrating-from-06)
+- [Migrating from 0.6](../MIGRATION.md#android-from-06)
 - [Local development](#local-development)
 - [Releasing](#releasing)
 - [License](#license)
@@ -66,8 +66,6 @@ dependencies {
 ```
 
 Two lines, one per build type: the `debug` build gets the real panel, the `release` build gets a stub with the same API and empty bodies. Your app code stays identical for both. Details in [How the artifacts fit together](#how-the-artifacts-fit-together).
-
-Until 2.0.0 is on Maven Central, publish the snapshot from this repository to your local Maven repository, see [Local development](#local-development).
 
 ### 2. Repositories
 
@@ -495,19 +493,6 @@ registration.close()
 - **Compatibility:** records such as `DevLogRecord` and `DevNetworkRecord` are plain classes, not data classes, so later versions can add fields without breaking binary compatibility.
 
 The sample registers a demo section in `SampleApplication` (see `DemoExtension.kt`).
-
-## Migrating from 0.6
-
-Version 2.0 keeps the artifacts, packages and the `DevSheet` call. Check these changes:
-
-- **Interceptor:** `DevHttpLogInterceptor` takes a `DevNetworkConfig` instead of a `DevLogCollector`. `DevHttpLogInterceptor()` stays valid. Requests now appear in the Network module, with a one-line summary in Logs.
-- **Triggers:** `DevSheet` has a new `triggers` parameter after `modulesConfig`. If you pass `customModules` or later parameters by position, name them. A trigger only opens the sheet; it no longer closes an open one.
-- **`isAlwaysActive`:** it no longer changes the activation stored on the device. Use `DevSettings.activateDevTool` for that.
-- **`FileProvider`:** the authority is `${applicationId}.awldebug.fileprovider` instead of `${applicationId}.fileprovider`, so it no longer clashes with your app's provider. Remove workarounds such as `tools:node="remove"` for the library's provider.
-- **Manifest:** the library no longer sets `android:allowBackup="false"` on your app; drop a `tools:replace="android:allowBackup"` you added for it. The `debug` artifact declares `DETECT_SCREEN_CAPTURE` for the screenshot trigger.
-- **Logs:** `Log` has the new optional fields `tag` and `throwable`; `DevLogTree` now keeps the Timber tag and throwable.
-
-New modules are shown by default: Network (once a `DevHttpLogInterceptor` exists), Clear App Data and Screen Recording, where recording stays off until a tester turns it on. The version overlay is on by default too; turn it off with `DevModulesConfig(showVersionOverlay = false)`. Also new: saved and delayed deeplinks, session invalidation, `DevKermitLogWriter`, `AwlDebug.handleDeeplinkIntent` and the [extension API](#extensions).
 
 ## Local development
 
