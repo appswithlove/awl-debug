@@ -27,6 +27,7 @@ Upgrade guides: [Android from 0.6](android/README.md#migrating-from-06) and [iOS
 - **Breaking:** `DevHttpLogInterceptor` takes a `DevNetworkConfig` instead of a `DevLogCollector`.
 - **Breaking:** `DevSheet` has a `triggers` parameter after `modulesConfig`, and a trigger no longer closes an open sheet.
 - **Breaking:** `isAlwaysActive` no longer changes the activation stored on the device.
+- Network, Clear App Data, Screen Recording and the version overlay are shown by default; turn them off in `DevModulesConfig`.
 - New: `DevNetworkConfig`, `DevTrigger`, `DevScreenRecordingConfig`, `PollingSessionProvider`, `SessionProvider.onInvalidate`, `DevKermitLogWriter`, `AwlDebug.handleDeeplinkIntent`, `Modifier.awlDebugMasked()` and `View.awlDebugMasked`.
 - The library's `FileProvider` has its own authority, `${applicationId}.awldebug.fileprovider`, and no longer clashes with the app's provider.
 - The library no longer sets `android:allowBackup="false"` on the app.
@@ -36,9 +37,10 @@ Upgrade guides: [Android from 0.6](android/README.md#migrating-from-06) and [iOS
 ### iOS
 
 - **Breaking:** the package moved to `https://github.com/appswithlove/awl-debug`. Product and module are still `AWLDebugTool`.
-- **Breaking:** the product is a dynamic framework. Apps embed it, and store builds remove it with a build phase.
+- **Breaking:** the product is a dynamic framework. Apps embed it, replace `#if DEBUG || STAGING` with `#if AWL_DEBUG`, and store builds remove it with a build phase.
 - **Breaking:** the default trigger is the three-finger tap instead of the triple tap.
 - **Breaking:** network capture no longer trusts every server certificate.
+- **Breaking:** the UserDefaults module is replaced by Clear App Data.
 - New: `AWLDebugConfig` with network, logs, triggers, session providers, screen recording, version overlay and app group options; `AWLDebugTool.log`, `open()`, `close()`, `toggle()`, `isOpen` and `isActivated`; `AWLDebugTool.install(in:)` for UIKit apps; `AWLSessionProvider` and `AWLTokenProvider`; `.awlDebugMasked()`.
 - The panel opens in its own window above the app's sheets, and each module has its own page.
 - The Logs module reads the app's unified log, so `os_log`, `Logger` and Kermit entries appear without extra code.
