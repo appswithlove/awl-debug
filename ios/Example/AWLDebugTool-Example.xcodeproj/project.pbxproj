@@ -200,7 +200,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/bash;
-			shellScript = "# Keeps the AWL debug SDK out of configurations without AWL_DEBUG (store builds), see ios/README.md.\n[[ \" ${OTHER_SWIFT_FLAGS:-} \" == *\" -DAWL_DEBUG \"* ]] && exit 0\ncd \"${TARGET_BUILD_DIR:?}/${WRAPPER_NAME:?}\" || exit 1\n# The framework, plus the package's resource bundle that Xcode copies to the app's root.\nrm -rf Frameworks/AWLDebugTool.framework AWLDebugTool_AWLDebugTool.bundle\nif otool -L \"${EXECUTABLE_NAME:?}\" | grep -q AWLDebug; then\n    echo \"error: the store build still links the AWL debug SDK\"; exit 1\nfi\n";
+			shellScript = "# Keeps the AWL debug SDK out of configurations without AWL_DEBUG (store builds), see README.md.\n[[ \" ${OTHER_SWIFT_FLAGS:-} \" == *\" -DAWL_DEBUG \"* ]] && exit 0\ncd \"${TARGET_BUILD_DIR:?}/${WRAPPER_NAME:?}\" || exit 1\n# The framework, plus the package's resource bundle that Xcode copies to the app's root.\nrm -rf Frameworks/AWLDebugTool.framework AWLDebugTool_AWLDebugTool.bundle\nif otool -L \"${EXECUTABLE_NAME:?}\" | grep -q AWLDebug; then\n    echo \"error: the store build still links the AWL debug SDK\"; exit 1\nfi\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
