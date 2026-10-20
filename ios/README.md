@@ -19,7 +19,7 @@ Made by [Apps with love](https://appswithlove.com). The Android version in [`and
 - [Custom sections](#custom-sections)
 - [Extensions](#extensions)
 - [Store builds](#store-builds)
-- [Migrating from AWLDebugTool 1.x](#migrating-from-awldebugtool-1x)
+- [Migrating from AWLDebugTool 1.x](../MIGRATION.md#ios-from-awldebugtool-1x)
 - [Tests](#tests)
 
 ## Features
@@ -40,13 +40,12 @@ Requires iOS 16 or later.
 
 ### 1. Add the package
 
-In Xcode, choose **File > Add Package Dependencies…**, enter `https://github.com/appswithlove/awl-debug` and add the product `AWLDebugTool` to the app target. As requirement, use the version `2.0.0` up to the next major version; until 2.0.0 is released, use the branch `release/2.0`.
+In Xcode, choose **File > Add Package Dependencies…**, enter `https://github.com/appswithlove/awl-debug` and add the product `AWLDebugTool` to the app target. As requirement, use the version `2.0.0` up to the next major version.
 
 In a `Package.swift`:
 
 ```swift
 .package(url: "https://github.com/appswithlove/awl-debug", from: "2.0.0")
-// before the release: .package(url: "https://github.com/appswithlove/awl-debug", branch: "release/2.0")
 ```
 
 ### 2. Embed the framework
@@ -332,23 +331,6 @@ find "$APP" -iname "*AWLDebug*" | wc -l
 ```
 
 The checks look for "AWLDebug" in names, so they only work for an app whose name doesn't contain it. That's why the Example's product is called `DebugExample`.
-
-## Migrating from AWLDebugTool 1.x
-
-The calls of 1.x still compile; the old variants are deprecated. These changes need action:
-
-- **Package URL:** replace the package with `https://github.com/appswithlove/awl-debug`, see [Installation](#installation). Product and module are still called `AWLDebugTool`.
-- **Dynamic framework:** set `AWLDebugTool` to **Embed & Sign**. 1.x was linked statically; without embedding, the app crashes at launch on devices and in release builds.
-- **Store builds:** replace `#if DEBUG || STAGING` with `#if AWL_DEBUG` and add the steps in [Store builds](#store-builds). Without them, the framework ships in store builds.
-- **Default trigger:** the panel opens with a three-finger tap instead of a triple tap. To keep the 1.x behavior, set `config.triggers = [.tripleTap]`, or `[.tripleTap, .screenshot]` if you used `.userDidTakeScreenshot`.
-- **TLS:** the tool no longer accepts every server certificate. A server with an invalid certificate now fails in debug builds too, as it does in store builds.
-
-| 1.x | 2.0 |
-|---|---|
-| `AWLDebugTool.start(isScreenRecordingOn: true, …)` | `config.screenRecording.isOnByDefault = true` |
-| `AWLDebugTool.start(tokens: [.init(label:getToken:)])` | `config.sessionProviders = [AWLTokenProvider(label:token:…)]` |
-| `.includeDebugTool(showDebugToolEvents: [.threeTaps, .userDidTakeScreenshot])` | `config.triggers = [.tripleTap, .screenshot]` |
-| UserDefaults module | Clear App Data, with keychain, files and cookies as options |
 
 ## Tests
 

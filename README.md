@@ -13,9 +13,9 @@ Other libraries can add rows to the panel and read its logs, requests and screen
 
 ## Versions
 
-Android and iOS share one version number; changes are in the [changelog](CHANGELOG.md). Version 2.0.0 is not released yet. Until then, iOS apps use the branch `release/2.0`, and Android apps publish a snapshot from this repository to their local Maven repository, see [Local development](android/README.md#local-development).
+Android and iOS share one version number; changes are in the [changelog](CHANGELOG.md).
 
-Upgrade guides: [Android from 0.6](android/README.md#migrating-from-06) and [iOS from AWLDebugTool 1.x](ios/README.md#migrating-from-awldebugtool-1x).
+Coming from Android awl-debug 0.6 or iOS AWLDebugTool 1.x: see the [migration guide](MIGRATION.md).
 
 ## License
 
