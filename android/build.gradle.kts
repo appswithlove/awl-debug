@@ -26,7 +26,7 @@ plugins {
 apiValidation {
     // Android libraries use AGP's built-in Kotlin, which the plugin does not detect.
     // They are covered by the tasks registered below instead.
-    ignoredProjects += listOf("sample", "lib", "lib-no-op")
+    ignoredProjects += listOf("example", "debug", "debug-no-op")
 }
 
 /** Dumps the public JVM API of an Android library variant with the validator's own dump format. */
@@ -99,7 +99,7 @@ subprojects {
 }
 
 // Real and no-op artifacts are swapped per build type, so their public API must be identical.
-val noOpPairs = listOf("lib" to "lib-no-op")
+val noOpPairs = listOf("debug" to "debug-no-op")
 
 tasks.register("apiParityCheck") {
     description = "Fails when the API dumps of a real artifact and its no-op variant differ."

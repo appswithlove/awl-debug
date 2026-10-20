@@ -21,7 +21,7 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "awl-debug"
-include(":sample")
-include(":lib")
-include(":lib-api")
-include(":lib-no-op")
+include(":example")
+include(":debug")
+include(":debug-api")
+include(":debug-no-op")

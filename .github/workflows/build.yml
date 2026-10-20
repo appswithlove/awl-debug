@@ -1,4 +1,4 @@
-name: CI
+name: Android
 
 on:
   push:
@@ -38,9 +38,9 @@ jobs:
           validate-wrappers: true
 
       - name: Unit tests
-        run: ./gradlew :lib-api:test :lib:testDebugUnitTest :lib-no-op:testDebugUnitTest
+        run: ./gradlew :debug-api:test :debug:testDebugUnitTest :debug-no-op:testDebugUnitTest
       - name: Build published modules
-        run: ./gradlew :lib-api:build :lib:build :lib-no-op:build
+        run: ./gradlew :debug-api:build :debug:build :debug-no-op:build
 
       - name: Test reports
         if: always()

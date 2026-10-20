@@ -16,15 +16,15 @@ Version 2.0 keeps the artifacts, packages and the `DevSheet` call. Check these c
 - **Manifest:** the library no longer sets `android:allowBackup="false"` on your app; drop a `tools:replace="android:allowBackup"` you added for it. The `debug` artifact declares `DETECT_SCREEN_CAPTURE` for the screenshot trigger.
 - **Logs:** `Log` has the new optional fields `tag` and `throwable`; `DevLogTree` now keeps the Timber tag and throwable.
 
-New modules are shown by default: Network (once a `DevHttpLogInterceptor` exists), Clear App Data and Screen Recording, where recording stays off until a tester turns it on. The version overlay is on by default too; turn it off with `DevModulesConfig(showVersionOverlay = false)`. Also new: saved and delayed deeplinks, session invalidation, `DevKermitLogWriter`, `AwlDebug.handleDeeplinkIntent` and the [extension API](android/README.md#extensions).
+New modules are shown by default: Network (once a `DevHttpLogInterceptor` exists), Clear App Data and Screen Recording, where recording stays off until a tester turns it on. The version overlay is on by default too; turn it off with `DevModulesConfig(showVersionOverlay = false)`. Also new: saved and delayed deeplinks, session invalidation, `DevKermitLogWriter`, `AwlDebug.handleDeeplinkIntent` and the [extension API](README.md#extensions).
 
 ## iOS from AWLDebugTool 1.x
 
 The calls of 1.x still compile; the old variants are deprecated. These changes need action:
 
-- **Package URL:** replace the package with `https://github.com/appswithlove/awl-debug`, see [Installation](ios/README.md#installation). Product and module are still called `AWLDebugTool`.
+- **Package URL:** replace the package with `https://github.com/appswithlove/awl-debug`, see [Installation](README.md#ios). Product and module are still called `AWLDebugTool`.
 - **Dynamic framework:** set `AWLDebugTool` to **Embed & Sign**. 1.x was linked statically; without embedding, the app crashes at launch on devices and in release builds.
-- **Store builds:** replace `#if DEBUG || STAGING` with `#if AWL_DEBUG` and add the steps in [Store builds](ios/README.md#store-builds). Without them, the framework ships in store builds.
+- **Store builds:** replace `#if DEBUG || STAGING` with `#if AWL_DEBUG` and add the steps in [Store builds](README.md#store-builds). Without them, the framework ships in store builds.
 - **Default trigger:** the panel opens with a three-finger tap instead of a triple tap. To keep the 1.x behavior, set `config.triggers = [.tripleTap]`, or `[.tripleTap, .screenshot]` if you used `.userDidTakeScreenshot`.
 - **TLS:** the tool no longer accepts every server certificate. A server with an invalid certificate now fails in debug builds too, as it does in store builds.
 
