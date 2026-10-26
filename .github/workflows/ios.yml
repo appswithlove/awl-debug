@@ -27,7 +27,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Package tests
-        run: xcodebuild test -scheme AWLDebugTool -destination 'platform=iOS Simulator,name=iPhone 16'
+        run: xcodebuild test -scheme AWLDebugTool -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
       - name: Build example
         working-directory: ios/example
         run: xcodebuild build -project Example.xcodeproj -scheme Example -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO
