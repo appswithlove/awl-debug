@@ -1,8 +1,23 @@
 name: iOS
 
-# Manual only: macOS runners are expensive, run locally during development.
 on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "ios/**"
+      - "Package.swift"
+      - ".github/workflows/ios.yml"
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - "ios/**"
+      - "Package.swift"
+      - ".github/workflows/ios.yml"
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
