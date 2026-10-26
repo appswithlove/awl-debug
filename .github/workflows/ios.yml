@@ -26,8 +26,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+      # The runner's Xcode can be newer than its installed iOS runtimes, so pick an iPhone on the newest installed runtime.
       - name: Package tests
-        run: xcodebuild test -scheme AWLDebugTool -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
+        run: |
+          udid=$(xcrun simctl list devices available -j | jq -r '.devices | to_entries | map(select(.key | contains("iOS"))) | sort_by(.key | capture("iOS-(?<v>.+)").v | split("-") | map(tonumber)) | last.value | map(select(.name | startswith("iPhone"))) | first.udid')
+          xcodebuild test -scheme AWLDebugTool -destination "id=$udid"
       - name: Build example
         working-directory: ios/example
         run: xcodebuild build -project Example.xcodeproj -scheme Example -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO
