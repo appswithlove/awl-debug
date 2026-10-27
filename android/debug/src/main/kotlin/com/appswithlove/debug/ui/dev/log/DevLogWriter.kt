@@ -3,6 +3,7 @@ package com.appswithlove.debug.ui.dev.log
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.update
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -17,7 +18,14 @@ internal class DevLogWriter(private val logHistory: LogHistory) : DevLogCollecto
     }
 
     override fun log(log: Log) {
-        logHistory.push(LogEntry(log.severity, log.message.redactCredentials().redactJsonFields(), tag = log.tag, throwable = log.throwable))
+        logHistory.push(
+            LogEntry(
+                severity = log.severity,
+                message = log.message.redactCredentials().redactJsonFields(),
+                tag = log.tag,
+                stackTrace = log.throwable?.stackTraceToString()?.redactCredentials()?.redactJsonFields(),
+            ),
+        )
     }
 
     override fun setMaxSize(size: Int) {
@@ -61,10 +69,7 @@ class LogHistory {
 
     internal fun push(entry: LogEntry) {
         if (_trackLogs.value) {
-            val updatedLogs = (_logEntries.value + entry).let {
-                if (it.size > _maxSize.value) it.takeLast(_maxSize.value) else it
-            }
-            _logEntries.value = updatedLogs
+            _logEntries.update { (it + entry).takeLast(_maxSize.value) }
         }
     }
 
@@ -153,10 +158,14 @@ internal data class LogEntry(
     val message: String,
     val timestamp: Long = System.currentTimeMillis(),
     val tag: String? = null,
-    val throwable: Throwable? = null,
+    /** Redacted stack trace of the logged throwable. */
+    val stackTrace: String? = null,
     val id: Long = nextLogEntryId.getAndIncrement(),
 ) {
     private val tagPrefix: String = tag?.let { "$it | " }.orEmpty()
+
+    /** Message followed by the stack trace, as shown in the Logs module and the export. */
+    val fullMessage: String = stackTrace?.let { "$message\n$it" } ?: message
 
     val formattedTime: String = SimpleDateFormat(
         "dd.MM.yyyy HH:mm:ss",
@@ -164,10 +173,10 @@ internal data class LogEntry(
     ).format(Date(timestamp))
 
     fun toExportString(): String {
-        return "$formattedTime | $severity | $tagPrefix$message"
+        return "$formattedTime | $severity | $tagPrefix$fullMessage"
     }
 
     override fun toString(): String {
-        return "$formattedTime | $tagPrefix$message"
+        return "$formattedTime | $tagPrefix$fullMessage"
     }
 }

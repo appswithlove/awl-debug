@@ -128,7 +128,7 @@ internal fun LogsModule(
                 item { DevEmptyState(text = "No logs yet", modifier = Modifier.padding(horizontal = 4.dp)) }
             } else {
                 itemsIndexed(logs.reversed(), key = { _, entry -> entry.id }) { index, entry ->
-                    val text = entry.message
+                    val text = entry.fullMessage
                     val isExpanded = entry.id in expandedEntryIds.value
 
                     Column(

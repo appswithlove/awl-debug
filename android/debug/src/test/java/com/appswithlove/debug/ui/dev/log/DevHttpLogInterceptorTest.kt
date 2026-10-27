@@ -190,6 +190,25 @@ class DevHttpLogInterceptorTest {
     }
 
     @Test
+    fun intercept_chunkedBinary_isNotPeekedAndDoesNotBlock() {
+        server.enqueue(
+            MockResponse()
+                .setHeader("Content-Type", "application/octet-stream")
+                .setChunkedBody("x".repeat(2_000), 16)
+                .throttleBody(16, 1, TimeUnit.SECONDS)
+        )
+
+        val startedAt = System.nanoTime()
+        client().newCall(Request.Builder().url(server.url("/download")).build()).execute().use { response ->
+            response.body!!.source().readByte()
+        }
+        val elapsedMs = ((System.nanoTime() - startedAt) / 1_000_000).toInt()
+
+        elapsedMs shouldBeLessThan 3_000
+        store.entries.value.single().responseBody!!.text shouldBe "(binary, not captured)"
+    }
+
+    @Test
     fun intercept_ndjsonAndConfiguredStreamTypes_areNotPeeked() {
         server.enqueue(MockResponse().setHeader("Content-Type", "application/x-ndjson").setBody("{\"a\":1}\n"))
         server.enqueue(MockResponse().setHeader("Content-Type", "Application/Custom-Stream").setBody("chunk"))
@@ -209,6 +228,7 @@ class DevHttpLogInterceptorTest {
             .setType(MultipartBody.FORM)
             .addFormDataPart("password", "p")
             .addFormDataPart("note", "hello")
+            .addFormDataPart("metadata", null, """{"password":"hunter2","locale":"en"}""".toRequestBody("application/json".toMediaType()))
             .addFormDataPart("avatar", "me.png", "PNG".toRequestBody("image/png".toMediaType()))
             .build()
 
@@ -218,6 +238,7 @@ class DevHttpLogInterceptorTest {
         lines shouldContain "[REDACTED]"
         lines shouldContain "hello"
         lines shouldContain "(file me.png, 3 bytes)"
+        lines shouldContain """{"password":"[REDACTED]","locale":"en"}"""
     }
 
     @Test

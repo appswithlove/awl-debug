@@ -7,6 +7,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -22,7 +23,10 @@ internal class SessionManager(providers: List<SessionProvider>) {
 
     val states: StateFlow<List<ProviderState>> = run {
         val flows: List<Flow<ProviderState>> = providers.map { provider ->
-            provider.token.map { token -> ProviderState(provider, token) }
+            provider.token
+                .map { token -> ProviderState(provider, token) }
+                // A failing provider shows no token instead of crashing the app.
+                .catch { emit(ProviderState(provider, null)) }
         }
         combine(flows) {
             it.toList()

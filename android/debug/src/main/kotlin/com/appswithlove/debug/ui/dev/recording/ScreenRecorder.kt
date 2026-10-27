@@ -33,13 +33,12 @@ import java.io.File
 import java.lang.ref.WeakReference
 import java.util.Locale
 import java.util.concurrent.atomic.AtomicBoolean
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.withContext
 
 /**
  * Records the resumed activity's window as JPEG frames, 3 per second, only while testers interact:
@@ -160,11 +159,18 @@ internal object ScreenRecorder {
     suspend fun export(options: DevRecordingExportOptions): DevRecordingExport? {
         if (prefs == null) return null
         return exportLock.withLock {
-            withContext(Dispatchers.IO) {
+            // On the worker thread, so no frame is written or trimmed while the folder is read.
+            onWorker {
                 val source = if (_currentFrameCount.value > 0) buffer.currentDir else buffer.lastDir
                 RecordingExporter.export(source, File(cacheRoot, "recording-extension"), options)
             }
         }
+    }
+
+    private suspend fun <T> onWorker(block: () -> T): T = suspendCancellableCoroutine { continuation ->
+        val task = Runnable { continuation.resumeWith(runCatching(block)) }
+        worker.post(task)
+        continuation.invokeOnCancellation { worker.removeCallbacks(task) }
     }
 
     /** Pauses recording while the panel covers the app. */

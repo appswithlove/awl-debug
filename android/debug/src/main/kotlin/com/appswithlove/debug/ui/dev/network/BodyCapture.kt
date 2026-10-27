@@ -53,6 +53,8 @@ internal class BodyCapture(
             return placeholder(STREAM, contentType)
         }
         if (contentLength > MAX_READ_BYTES) return placeholder(tooLarge(contentLength), contentType)
+        // Checked before peekBody, which would block until MAX_READ_BYTES or EOF arrive.
+        if (contentType != null && !isTextType(contentType)) return placeholder(binary(contentLength), contentType)
         val encoding = response.header("Content-Encoding")?.lowercase()
         if (encoding != null && encoding != "identity" && encoding != "gzip") {
             return placeholder("($encoding encoded body, not captured)", contentType)
@@ -101,19 +103,23 @@ internal class BodyCapture(
         }
         val buffer = Buffer()
         partBody.writeTo(buffer)
-        return buffer.readUtf8()
+        val contentType = partBody.contentType()
+        return redact(buffer.readString(contentType?.charset() ?: Charsets.UTF_8), contentType, counter) ?: UNPARSABLE_JSON
     }
 
     private fun fromBytes(bytes: ByteArray, contentType: MediaType?, counter: NetworkRedactor.Counter): CapturedBody {
         val isText = if (contentType == null) bytes.isProbablyUtf8() else isTextType(contentType)
-        if (!isText) return placeholder("(binary, ${bytes.size} bytes)", contentType)
+        if (!isText) return placeholder(binary(bytes.size.toLong()), contentType)
         val text = String(bytes, contentType?.charset() ?: Charsets.UTF_8)
-        val redacted = when {
-            contentType.isJson() -> redactor.json(text, counter) ?: return placeholder(UNPARSABLE_JSON, contentType)
-            contentType.isForm() -> redactor.form(text, counter)
-            else -> text
-        }
+        val redacted = redact(text, contentType, counter) ?: return placeholder(UNPARSABLE_JSON, contentType)
         return cap(redacted, contentType, bytes.size.toLong())
+    }
+
+    /** Redacts JSON and form bodies; `null` for JSON that cannot be parsed. */
+    private fun redact(text: String, contentType: MediaType?, counter: NetworkRedactor.Counter): String? = when {
+        contentType.isJson() -> redactor.json(text, counter)
+        contentType.isForm() -> redactor.form(text, counter)
+        else -> text
     }
 
     private fun cap(text: String, contentType: MediaType?, originalBytes: Long): CapturedBody {
@@ -192,5 +198,7 @@ internal class BodyCapture(
         private val NAME_REGEX = Regex("""\bname="([^"]*)"""")
 
         private fun tooLarge(bytes: Long) = "($bytes bytes, too large to redact)"
+
+        private fun binary(bytes: Long) = if (bytes >= 0) "(binary, $bytes bytes)" else "(binary, not captured)"
     }
 }

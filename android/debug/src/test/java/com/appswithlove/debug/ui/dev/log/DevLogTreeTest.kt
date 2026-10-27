@@ -25,7 +25,8 @@ class DevLogTreeTest {
         val entry = logHistory.logEntries.value.single()
         entry.severity shouldBe DevLogSeverity.ERROR
         entry.tag shouldBe "Network"
-        entry.throwable shouldBe error
+        entry.message shouldBe "Request failed"
+        entry.stackTrace shouldBe error.stackTraceToString()
         entry.toExportString() shouldContain "| ERROR | Network | Request failed"
     }
 }

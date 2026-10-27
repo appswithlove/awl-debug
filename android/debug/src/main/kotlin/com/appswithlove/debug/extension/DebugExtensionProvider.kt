@@ -48,7 +48,7 @@ private fun LogEntry.toRecord() = DevLogRecord(
     severity = severity?.name,
     tag = tag,
     message = message,
-    throwable = throwable?.stackTraceToString(),
+    throwable = stackTrace,
 )
 
 internal fun NetworkEntry.toRecord() = DevNetworkRecord(

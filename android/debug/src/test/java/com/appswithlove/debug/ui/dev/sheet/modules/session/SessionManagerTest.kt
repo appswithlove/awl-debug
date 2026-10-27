@@ -6,6 +6,7 @@ import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 
@@ -55,6 +56,22 @@ class SessionManagerTest {
             awaitItem().first().token shouldBe null
             provider.emit("token-123")
             awaitItem().first().token shouldBe "token-123"
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun states_whenProviderTokenThrows_showsNoTokenAndKeepsOthers() = runTest {
+        val failing = object : SessionProvider {
+            override val label = "Failing"
+            override val token: Flow<String?> = flow { throw IllegalStateException("KeyStore unavailable") }
+        }
+        val working = FakeSessionProvider("A", MutableStateFlow("abc"))
+        val manager = SessionManager(listOf(failing, working))
+
+        manager.states.test {
+            awaitItem().map { it.token } shouldBe listOf(null, null)
+            awaitItem().map { it.token } shouldBe listOf(null, "abc")
             cancelAndIgnoreRemainingEvents()
         }
     }

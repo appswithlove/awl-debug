@@ -15,4 +15,12 @@ class PollingSessionProviderTest {
 
         provider.token.take(3).toList() shouldBe listOf("a", null, "b")
     }
+
+    @Test
+    fun token_failingRead_emitsNullAndKeepsPolling() = runTest {
+        val values = ArrayDeque(listOf<() -> String?>({ "a" }, { error("KeyStore unavailable") }, { "b" }))
+        val provider = PollingSessionProvider(label = "Access Token", pollIntervalMillis = 100) { values.removeFirst()() }
+
+        provider.token.take(3).toList() shouldBe listOf("a", null, "b")
+    }
 }

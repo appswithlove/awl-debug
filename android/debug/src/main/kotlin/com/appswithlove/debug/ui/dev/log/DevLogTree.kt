@@ -15,6 +15,8 @@ class DevLogTree(
             Log.ERROR, Log.ASSERT -> DevLogSeverity.ERROR
             else -> DevLogSeverity.INFO
         }
-        logCollector.log(Log(severity, message, tag, t))
+        // Timber appends the stack trace to the message; keep it only once, as the throwable.
+        val text = t?.let { message.removeSuffix(it.stackTraceToString()).removeSuffix("\n") } ?: message
+        logCollector.log(Log(severity, text, tag, t))
     }
 }
