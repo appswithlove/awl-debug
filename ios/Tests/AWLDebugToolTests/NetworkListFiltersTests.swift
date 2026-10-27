@@ -27,4 +27,17 @@ final class NetworkListFiltersTests: XCTestCase {
         XCTAssertFalse(viewModel.isFilterChangedByUser)
         XCTAssertEqual(viewModel.filteredLogs.count, 2)
     }
+
+    func testKeepsExactlyTheLimit() {
+        let logger = NetworkLogger()
+        let storedLimit = logger.networkLogsLimit
+        defer { logger.networkLogsLimit = storedLimit }
+        logger.networkLogsLimit = 2
+
+        for statusCode in [200, 201, 202] {
+            logger.appendNetworkLog(log("GET", statusCode))
+        }
+
+        XCTAssertEqual(logger.networkTraffic.map(\.statusCode), [201, 202])
+    }
 }

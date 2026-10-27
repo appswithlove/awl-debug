@@ -255,10 +255,18 @@ extension ScreenRecorder {
         }
     }
 
-    /// Current recording, or the previous run's when the current one has no frames yet. Waits for pending frames.
-    func exportFolder() -> URL? {
-        waitForPendingFrames()
-        return [storage.currentFolder, storage.lastFolder].first { RecordingStorage.newestFrameDate(in: $0) != nil }
+    /// A copy of the current recording, or of the previous run's when the current one has no frames yet. Taken on the
+    /// encoding queue, so no frame or event is written or trimmed while it is read. The caller deletes it.
+    func exportSnapshot() -> URL? {
+        let storage = storage
+        return encodingQueue.sync {
+            guard let folder = [storage.currentFolder, storage.lastFolder].first(where: { RecordingStorage.newestFrameDate(in: $0) != nil }) else {
+                return nil
+            }
+            let snapshot = FileManager.default.temporaryDirectory.appending(path: "awl-debug-recording-\(UUID().uuidString)")
+            // A clone on APFS: no frame data is copied.
+            return (try? FileManager.default.copyItem(at: folder, to: snapshot)) == nil ? nil : snapshot
+        }
     }
 }
 

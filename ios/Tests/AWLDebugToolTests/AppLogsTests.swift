@@ -60,7 +60,7 @@ final class AppLogsTests: XCTestCase {
 
         var entries: [AppLogEntry] = []
         for _ in 0..<30 where entries.isEmpty {
-            entries = try reader.entries(after: nil)
+            entries = try reader.entries(after: nil).entries
             if entries.isEmpty {
                 Thread.sleep(forTimeInterval: 0.1)
             }

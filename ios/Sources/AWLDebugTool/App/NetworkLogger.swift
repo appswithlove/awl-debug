@@ -141,8 +141,7 @@ public class NetworkLogger: ObservableObject {
     @MainActor
     func appendNetworkLog(_ log: NetworkLog) {
         ExtensionState.shared.publish(log)
-        networkTraffic.append(log)
-        cleanNetworkTrafficForLimit()
+        networkTraffic = Array((networkTraffic + [log]).suffix(networkLogsLimit))
     }
 
     /// The newest `maxEntries` requests, ordered by start time. They are stored when they finish. Any thread.
@@ -156,15 +155,6 @@ public class NetworkLogger: ObservableObject {
     @MainActor
     func deleteNetworkLogs() {
         networkTraffic = []
-    }
-    
-    @MainActor
-    private func cleanNetworkTrafficForLimit() {
-        var networkTraffic = self.networkTraffic
-        while networkTraffic.count >= networkLogsLimit {
-            networkTraffic.removeFirst()
-        }
-        self.networkTraffic = networkTraffic
     }
     
     // MARK: - Filters

@@ -148,29 +148,31 @@ extension String {
 struct OSLogReader {
     let subsystems: Set<String>?
 
-    /// Entries after `date`, oldest first.
-    func entries(after date: Date?) throws -> [AppLogEntry] {
+    /// Entries after `date`, oldest first, and the date of the last entry scanned, included or not.
+    func entries(after date: Date?) throws -> (entries: [AppLogEntry], scannedUntil: Date?) {
         let store = try OSLogStore(scope: .currentProcessIdentifier)
         let position = date.map { store.position(date: $0) }
         let ownSubsystem = Bundle.main.bundleIdentifier ?? ""
-        return try store.getEntries(at: position)
-            .compactMap { $0 as? OSLogEntryLog }
-            .filter { entry in
-                if let date = date, entry.date <= date {
-                    return false
-                }
-                return isIncluded(subsystem: entry.subsystem)
+        var entries: [AppLogEntry] = []
+        var scannedUntil: Date?
+        for entry in try store.getEntries(at: position) {
+            if let date = date, entry.date <= date {
+                continue
             }
-            .map { entry in
-                let tag: String?
-                if entry.subsystem.isEmpty || entry.subsystem == ownSubsystem {
-                    tag = entry.category.isEmpty ? nil : entry.category
-                } else {
-                    tag = entry.category.isEmpty ? entry.subsystem : "\(entry.subsystem)/\(entry.category)"
-                }
-                return AppLogEntry(date: entry.date, level: Self.level(of: entry.level), tag: tag,
-                                   message: entry.composedMessage.redactingSecrets(), errorDescription: nil)
+            scannedUntil = entry.date
+            guard let log = entry as? OSLogEntryLog, isIncluded(subsystem: log.subsystem) else {
+                continue
             }
+            let tag: String?
+            if log.subsystem.isEmpty || log.subsystem == ownSubsystem {
+                tag = log.category.isEmpty ? nil : log.category
+            } else {
+                tag = log.category.isEmpty ? log.subsystem : "\(log.subsystem)/\(log.category)"
+            }
+            entries.append(AppLogEntry(date: log.date, level: Self.level(of: log.level), tag: tag,
+                                       message: log.composedMessage.redactingSecrets(), errorDescription: nil))
+        }
+        return (entries, scannedUntil)
     }
 
     /// Without an explicit list, Apple's own frameworks are left out: they would drown the app's entries.
@@ -262,14 +264,15 @@ final class AppLogsStore: ObservableObject {
 
         let reader = OSLogReader(subsystems: config.subsystems)
         let since = readUntil
-        guard let newEntries = try? await Task.detached(priority: .utility, operation: { try reader.entries(after: since) }).value else {
+        guard let result = try? await Task.detached(priority: .utility, operation: { try reader.entries(after: since) }).value else {
             return
         }
-        if let last = newEntries.last {
-            readUntil = max(readUntil ?? last.date, last.date)
+        // Up to the last scanned entry, so entries the filter leaves out are not scanned again.
+        if let scannedUntil = result.scannedUntil {
+            readUntil = max(readUntil ?? scannedUntil, scannedUntil)
         }
         if isRecording {
-            insert(newEntries)
+            insert(result.entries)
         }
     }
 

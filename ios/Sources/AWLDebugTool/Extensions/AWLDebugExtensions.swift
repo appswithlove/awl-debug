@@ -66,9 +66,10 @@ public enum AWLDebugExtensions {
     /// Encodes the current screen recording, or the previous run's while the current one has no frames, off the
     /// main thread. `nil` without a recording or when encoding fails.
     public static func exportRecording(_ options: AWLDebugRecordingExportOptions) async -> AWLDebugRecordingExport? {
-        guard let folder = await ScreenRecorder.shared.exportFolder() else {
+        guard let folder = await ScreenRecorder.shared.exportSnapshot() else {
             return nil
         }
+        defer { try? FileManager.default.removeItem(at: folder) }
         let frames = RecordingStorage.timedFrames(in: folder)
         let events = RecordingStorage.events(in: folder)
         return await Task.detached(priority: .userInitiated) {
