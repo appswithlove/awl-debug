@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Android: `debug` declares `POST_NOTIFICATIONS` for scheduled deeplinks, so app lint no longer fails with `NotificationPermission`. The tool still never requests it. `debug-no-op` is unchanged.
+
 ## 2.0.0
 
 One debug panel for Android and iOS. Both platforms live in this repository, share one version number and have the same modules, configured the same way. Coming from Android awl-debug 0.6 or iOS AWLDebugTool 1.x: see the [migration guide](MIGRATION.md).

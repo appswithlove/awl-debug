@@ -399,11 +399,15 @@ On Android a library only depends on `debug-api`; with `debug-no-op` the calls c
 
 The tool must never reach the Play Store, App Store or external testers.
 
-**Android:** use `debug-no-op` for those build types. Release builds then contain no debug UI, gestures, log buffering or token access, and none of the panel's dependencies. The build enforces that `debug` and `debug-no-op` have the same public API. To check a release APK, the count must be `0`:
+**Android:** use `debug-no-op` for those build types. Release builds then contain no debug UI, gestures, log buffering or token access, and none of the panel's dependencies. The build enforces that `debug` and `debug-no-op` have the same public API. To check a release APK, both counts must be `0`. AGP names the file after module, flavor and build type, for example `app-prod-release.apk`:
 
 ```
-apkanalyzer manifest print app-release.apk | grep -ci awldebug
+APK=path/to/app-release.apk
+apkanalyzer manifest print "$APK" | grep -ci awldebug
+apkanalyzer dex packages --defined-only "$APK" | grep -c 'com.appswithlove.debug.ui.dev.sheet.modules'
 ```
+
+The dex check looks for the panel's modules. `com.appswithlove.debug` classes outside them are the no-op stubs and expected.
 
 **iOS:** store configurations leave `AWL_DEBUG` unset and remove the framework:
 
