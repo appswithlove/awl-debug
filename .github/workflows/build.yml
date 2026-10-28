@@ -1,12 +1,17 @@
-name: CI
+name: Android
 
 on:
   push:
     branches: [ "main" ]
-    paths-ignore:
-      - "**.md"
+    paths:
+      - "android/**"
+      - ".github/workflows/build.yml"
   pull_request:
-    branches: [ "main", "production" ]
+    branches: [ "main" ]
+    paths:
+      - "android/**"
+      - ".github/workflows/build.yml"
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -16,6 +21,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: android
 
     steps:
       - uses: actions/checkout@v4
@@ -30,14 +38,14 @@ jobs:
           validate-wrappers: true
 
       - name: Unit tests
-        run: ./gradlew :lib-api:test :lib:testDebugUnitTest :lib-no-op:testDebugUnitTest
+        run: ./gradlew :debug-api:test :debug:testDebugUnitTest :debug-no-op:testDebugUnitTest
       - name: Build published modules
-        run: ./gradlew :lib-api:build :lib:build :lib-no-op:build
+        run: ./gradlew :debug-api:build :debug:build :debug-no-op:build
 
       - name: Test reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: test-reports
-          path: "**/build/reports/tests/"
+          path: "android/**/build/reports/tests/"
           retention-days: 7

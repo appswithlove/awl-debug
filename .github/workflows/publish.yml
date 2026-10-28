@@ -15,6 +15,9 @@ jobs:
     environment: maven-central
     permissions:
       contents: write
+    defaults:
+      run:
+        working-directory: android
 
     steps:
       - uses: actions/checkout@v4
@@ -40,7 +43,7 @@ jobs:
           fi
 
       - name: Verify published modules
-        run: ./gradlew :lib-api:build :lib:build :lib-no-op:build
+        run: ./gradlew :debug-api:build :debug:build :debug-no-op:build
 
       - name: Publish to Maven Central Portal
         run: ./gradlew publishAllPublicationsToMavenCentralRepository --no-configuration-cache
@@ -62,3 +65,5 @@ jobs:
             - `com.appswithlove.debug:debug:${{ steps.get_version.outputs.version }}`
             - `com.appswithlove.debug:debug-no-op:${{ steps.get_version.outputs.version }}`
             - `com.appswithlove.debug:debug-api:${{ steps.get_version.outputs.version }}`
+
+            Swift Package Manager: `.package(url: "https://github.com/appswithlove/awl-debug", from: "${{ steps.get_version.outputs.version }}")`
