@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 2.0.1
 
 - Android: `debug` declares `POST_NOTIFICATIONS` for scheduled deeplinks, so app lint no longer fails with `NotificationPermission`. The tool still never requests it. `debug-no-op` is unchanged.
 

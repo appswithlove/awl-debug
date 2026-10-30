@@ -49,16 +49,16 @@ Requires API 25 (Android 7.1). All artifacts are on [Maven Central](https://cent
 
 ```kotlin
 dependencies {
-    debugImplementation("com.appswithlove.debug:debug:2.0.0")
-    releaseImplementation("com.appswithlove.debug:debug-no-op:2.0.0")
+    debugImplementation("com.appswithlove.debug:debug:2.0.1")
+    releaseImplementation("com.appswithlove.debug:debug-no-op:2.0.1")
 }
 ```
 
 `debug-no-op` has the same API with empty bodies, so app code stays identical for both build types. Every additional build type needs its own line, otherwise it has neither artifact and fails to compile. Rule of thumb: `debug` for builds that stay inside the team, `debug-no-op` for anything that leaves the building:
 
 ```kotlin
-stagingImplementation("com.appswithlove.debug:debug:2.0.0")
-qaImplementation("com.appswithlove.debug:debug-no-op:2.0.0")
+stagingImplementation("com.appswithlove.debug:debug:2.0.1")
+qaImplementation("com.appswithlove.debug:debug-no-op:2.0.1")
 ```
 
 ### iOS
