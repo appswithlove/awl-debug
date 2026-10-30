@@ -4,6 +4,8 @@
 
     <!-- DevTrigger.Screenshot, Android 14+. Normal permission, debug artifact only. -->
     <uses-permission android:name="android.permission.DETECT_SCREEN_CAPTURE" />
+    <!-- Deeplinks module, Android 13+. Declared only, never requested: the app decides whether to ask. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application>
         <provider

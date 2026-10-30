@@ -49,16 +49,16 @@ Requires API 25 (Android 7.1). All artifacts are on [Maven Central](https://cent
 
 ```kotlin
 dependencies {
-    debugImplementation("com.appswithlove.debug:debug:2.0.0")
-    releaseImplementation("com.appswithlove.debug:debug-no-op:2.0.0")
+    debugImplementation("com.appswithlove.debug:debug:2.0.1")
+    releaseImplementation("com.appswithlove.debug:debug-no-op:2.0.1")
 }
 ```
 
 `debug-no-op` has the same API with empty bodies, so app code stays identical for both build types. Every additional build type needs its own line, otherwise it has neither artifact and fails to compile. Rule of thumb: `debug` for builds that stay inside the team, `debug-no-op` for anything that leaves the building:
 
 ```kotlin
-stagingImplementation("com.appswithlove.debug:debug:2.0.0")
-qaImplementation("com.appswithlove.debug:debug-no-op:2.0.0")
+stagingImplementation("com.appswithlove.debug:debug:2.0.1")
+qaImplementation("com.appswithlove.debug:debug-no-op:2.0.1")
 ```
 
 ### iOS
@@ -399,11 +399,15 @@ On Android a library only depends on `debug-api`; with `debug-no-op` the calls c
 
 The tool must never reach the Play Store, App Store or external testers.
 
-**Android:** use `debug-no-op` for those build types. Release builds then contain no debug UI, gestures, log buffering or token access, and none of the panel's dependencies. The build enforces that `debug` and `debug-no-op` have the same public API. To check a release APK, the count must be `0`:
+**Android:** use `debug-no-op` for those build types. Release builds then contain no debug UI, gestures, log buffering or token access, and none of the panel's dependencies. The build enforces that `debug` and `debug-no-op` have the same public API. To check a release APK, both counts must be `0`. AGP names the file after module, flavor and build type, for example `app-prod-release.apk`:
 
 ```
-apkanalyzer manifest print app-release.apk | grep -ci awldebug
+APK=path/to/app-release.apk
+apkanalyzer manifest print "$APK" | grep -ci awldebug
+apkanalyzer dex packages --defined-only "$APK" | grep -c 'com.appswithlove.debug.ui.dev.sheet.modules'
 ```
+
+The dex check looks for the panel's modules. `com.appswithlove.debug` classes outside them are the no-op stubs and expected.
 
 **iOS:** store configurations leave `AWL_DEBUG` unset and remove the framework:
 
