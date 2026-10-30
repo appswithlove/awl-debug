@@ -70,8 +70,10 @@ class SessionManagerTest {
         val manager = SessionManager(listOf(failing, working))
 
         manager.states.test {
-            awaitItem().map { it.token } shouldBe listOf(null, null)
-            awaitItem().map { it.token } shouldBe listOf(null, "abc")
+            // The providers are collected on Dispatchers.IO, so the initial value may already be replaced.
+            var tokens = awaitItem().map { it.token }
+            if (tokens == listOf(null, null)) tokens = awaitItem().map { it.token }
+            tokens shouldBe listOf(null, "abc")
             cancelAndIgnoreRemainingEvents()
         }
     }
