@@ -62,12 +62,24 @@ class AWLDebugURLProtocol: URLProtocol {
     private static let redirectDecisionGrace: CFTimeInterval = 0.25
     
     override public class func canInit(with request: URLRequest) -> Bool {
-        
-        if AWLDebugURLProtocol.property(forKey: Constants.RequestHandledKey, in: request) != nil
-            || AWLDebugURLProtocol.property(forKey: Constants.SkipCaptureKey, in: request) != nil {
+        !isExcluded(request) && !PassThrough.isLongLived(request)
+    }
+    
+    /// URLSession asks this for each task; tasks this protocol cannot carry are left to the system and logged from their metadata.
+    override public class func canInit(with task: URLSessionTask) -> Bool {
+        guard let request = task.currentRequest, !isExcluded(request) else {
+            return false
+        }
+        guard !PassThrough.isPassedThrough(task, request: request) else {
+            PassThroughLogger.observe(task, request: request, config: AWLDebugTool.shared.networkLogger.config)
             return false
         }
         return true
+    }
+    
+    private class func isExcluded(_ request: URLRequest) -> Bool {
+        AWLDebugURLProtocol.property(forKey: Constants.RequestHandledKey, in: request) != nil
+            || AWLDebugURLProtocol.property(forKey: Constants.SkipCaptureKey, in: request) != nil
     }
     
     override public class func canonicalRequest(for request: URLRequest) -> URLRequest {
@@ -137,16 +149,15 @@ class AWLDebugURLProtocol: URLProtocol {
             currentRequest?.duration = Int(Date().timeIntervalSince(startDate) * 1000)
         }
         
-        // Redact here, so unredacted values never leave the running request.
-        let log = currentRequest?.makeLog()
+        // Redacted off the URL loading thread, which all custom protocols share; unredacted values never leave `requestInfo`.
+        let requestInfo = currentRequest
         currentRequest = nil
-        
-        DispatchQueue.main.async {
-            if let log = log {
-                AWLDebugTool.shared.networkLogger.appendNetworkLog(log)
+        let session = session
+        NetworkLogger.captureQueue.async {
+            session?.invalidateAndCancel()
+            if let log = requestInfo?.makeLog() {
+                AWLDebugTool.shared.networkLogger.enqueueNetworkLog(log)
             }
-            
-            self.session?.invalidateAndCancel()
         }
     }
     
@@ -358,6 +369,8 @@ extension AWLDebugURLProtocol {
         private var responseBytes = 0
         private var isResponseStream = false
         private var responseCaptureLimit = 0
+        /// Bytes sent by a task left to the system; `nil` for requests this protocol carries.
+        private var passedThroughSentBytes: Int?
         
         init(request: NSURLRequest, config: AWLDebugConfig.NetworkConfig) {
             url = request.url?.absoluteString ?? ""
@@ -411,6 +424,19 @@ extension AWLDebugURLProtocol {
             }
         }
         
+        /// For a task left to the system: only its metadata is known, the bodies were never read.
+        func finishPassThrough(response: URLResponse?, error: Error?, sentBytes: Int64, receivedBytes: Int64, finishedAt: Date) {
+            duration = Int(finishedAt.timeIntervalSince(date) * 1000)
+            if let response {
+                initResponse(response: response)
+            }
+            if let error {
+                recordError(error)
+            }
+            passedThroughSentBytes = Int(sentBytes)
+            responseBytes = Int(receivedBytes)
+        }
+        
         func makeLog() -> NetworkLog {
             var redactedCount = 0
             var log = NetworkLog(id: UUID(),
@@ -421,12 +447,15 @@ extension AWLDebugURLProtocol {
                                  statusCode: stausCode)
             log.requestHeaders = redactor.redact(headers: requestHeaders, count: &redactedCount)
             log.responseHeaders = redactor.redact(headers: responseHeaders, count: &redactedCount)
-            log.requestBytes = forwardedUpload?.totalBytes ?? requestBody?.count ?? 0
+            log.requestBytes = passedThroughSentBytes ?? forwardedUpload?.totalBytes ?? requestBody?.count ?? 0
             log.responseBytes = responseBytes
             log.errorDescription = errorDescription
             log.errorCode = errorCode
             
-            if redactor.config.captureBodies {
+            if let sentBytes = passedThroughSentBytes {
+                log.requestBody = sentBytes > 0 ? passThroughPlaceholder(contentType: Self.value(of: "Content-Type", in: requestHeaders), totalBytes: sentBytes) : nil
+                log.responseBody = responseBytes > 0 || isResponseStream ? passThroughPlaceholder(contentType: Self.value(of: "Content-Type", in: responseHeaders), totalBytes: responseBytes) : nil
+            } else if redactor.config.captureBodies {
                 let requestContentType = Self.value(of: "Content-Type", in: requestHeaders)
                 let responseContentType = Self.value(of: "Content-Type", in: responseHeaders)
                 if let upload = forwardedUpload {
@@ -444,6 +473,10 @@ extension AWLDebugURLProtocol {
             }
             log.redactedCount = redactedCount
             return log
+        }
+        
+        private func passThroughPlaceholder(contentType: String?, totalBytes: Int) -> NetworkLog.Body {
+            NetworkRedactor.placeholderBody(isResponseStream ? LS.Network.streamNotCaptured : LS.Network.notCaptured, contentType: contentType, totalBytes: totalBytes)
         }
         
         private static func sortedHeaders(_ headers: [String: String]) -> [NetworkLog.Header] {

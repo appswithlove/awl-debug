@@ -50,7 +50,7 @@ class DevHttpLogInterceptorTest {
     }
 
     private fun client(config: DevNetworkConfig = DevNetworkConfig()) = OkHttpClient.Builder()
-        .addInterceptor(DevHttpLogInterceptor(config, store, collector))
+        .addInterceptor(DevHttpLogInterceptor(config, store, collector, Runnable::run))
         .build()
 
     private fun execute(request: Request, config: DevNetworkConfig = DevNetworkConfig()): NetworkEntry {
@@ -294,7 +294,7 @@ class DevHttpLogInterceptorTest {
                 .setBody(gzipped)
         )
         val client = OkHttpClient.Builder()
-            .addNetworkInterceptor(DevHttpLogInterceptor(DevNetworkConfig(), store, collector))
+            .addNetworkInterceptor(DevHttpLogInterceptor(DevNetworkConfig(), store, collector, Runnable::run))
             .build()
 
         client.newCall(Request.Builder().url(server.url("/")).build()).execute().use {

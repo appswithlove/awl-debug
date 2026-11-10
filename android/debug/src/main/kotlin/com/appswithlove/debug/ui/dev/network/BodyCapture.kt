@@ -5,16 +5,23 @@ import okhttp3.MediaType
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import okhttp3.Response
+import okhttp3.ResponseBody
 import okio.Buffer
 import okio.BufferedSource
+import okio.ForwardingSource
 import okio.GzipSource
 import okio.Sink
+import okio.Source
 import okio.Timeout
 import okio.buffer
 import java.io.EOFException
 import java.io.IOException
+import java.util.concurrent.atomic.AtomicBoolean
 
-/** Reads request and response bodies without consuming them, then redacts and caps them. */
+/**
+ * Reads request and response bodies without consuming them, then redacts and caps them. Only reading happens in the
+ * request path; redaction runs later, through the returned functions.
+ */
 internal class BodyCapture(
     private val config: DevNetworkConfig,
     private val redactor: NetworkRedactor,
@@ -23,55 +30,75 @@ internal class BodyCapture(
     private val streamContentTypes = (ALWAYS_STREAM_CONTENT_TYPES + config.streamContentTypes)
         .mapTo(mutableSetOf()) { it.trim().lowercase() }
 
-    fun request(body: RequestBody?, counter: NetworkRedactor.Counter): CapturedBody? {
-        if (body == null) return null
+    /** Reads the body now; the returned function redacts it. */
+    fun request(body: RequestBody?, counter: NetworkRedactor.Counter): () -> CapturedBody? {
+        if (body == null) return { null }
         val contentType = body.contentType()
-        if (!config.captureBodies) return placeholder(NOT_CAPTURED, contentType)
-        if (body.isOneShot() || body.isDuplex()) return placeholder(ONE_SHOT, contentType)
+        if (!config.captureBodies) return constant(placeholder(NOT_CAPTURED, contentType))
+        if (body.isOneShot() || body.isDuplex()) return constant(placeholder(ONE_SHOT, contentType))
         return try {
-            if (body is MultipartBody) return multipart(body, counter)
+            if (body is MultipartBody) return constant(multipart(body, counter))
             val contentLength = body.contentLength()
-            if (contentLength > MAX_READ_BYTES) return placeholder(tooLarge(contentLength), contentType)
+            if (contentLength > MAX_READ_BYTES) return constant(placeholder(tooLarge(contentLength), contentType))
             val sink = CappedSink(MAX_READ_BYTES)
-            sink.buffer().use { body.writeTo(it) }
-            if (sink.totalBytes > MAX_READ_BYTES) return placeholder(tooLarge(sink.totalBytes), contentType)
-            fromBytes(sink.captured.readByteArray(), contentType, counter)
+            try {
+                sink.buffer().use { body.writeTo(it) }
+            } catch (_: CappedSink.LimitExceeded) {
+                return constant(placeholder(MORE_THAN_LIMIT, contentType))
+            }
+            val bytes = sink.captured.readByteArray()
+            return { fromBytes(bytes, contentType, counter) }
+        } catch (e: IOException) {
+            constant(placeholder("(body could not be read: ${e.message})", contentType))
+        }
+    }
+
+    /**
+     * Decides from the headers whether the response body can be captured. [ResponseCapture.ReadAlong] bodies are
+     * never read ahead of the app, which would hold back a streamed response until it ends.
+     */
+    fun response(response: Response): ResponseCapture {
+        val body = response.body ?: return ResponseCapture.Ready(null)
+        val contentType = body.contentType()
+        val contentLength = body.contentLength()
+        if (response.request.method == "HEAD" || response.code == 204 || response.code == 304 || contentLength == 0L) {
+            return ResponseCapture.Ready(null)
+        }
+        if (!config.captureBodies) return ResponseCapture.Ready(placeholder(NOT_CAPTURED, contentType))
+        if (response.code == 101 || contentType?.let { "${it.type}/${it.subtype}" } in streamContentTypes) {
+            return ResponseCapture.Ready(placeholder(STREAM, contentType))
+        }
+        if (contentLength > MAX_READ_BYTES) return ResponseCapture.Ready(placeholder(tooLarge(contentLength), contentType))
+        if (contentType != null && !isTextType(contentType)) return ResponseCapture.Ready(placeholder(binary(contentLength), contentType))
+        val encoding = response.header("Content-Encoding")?.lowercase()
+        if (encoding != null && encoding != "identity" && encoding != "gzip") {
+            return ResponseCapture.Ready(placeholder("($encoding encoded body, not captured)", contentType))
+        }
+        return ResponseCapture.ReadAlong
+    }
+
+    /** [response]'s body, keeping the first [MAX_READ_BYTES] as the app reads it. [onDone] runs once it was read to the end or closed. */
+    fun readAlong(response: Response, onDone: (ReadAlongResult) -> Unit): ResponseBody =
+        ReadAlongResponseBody(response.body!!, MAX_READ_BYTES, onDone)
+
+    /** Redacts a body captured by [readAlong]. */
+    fun response(response: Response, result: ReadAlongResult, counter: NetworkRedactor.Counter): CapturedBody {
+        val contentType = response.body?.contentType()
+        if (!result.isComplete) return placeholder(INCOMPLETE, contentType)
+        val encoding = response.header("Content-Encoding")?.lowercase()
+        if (result.exceededLimit) {
+            val size = result.totalBytes.takeIf { encoding == null }
+            return placeholder(size?.let(::tooLarge) ?: MORE_THAN_LIMIT, contentType)
+        }
+        return try {
+            val bytes = if (encoding == "gzip") GzipSource(Buffer().write(result.bytes)).buffer().readAtMost(MAX_READ_BYTES + 1) else result.bytes
+            if (bytes.size > MAX_READ_BYTES) placeholder(MORE_THAN_LIMIT, contentType) else fromBytes(bytes, contentType, counter)
         } catch (e: IOException) {
             placeholder("(body could not be read: ${e.message})", contentType)
         }
     }
 
-    fun response(response: Response, counter: NetworkRedactor.Counter): CapturedBody? {
-        val body = response.body ?: return null
-        val contentType = body.contentType()
-        val contentLength = body.contentLength()
-        if (response.request.method == "HEAD" || response.code == 204 || response.code == 304 || contentLength == 0L) {
-            return null
-        }
-        if (!config.captureBodies) return placeholder(NOT_CAPTURED, contentType)
-        if (response.code == 101 || contentType?.let { "${it.type}/${it.subtype}" } in streamContentTypes) {
-            return placeholder(STREAM, contentType)
-        }
-        if (contentLength > MAX_READ_BYTES) return placeholder(tooLarge(contentLength), contentType)
-        // Checked before peekBody, which would block until MAX_READ_BYTES or EOF arrive.
-        if (contentType != null && !isTextType(contentType)) return placeholder(binary(contentLength), contentType)
-        val encoding = response.header("Content-Encoding")?.lowercase()
-        if (encoding != null && encoding != "identity" && encoding != "gzip") {
-            return placeholder("($encoding encoded body, not captured)", contentType)
-        }
-        return try {
-            val raw = response.peekBody(MAX_READ_BYTES + 1).source()
-            val bytes = if (encoding == "gzip") GzipSource(raw).buffer().readAtMost(MAX_READ_BYTES + 1) else raw.readByteArray()
-            if (bytes.size > MAX_READ_BYTES) {
-                val size = contentLength.takeIf { it >= 0 && encoding == null }
-                placeholder(size?.let(::tooLarge) ?: "(more than $MAX_READ_BYTES bytes, too large to redact)", contentType)
-            } else {
-                fromBytes(bytes, contentType, counter)
-            }
-        } catch (e: IOException) {
-            placeholder("(body could not be read: ${e.message})", contentType)
-        }
-    }
+    private fun constant(body: CapturedBody?): () -> CapturedBody? = { body }
 
     private fun multipart(body: MultipartBody, counter: NetworkRedactor.Counter): CapturedBody {
         val text = buildString {
@@ -165,22 +192,70 @@ internal class BodyCapture(
         return true
     }
 
-    /** Keeps the first [limit] bytes written to it and only counts the rest. */
+    /** Keeps what is written to it and stops the writer with [LimitExceeded] after [limit] bytes. */
     private class CappedSink(private val limit: Long) : Sink {
+        class LimitExceeded : IOException()
+
         val captured = Buffer()
-        var totalBytes = 0L
-            private set
 
         override fun write(source: Buffer, byteCount: Long) {
-            val bytesToKeep = minOf(byteCount, limit + 1 - captured.size).coerceAtLeast(0L)
-            source.read(captured, bytesToKeep)
-            source.skip(byteCount - bytesToKeep)
-            totalBytes += byteCount
+            if (captured.size + byteCount > limit) {
+                source.skip(byteCount)
+                throw LimitExceeded()
+            }
+            source.read(captured, byteCount)
         }
 
         override fun flush() = Unit
         override fun timeout(): Timeout = Timeout.NONE
         override fun close() = Unit
+    }
+
+    /** Copies the first [limit] bytes the app reads into memory and drops them once the body is longer. */
+    private class ReadAlongResponseBody(
+        private val delegate: ResponseBody,
+        private val limit: Long,
+        private val onDone: (ReadAlongResult) -> Unit,
+    ) : ResponseBody() {
+        private val source = ReadAlongSource(delegate.source()).buffer()
+
+        override fun contentType(): MediaType? = delegate.contentType()
+        override fun contentLength(): Long = delegate.contentLength()
+        override fun source(): BufferedSource = source
+
+        private inner class ReadAlongSource(upstream: Source) : ForwardingSource(upstream) {
+            private val captured = Buffer()
+            private var totalBytes = 0L
+            private var exceededLimit = false
+            private val isDone = AtomicBoolean(false)
+
+            override fun read(sink: Buffer, byteCount: Long): Long {
+                val read = super.read(sink, byteCount)
+                if (read == -1L) {
+                    finish(isComplete = true)
+                    return read
+                }
+                totalBytes += read
+                if (!exceededLimit && captured.size + read > limit) {
+                    exceededLimit = true
+                    captured.clear()
+                } else if (!exceededLimit) {
+                    sink.copyTo(captured, sink.size - read, read)
+                }
+                return read
+            }
+
+            override fun close() {
+                val contentLength = this@ReadAlongResponseBody.delegate.contentLength()
+                finish(isComplete = contentLength >= 0 && totalBytes >= contentLength)
+                super.close()
+            }
+
+            private fun finish(isComplete: Boolean) {
+                if (!isDone.compareAndSet(false, true)) return
+                onDone(ReadAlongResult(captured.readByteArray(), totalBytes, isComplete, exceededLimit))
+            }
+        }
     }
 
     companion object {
@@ -191,6 +266,8 @@ internal class BodyCapture(
         const val ONE_SHOT = "(one-shot body, not captured)"
         const val STREAM = "(stream, not captured)"
         const val UNPARSABLE_JSON = "(unparsable JSON, not shown)"
+        const val INCOMPLETE = "(not read to the end, not captured)"
+        private const val MORE_THAN_LIMIT = "(more than $MAX_READ_BYTES bytes, too large to redact)"
 
         private val ALWAYS_STREAM_CONTENT_TYPES = setOf("text/event-stream", "application/x-ndjson")
         private val TEXT_APPLICATION_SUBTYPES = setOf("json", "xml", "x-www-form-urlencoded", "graphql")
@@ -202,3 +279,20 @@ internal class BodyCapture(
         private fun binary(bytes: Long) = if (bytes >= 0) "(binary, $bytes bytes)" else "(binary, not captured)"
     }
 }
+
+internal sealed interface ResponseCapture {
+    /** Known from the headers, without reading the body. */
+    data class Ready(val body: CapturedBody?) : ResponseCapture
+
+    /** Captured while the app reads the body, see [BodyCapture.readAlong]. */
+    data object ReadAlong : ResponseCapture
+}
+
+internal class ReadAlongResult(
+    /** Empty when [exceededLimit]. */
+    val bytes: ByteArray,
+    val totalBytes: Long,
+    /** `false` when the app closed the body before its end. */
+    val isComplete: Boolean,
+    val exceededLimit: Boolean,
+)

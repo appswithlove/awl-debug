@@ -5,13 +5,19 @@ import com.appswithlove.debug.api.bridge.AwlDebugInternalApi
 import com.appswithlove.debug.api.extension.AwlDebugExtensions
 import com.appswithlove.debug.extension.toRecord
 import com.appswithlove.debug.ui.dev.network.BodyCapture
+import com.appswithlove.debug.ui.dev.network.CapturedBody
 import com.appswithlove.debug.ui.dev.network.NetworkCollector
 import com.appswithlove.debug.ui.dev.network.NetworkEntry
 import com.appswithlove.debug.ui.dev.network.NetworkLogStore
 import com.appswithlove.debug.ui.dev.network.NetworkRedactor
+import com.appswithlove.debug.ui.dev.network.ResponseCapture
 import okhttp3.Interceptor
 import okhttp3.Response
 import java.io.IOException
+import java.util.concurrent.ArrayBlockingQueue
+import java.util.concurrent.Executor
+import java.util.concurrent.ThreadPoolExecutor
+import java.util.concurrent.TimeUnit
 
 /**
  * An OkHttp [Interceptor] that records every request and response for the Network module and
@@ -22,7 +28,10 @@ import java.io.IOException
  *
  * Values are redacted before they are stored: `Authorization`, `Proxy-Authorization`, `Cookie`,
  * `Set-Cookie` and userinfo in URLs always, everything else according to [DevNetworkConfig].
- * One-shot, duplex and streaming bodies are never read.
+ * One-shot, duplex and streaming bodies are never read. Other response bodies are captured while the
+ * app reads them, so the request is stored once the app read the body to the end or closed it.
+ * WebSockets are recorded with their handshake when added with `addInterceptor()`; OkHttp does not
+ * call network interceptors for them.
  *
  * @param config What to capture and redact.
  */
@@ -33,6 +42,7 @@ class DevHttpLogInterceptor(
 
     private var store: NetworkLogStore = NetworkCollector.store
     private var logCollector: DevLogCollector = LogCollector.devLogCollector
+    private var executor: Executor = CAPTURE_EXECUTOR
     private val redactor = NetworkRedactor(config)
     private val bodyCapture = BodyCapture(config, redactor)
 
@@ -44,9 +54,11 @@ class DevHttpLogInterceptor(
         config: DevNetworkConfig,
         store: NetworkLogStore,
         logCollector: DevLogCollector,
+        executor: Executor = CAPTURE_EXECUTOR,
     ) : this(config) {
         this.store = store
         this.logCollector = logCollector
+        this.executor = executor
         store.onInterceptorCreated()
     }
 
@@ -60,40 +72,58 @@ class DevHttpLogInterceptor(
         val requestBody = bodyCapture.request(request.body, counter)
         val requestBytes = request.body?.contentLength()?.takeIf { it >= 0 }
 
-        fun entry(response: Response?, durationMs: Long, error: Throwable?): NetworkEntry {
-            val responseBody = response?.let { bodyCapture.response(it, counter) }
-            val responseHeaders = response?.let { redactor.headers(it.headers, counter) }.orEmpty()
-            return NetworkEntry(
-                id = store.newId(),
-                startedAtMillis = startedAtMillis,
-                method = request.method,
-                url = url,
-                host = request.url.host,
-                path = request.url.encodedPath,
-                status = response?.code ?: 0,
-                reason = response?.message?.ifEmpty { null },
-                durationMs = durationMs,
-                requestBytes = requestBytes,
-                responseBytes = response?.body?.contentLength()?.takeIf { it >= 0 } ?: responseBody?.originalBytes,
-                requestHeaders = requestHeaders,
-                responseHeaders = responseHeaders,
-                requestBody = requestBody,
-                responseBody = responseBody,
-                error = error?.toString(),
-                redactedCount = counter.count,
-                isSlow = durationMs > config.slowRequestThresholdMs,
-            )
+        /** Redacts the bodies and stores the entry off the request path. */
+        fun recordLater(response: Response?, durationMs: Long, error: Throwable?, responseBytes: Long?, responseBody: () -> CapturedBody?) {
+            executor.execute {
+                // Runs on the capture thread: an exception here would crash the app instead of failing a request.
+                runCatching {
+                    val capturedResponse = responseBody()
+                    NetworkEntry(
+                        id = store.newId(),
+                        startedAtMillis = startedAtMillis,
+                        method = request.method,
+                        url = url,
+                        host = request.url.host,
+                        path = request.url.encodedPath,
+                        status = response?.code ?: 0,
+                        reason = response?.message?.ifEmpty { null },
+                        durationMs = durationMs,
+                        requestBytes = requestBytes,
+                        responseBytes = responseBytes ?: capturedResponse?.originalBytes,
+                        requestHeaders = requestHeaders,
+                        responseHeaders = response?.let { redactor.headers(it.headers, counter) }.orEmpty(),
+                        requestBody = requestBody(),
+                        responseBody = capturedResponse,
+                        error = error?.toString(),
+                        redactedCount = counter.count,
+                        isSlow = durationMs > config.slowRequestThresholdMs,
+                    ).let(::record)
+                }
+            }
         }
 
         val startNanos = System.nanoTime()
         val response = try {
             chain.proceed(request)
         } catch (e: Exception) {
-            record(entry(response = null, durationMs = elapsedMs(startNanos), error = e))
+            recordLater(response = null, elapsedMs(startNanos), error = e, responseBytes = null) { null }
             throw e
         }
-        record(entry(response, elapsedMs(startNanos), error = null))
-        return response
+        val durationMs = elapsedMs(startNanos)
+        val contentLength = response.body?.contentLength()?.takeIf { it >= 0 }
+        return when (val capture = bodyCapture.response(response)) {
+            is ResponseCapture.Ready -> {
+                recordLater(response, durationMs, error = null, contentLength) { capture.body }
+                response
+            }
+            ResponseCapture.ReadAlong -> {
+                val body = bodyCapture.readAlong(response) { result ->
+                    val responseBytes = contentLength ?: result.totalBytes.takeIf { result.isComplete }
+                    recordLater(response, durationMs, error = null, responseBytes) { bodyCapture.response(response, result, counter) }
+                }
+                response.newBuilder().body(body).build()
+            }
+        }
     }
 
     @OptIn(AwlDebugInternalApi::class)
@@ -118,6 +148,18 @@ class DevHttpLogInterceptor(
 }
 
 private const val LOG_TAG = "HTTP"
+
+/** Requests waiting for redaction; when the app sends faster than they are redacted, the oldest are dropped. */
+private const val CAPTURE_QUEUE_CAPACITY = 256
+
+private val CAPTURE_EXECUTOR: Executor by lazy {
+    ThreadPoolExecutor(
+        1, 1, 0L, TimeUnit.MILLISECONDS,
+        ArrayBlockingQueue(CAPTURE_QUEUE_CAPACITY),
+        { runnable -> Thread(runnable, "awl-debug-network").apply { isDaemon = true } },
+        ThreadPoolExecutor.DiscardOldestPolicy(),
+    )
+}
 
 data class Log(
     val severity: DevLogSeverity,
