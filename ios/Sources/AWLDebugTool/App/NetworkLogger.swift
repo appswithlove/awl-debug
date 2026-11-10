@@ -137,11 +137,41 @@ public class NetworkLogger: ObservableObject {
     }
     
     // MARK: - Network logs
-    
+
+    /// Finished requests waiting for the next main thread update.
+    private var pendingLogs: [NetworkLog] = []
+    private var isFlushScheduled = false
+    private let pendingLock = NSLock()
+    /// Requests that finish within this time reach the list in one main thread update.
+    private static let flushInterval: TimeInterval = 0.1
+
+    /// Any thread. Batches the main thread work, so a burst of requests costs a few list updates instead of one each.
+    func enqueueNetworkLog(_ log: NetworkLog) {
+        pendingLock.lock()
+        pendingLogs.append(log)
+        let needsFlush = !isFlushScheduled
+        isFlushScheduled = true
+        pendingLock.unlock()
+        guard needsFlush else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.flushInterval) { [self] in
+            pendingLock.lock()
+            let logs = pendingLogs
+            pendingLogs = []
+            isFlushScheduled = false
+            pendingLock.unlock()
+            appendNetworkLogs(logs)
+        }
+    }
+
     @MainActor
     func appendNetworkLog(_ log: NetworkLog) {
-        ExtensionState.shared.publish(log)
-        networkTraffic = Array((networkTraffic + [log]).suffix(networkLogsLimit))
+        appendNetworkLogs([log])
+    }
+
+    @MainActor
+    private func appendNetworkLogs(_ logs: [NetworkLog]) {
+        logs.forEach(ExtensionState.shared.publish)
+        networkTraffic = Array((networkTraffic + logs).suffix(networkLogsLimit))
     }
 
     /// The newest `maxEntries` requests, ordered by start time. They are stored when they finish. Any thread.

@@ -8,6 +8,9 @@ final class LocalHTTPServer {
         var status = "200 OK"
         var headers: [(String, String)] = []
         var body = Data("ok".utf8)
+        /// When set, `body` is ignored and these chunks are sent with chunked encoding, `chunkInterval` apart.
+        var chunks: [Data]? = nil
+        var chunkInterval: TimeInterval = 0
     }
 
     private let listener: NWListener
@@ -96,6 +99,10 @@ final class LocalHTTPServer {
         
         let route = routes[path] ?? Response()
         guard let response = route else { return }
+        if let chunks = response.chunks {
+            sendChunked(chunks, response: response, on: connection)
+            return
+        }
         var head = "HTTP/1.1 \(response.status)\r\nContent-Length: \(response.body.count)\r\nConnection: close\r\n"
         for (name, value) in response.headers {
             head += "\(name): \(value)\r\n"
@@ -103,6 +110,22 @@ final class LocalHTTPServer {
         connection.send(content: Data((head + "\r\n").utf8) + response.body, completion: .contentProcessed { _ in
             connection.cancel()
         })
+    }
+    
+    private func sendChunked(_ chunks: [Data], response: Response, on connection: NWConnection) {
+        var head = "HTTP/1.1 \(response.status)\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n"
+        for (name, value) in response.headers {
+            head += "\(name): \(value)\r\n"
+        }
+        connection.send(content: Data((head + "\r\n").utf8), completion: .contentProcessed { _ in })
+        for (index, chunk) in (chunks + [Data()]).enumerated() {
+            queue.asyncAfter(deadline: .now() + response.chunkInterval * Double(index)) {
+                let frame = Data((String(chunk.count, radix: 16) + "\r\n").utf8) + chunk + Data("\r\n".utf8)
+                connection.send(content: frame, completion: .contentProcessed { _ in
+                    if chunk.isEmpty { connection.cancel() }
+                })
+            }
+        }
     }
     
     /// `nil` until the head and the whole body (by `Content-Length` or chunked) arrived.
