@@ -49,16 +49,16 @@ Requires API 25 (Android 7.1). All artifacts are on [Maven Central](https://cent
 
 ```kotlin
 dependencies {
-    debugImplementation("com.appswithlove.debug:debug:2.0.1")
-    releaseImplementation("com.appswithlove.debug:debug-no-op:2.0.1")
+    debugImplementation("com.appswithlove.debug:debug:2.0.2")
+    releaseImplementation("com.appswithlove.debug:debug-no-op:2.0.2")
 }
 ```
 
 `debug-no-op` has the same API with empty bodies, so app code stays identical for both build types. Every additional build type needs its own line, otherwise it has neither artifact and fails to compile. Rule of thumb: `debug` for builds that stay inside the team, `debug-no-op` for anything that leaves the building:
 
 ```kotlin
-stagingImplementation("com.appswithlove.debug:debug:2.0.1")
-qaImplementation("com.appswithlove.debug:debug-no-op:2.0.1")
+stagingImplementation("com.appswithlove.debug:debug:2.0.2")
+qaImplementation("com.appswithlove.debug:debug-no-op:2.0.2")
 ```
 
 ### iOS
@@ -203,6 +203,8 @@ Values are redacted on the device before anything is stored:
 
 Bodies are cut off after `maxBodyBytes`, after redaction. Streams (`text/event-stream`, `application/x-ndjson`, `streamContentTypes`) are never read, and on Android binary content and one-shot bodies are replaced with a placeholder. `captureBodies = false` stores no bodies.
 
+Capturing never holds back a response or reads a body ahead of the app: response bodies are copied while the app reads them, at most 1 MB per body is kept in memory, and redaction runs on a background thread. Finished requests reach the list in batches.
+
 | Option | Default |
 |---|---|
 | `captureBodies` | `true` |
@@ -227,8 +229,24 @@ config.network = .init(redactHeaders: ["X-Api-Key"],
                        redactJsonFields: AWLDebugConfig.NetworkConfig.defaultRedactedFields.union(["pin"]))
 ```
 
-- **Android:** use `addNetworkInterceptor()` instead to also see headers OkHttp adds, such as cookies. The library compiles against OkHttp 4.12 and works with OkHttp 5.
+- **Android:** use `addNetworkInterceptor()` instead to also see headers OkHttp adds, such as cookies. The library compiles against OkHttp 4.12 and works with OkHttp 5. A request is stored once the app read its response body to the end or closed it; a body closed early shows `(not read to the end, not captured)`. With `addInterceptor()`, WebSockets appear with their handshake (status 101); OkHttp does not call network interceptors for WebSockets. To leave a client out, don't add the interceptor to it.
 - **iOS:** a `URLProtocol` captures `URLSession.shared` and sessions created from `.default` or `.ephemeral` after `start`, including Ktor's Darwin engine. The tool never trusts a certificate by itself, so TLS behaves as without it.
+
+### WebSockets and streams on iOS
+
+A `URLProtocol` loads the request a second time and hands the result to the app, which works for ordinary requests but not for connections that stay open. These go to the system untouched, as without the tool:
+
+- WebSockets (`URLSessionWebSocketTask`, `ws://`, `wss://`, requests with an `Upgrade` header)
+- Server-Sent Events: requests with `Accept: text/event-stream`
+- Download tasks, and upload tasks above 1 MB or with a streamed body
+
+The list shows them from their metadata once they finish: URL, headers, status, duration and size, without bodies. A WebSocket appears when it is closed. Streamed responses the request doesn't announce, such as chunked JSON, still go through the protocol, which forwards every chunk as it arrives.
+
+`AWLDebugExtensions.excludeFromCapture(request)` leaves a request out completely, neither loaded through the protocol nor listed:
+
+```swift
+let task = session.webSocketTask(with: AWLDebugExtensions.excludeFromCapture(URLRequest(url: url)))
+```
 
 ## Logs
 

@@ -33,6 +33,8 @@ To try an unreleased version in another project, publish to the local Maven repo
 xcodebuild test -scheme AWLDebugTool -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
 ```
 
+The network benchmarks in `NetworkCapturePerformanceTests` are skipped by default; run them with `TEST_RUNNER_AWL_BENCHMARKS=1` in front of the `xcodebuild test` command.
+
 The example app in `ios/example/` shows every module and registers a demo extension section. Debug defines `AWL_DEBUG`, Release is the store configuration: archive it and run the checks in [Store builds](README.md#store-builds). Its product is called `DebugExample` so the checks don't match the app's own name.
 
 To try an unreleased version in another app, add the package with a branch instead of a version.

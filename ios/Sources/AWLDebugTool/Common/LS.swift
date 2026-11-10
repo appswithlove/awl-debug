@@ -184,6 +184,7 @@ enum LS {
         static let responseSize = "Response size"
         static let error = "Error"
         static let streamNotCaptured = "(stream, not captured)"
+        static let notCaptured = "(not captured)"
         static let newestFirst = "Newest first"
         static let oldestFirst = "Oldest first"
         

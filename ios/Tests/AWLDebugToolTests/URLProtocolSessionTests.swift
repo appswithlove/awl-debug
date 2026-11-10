@@ -84,14 +84,20 @@ final class URLProtocolSessionTests: XCTestCase {
         XCTAssertEqual(server.hitCount("/redirect"), 1)
         XCTAssertEqual(server.hitCount("/ok"), 1)
         
+        // Logs reach the list asynchronously, in batches.
         let logged = expectation(description: "logged")
-        DispatchQueue.main.async {
+        func poll() {
             let statuses = AWLDebugTool.shared.networkLogger.networkTraffic
                 .filter { $0.url.hasPrefix(self.server.url("/").absoluteString) }
                 .map(\.statusCode)
-            XCTAssertEqual(statuses.suffix(2), [302, 200])
-            logged.fulfill()
+            if statuses.count >= 2 {
+                XCTAssertEqual(statuses.suffix(2), [302, 200])
+                logged.fulfill()
+            } else {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05, execute: poll)
+            }
         }
+        DispatchQueue.main.async(execute: poll)
         wait(for: [logged], timeout: 2)
     }
     
