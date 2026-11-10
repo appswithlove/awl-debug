@@ -1,8 +1,9 @@
 import Foundation
 
 extension NetworkLogger {
-    /// Redacts finished requests off the URL loading thread and the main thread.
-    static let captureQueue = DispatchQueue(label: "AWLDebugTool.NetworkCapture", qos: .utility)
+    /// Redacts finished requests off the URL loading thread and the main thread. Not `.utility`: on a busy device
+    /// that starves for seconds, and requests reach the list late.
+    static let captureQueue = DispatchQueue(label: "AWLDebugTool.NetworkCapture", qos: .default)
 }
 
 /// Which requests `AWLDebugURLProtocol` leaves to the system. Loading them through the protocol would break them

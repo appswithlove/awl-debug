@@ -64,6 +64,16 @@ final class NetworkRedactionTests: XCTestCase {
         }
     }
     
+    /// A long token without a separator, such as Base64, must not make the patterns backtrack.
+    func testLongTokensAreRedactedInLinearTime() {
+        let token = String(repeating: "aB3_", count: 64 * 1024)
+        for text in [token, "<" + token, token + "=", "x " + token + " y=\"", "\"" + token, token + ":" + token] {
+            let start = Date()
+            _ = redact(body: text, contentType: "text/plain")
+            XCTAssertLessThan(Date().timeIntervalSince(start), 1, String(text.prefix(8)))
+        }
+    }
+    
     func testJSONFieldNamesIgnoreCaseAndSeparators() {
         let (body, count) = redact(body: #"{"Client-Secret":1,"ID_TOKEN":null,"refreshtoken":[1,2]}"#, contentType: "application/vnd.api+json")
         XCTAssertEqual(body?.text, #"{"Client-Secret":"[REDACTED]","ID_TOKEN":"[REDACTED]","refreshtoken":"[REDACTED]"}"#)

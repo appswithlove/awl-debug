@@ -149,4 +149,16 @@ class DevHttpLogInterceptorRobustnessTest {
         first.responseBody!!.text shouldBe """{"password":"[REDACTED]","name":"n"}"""
         second.responseBody!!.text shouldBe """<s:Envelope><ns:Password>[REDACTED]</ns:Password><user token='[REDACTED]'/></s:Envelope>"""
     }
+
+    /** A long token without a separator, such as Base64, must not make the patterns backtrack. */
+    @Test
+    fun longTokens_areRedactedInLinearTime() {
+        val redactor = com.appswithlove.debug.ui.dev.network.NetworkRedactor(DevNetworkConfig())
+        val token = "aB3_".repeat(64 * 1024)
+        listOf(token, "<$token", "$token=", "x $token y=\"", "\"$token", "$token:$token").forEach { text ->
+            val startedAt = System.nanoTime()
+            redactor.text(text, com.appswithlove.debug.ui.dev.network.NetworkRedactor.Counter())
+            ((System.nanoTime() - startedAt) / 1_000_000 < 1_000) shouldBe true
+        }
+    }
 }
