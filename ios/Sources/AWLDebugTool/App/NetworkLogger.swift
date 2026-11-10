@@ -103,20 +103,14 @@ public class NetworkLogger: ObservableObject {
     }
     
     @Published var endpointsHasChanged: Bool = false
+    /// Host filter state per endpoint in the traffic. Reads each endpoint's setting once.
     var endpoints: [String: Bool] {
-        
-        let regex = try! NSRegularExpression(pattern: Constants.Regex.endpointsPattern, options: [])
-        
         var endpoints: [String: Bool] = [:]
-        
         for log in networkTraffic {
-            let matches = findFirstMatch(in: log.url, with: Constants.Regex.endpointsPattern)
-            
-            if let matches = matches {
-                endpoints[matches] = filtersStorage.isEndpointFilterActive(for: matches)
+            if let endpoint = Self.endpoint(of: log.url), endpoints[endpoint] == nil {
+                endpoints[endpoint] = filtersStorage.isEndpointFilterActive(for: endpoint)
             }
         }
-         
         return endpoints
     }
 
@@ -237,16 +231,14 @@ public class NetworkLogger: ObservableObject {
     
     // MARK: - Regex
     
-    func findFirstMatch(in text: String, with pattern: String) -> String? {
-        do {
-            let regex = try NSRegularExpression(pattern: pattern)
-            let nsString = text as NSString
-            if let match = regex.firstMatch(in: text, range: NSRange(location: 0, length: nsString.length)) {
-                return nsString.substring(with: match.range)
-            }
-        } catch let error {
-            print("\(LS.logWatermark) Invalid regex: \(error.localizedDescription)")
+    private static let endpointRegex = try! NSRegularExpression(pattern: Constants.Regex.endpointsPattern)
+    
+    /// Scheme and host of `url`, the key of the host filter.
+    static func endpoint(of url: String) -> String? {
+        let nsString = url as NSString
+        guard let match = endpointRegex.firstMatch(in: url, range: NSRange(location: 0, length: nsString.length)) else {
+            return nil
         }
-        return nil
+        return nsString.substring(with: match.range)
     }
 }
