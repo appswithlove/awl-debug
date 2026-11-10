@@ -176,6 +176,19 @@ final class URLProtocolSessionTests: XCTestCase {
         XCTAssertEqual(server.hitCount("/ok"), 1)
     }
     
+    /// The review scenario: the app decides about the redirect asynchronously, later than the protocol's grace period.
+    func testSlowAsyncRedirectDecisionIsHonoured() {
+        server.route("/redirect", .init(status: "302 Found", headers: [("Location", "/ok")], body: Data()))
+        for follows in [true, false] {
+            let delegate = SlowRedirectDelegate(follows: follows, delay: 0.8)
+            let (_, response, error) = load(URLRequest(url: server.url("/redirect")), configuration: loggedConfiguration(), delegate: delegate)
+            
+            XCTAssertNil(error)
+            XCTAssertEqual(response?.statusCode, follows ? 200 : 302, "follows: \(follows)")
+        }
+        XCTAssertEqual(server.hitCount("/ok"), 1)
+    }
+    
     func testClientIsCalledOnStartLoadingThread() {
         let client = ThreadRecordingClient()
         let finished = expectation(description: "finished")
@@ -258,4 +271,22 @@ private final class AppSchemeProtocol: URLProtocol {
     }
     
     override func stopLoading() {}
+}
+
+/// Decides about a redirect on another queue after `delay`.
+private final class SlowRedirectDelegate: NSObject, URLSessionTaskDelegate {
+    
+    private let follows: Bool
+    private let delay: TimeInterval
+    
+    init(follows: Bool, delay: TimeInterval) {
+        self.follows = follows
+        self.delay = delay
+    }
+    
+    func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest, completionHandler: @escaping (URLRequest?) -> Void) {
+        DispatchQueue.global().asyncAfter(deadline: .now() + delay) { [follows] in
+            completionHandler(follows ? request : nil)
+        }
+    }
 }
