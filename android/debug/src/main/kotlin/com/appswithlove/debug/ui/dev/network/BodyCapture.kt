@@ -16,6 +16,7 @@ import okio.Timeout
 import okio.buffer
 import java.io.EOFException
 import java.io.IOException
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
@@ -36,6 +37,8 @@ internal class BodyCapture(
         val contentType = body.contentType()
         if (!config.captureBodies) return constant(placeholder(NOT_CAPTURED, contentType))
         if (body.isOneShot() || body.isDuplex()) return constant(placeholder(ONE_SHOT, contentType))
+        // Reading a body is only safe when writing it twice sends the same bytes and has no side effects.
+        if (!body.isOkHttpBody()) return constant(placeholder(CUSTOM_BODY, contentType))
         return try {
             if (body is MultipartBody) return constant(multipart(body, counter))
             val contentLength = body.contentLength()
@@ -123,6 +126,7 @@ internal class BodyCapture(
         if (fileName != null || !isText || size !in 0..MAX_READ_BYTES) {
             return "(file ${fileName ?: "unnamed"}, $size bytes)"
         }
+        if (!partBody.isOkHttpBody()) return CUSTOM_BODY
         val fieldName = disposition?.let { NAME_REGEX.find(it)?.groupValues?.get(1) }
         if (fieldName != null && redactor.isRedactedField(fieldName)) {
             counter.increment()
@@ -142,12 +146,15 @@ internal class BodyCapture(
         return cap(redacted, contentType, bytes.size.toLong())
     }
 
-    /** Redacts JSON and form bodies; `null` for JSON that cannot be parsed. */
+    /** Redacts a text body by its content type; `null` for JSON that cannot be parsed. */
     private fun redact(text: String, contentType: MediaType?, counter: NetworkRedactor.Counter): String? = when {
         contentType.isJson() -> redactor.json(text, counter)
         contentType.isForm() -> redactor.form(text, counter)
-        else -> text
+        else -> redactor.text(text, counter)
     }
+
+    /** Bodies OkHttp creates itself (`toRequestBody`, `asRequestBody`, `FormBody`, `MultipartBody`) can be written repeatedly. */
+    private fun RequestBody.isOkHttpBody() = javaClass.name.startsWith("okhttp3.")
 
     private fun cap(text: String, contentType: MediaType?, originalBytes: Long): CapturedBody {
         val encoded = text.toByteArray(Charsets.UTF_8)
@@ -224,17 +231,69 @@ internal class BodyCapture(
         override fun source(): BufferedSource = source
 
         private inner class ReadAlongSource(upstream: Source) : ForwardingSource(upstream) {
+            /** Guards the capture state; the app may close the body on another thread than it reads it. */
+            private val lock = Any()
             private val captured = Buffer()
             private var totalBytes = 0L
             private var exceededLimit = false
             private val isDone = AtomicBoolean(false)
 
             override fun read(sink: Buffer, byteCount: Long): Long {
-                val read = super.read(sink, byteCount)
+                val read = try {
+                    super.read(sink, byteCount)
+                } catch (e: IOException) {
+                    finish(isComplete = false, error = e)
+                    throw e
+                }
                 if (read == -1L) {
                     finish(isComplete = true)
                     return read
                 }
+                capture(sink, read)
+                return read
+            }
+
+            /** Never lets the capture keep the app's response open: the connection is released in any case. */
+            override fun close() {
+                try {
+                    if (!isDone.get()) finish(isComplete = isReadToEnd() || drainsToEnd())
+                } finally {
+                    super.close()
+                }
+            }
+
+            private fun isReadToEnd(): Boolean {
+                val contentLength = this@ReadAlongResponseBody.delegate.contentLength()
+                return contentLength >= 0 && synchronized(lock) { totalBytes >= contentLength }
+            }
+
+            /**
+             * Parsers often stop after the last value, before a chunked or gzip body reports its end. Like OkHttp when it
+             * releases a connection, read for a short time what is left; a stream the app closed early stays incomplete.
+             */
+            private fun drainsToEnd(): Boolean {
+                val timeout = delegate.timeout()
+                val startNanos = System.nanoTime()
+                val remainingNanos = if (timeout.hasDeadline()) timeout.deadlineNanoTime() - startNanos else Long.MAX_VALUE
+                timeout.deadlineNanoTime(startNanos + minOf(remainingNanos, DRAIN_TIMEOUT_NANOS))
+                return try {
+                    val buffer = Buffer()
+                    while (synchronized(lock) { !exceededLimit }) {
+                        val read = delegate.read(buffer, DRAIN_CHUNK_BYTES)
+                        if (read == -1L) return true
+                        capture(buffer, read)
+                        buffer.clear()
+                    }
+                    false
+                } catch (_: IOException) {
+                    false
+                } finally {
+                    if (remainingNanos == Long.MAX_VALUE) timeout.clearDeadline() else timeout.deadlineNanoTime(startNanos + remainingNanos)
+                }
+            }
+
+            /** Copies the last [read] bytes of [sink]. */
+            private fun capture(sink: Buffer, read: Long) = synchronized(lock) {
                 totalBytes += read
                 if (!exceededLimit && captured.size + read > limit) {
                     exceededLimit = true
@@ -242,18 +301,13 @@ internal class BodyCapture(
                 } else if (!exceededLimit) {
                     sink.copyTo(captured, sink.size - read, read)
                 }
-                return read
             }
 
-            override fun close() {
-                val contentLength = this@ReadAlongResponseBody.delegate.contentLength()
-                finish(isComplete = contentLength >= 0 && totalBytes >= contentLength)
-                super.close()
-            }
-
-            private fun finish(isComplete: Boolean) {
+            private fun finish(isComplete: Boolean, error: IOException? = null) {
                 if (!isDone.compareAndSet(false, true)) return
-                onDone(ReadAlongResult(captured.readByteArray(), totalBytes, isComplete, exceededLimit))
+                val result = synchronized(lock) { ReadAlongResult(captured.readByteArray(), totalBytes, isComplete, exceededLimit, error) }
+                // The app's read or close must never fail because of the capture.
+                runCatching { onDone(result) }
             }
         }
     }
@@ -267,7 +321,10 @@ internal class BodyCapture(
         const val STREAM = "(stream, not captured)"
         const val UNPARSABLE_JSON = "(unparsable JSON, not shown)"
         const val INCOMPLETE = "(not read to the end, not captured)"
+        const val CUSTOM_BODY = "(custom request body, not captured)"
         private const val MORE_THAN_LIMIT = "(more than $MAX_READ_BYTES bytes, too large to redact)"
+        private val DRAIN_TIMEOUT_NANOS = TimeUnit.MILLISECONDS.toNanos(100)
+        private const val DRAIN_CHUNK_BYTES = 8_192L
 
         private val ALWAYS_STREAM_CONTENT_TYPES = setOf("text/event-stream", "application/x-ndjson")
         private val TEXT_APPLICATION_SUBTYPES = setOf("json", "xml", "x-www-form-urlencoded", "graphql")
@@ -292,7 +349,9 @@ internal class ReadAlongResult(
     /** Empty when [exceededLimit]. */
     val bytes: ByteArray,
     val totalBytes: Long,
-    /** `false` when the app closed the body before its end. */
+    /** `false` when the app closed the body before its end or reading it failed. */
     val isComplete: Boolean,
     val exceededLimit: Boolean,
+    /** Why reading the body failed. */
+    val error: IOException? = null,
 )

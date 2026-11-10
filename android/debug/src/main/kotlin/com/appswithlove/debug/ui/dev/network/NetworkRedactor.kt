@@ -1,6 +1,8 @@
 package com.appswithlove.debug.ui.dev.network
 
 import com.appswithlove.debug.api.DevNetworkConfig
+import com.appswithlove.debug.ui.dev.log.redactCredentials
+import com.appswithlove.debug.ui.dev.log.redactJsonFields
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -66,6 +68,36 @@ internal class NetworkRedactor(config: DevNetworkConfig) {
 
     fun form(text: String, counter: Counter): String = redactPairs(text, counter, ::isRedactedField)
 
+    /**
+     * Redacts a text body that is neither JSON nor form by its content type: JSON fields anywhere in it, XML
+     * elements and attributes named like `redactJsonFields`, a body that is form data, and `Bearer` / `Basic`
+     * credentials.
+     */
+    fun text(text: String, counter: Counter): String {
+        var result = if (FORM_REGEX.matches(text)) form(text, counter) else text
+        result = result.redactJsonFields(fieldNames) { counter.increment() }
+        result = replaceValues(XML_ELEMENT_REGEX, nameGroup = 2, valueGroup = 4, result, counter)
+        result = replaceValues(QUOTED_ASSIGNMENT_REGEX, nameGroup = 1, valueGroup = 3, result, counter)
+        val withoutCredentials = result.redactCredentials()
+        if (withoutCredentials != result) {
+            repeat((withoutCredentials.split(" $REDACTED").size - result.split(" $REDACTED").size).coerceAtLeast(0)) {
+                counter.increment()
+            }
+        }
+        return withoutCredentials
+    }
+
+    /** Replaces the value group of each match whose name group, without a namespace prefix, is a redacted field. */
+    private fun replaceValues(regex: Regex, nameGroup: Int, valueGroup: Int, text: String, counter: Counter): String =
+        regex.replace(text) { match ->
+            val name = match.groupValues[nameGroup].substringAfterLast(':')
+            val value = match.groups[valueGroup] ?: return@replace match.value
+            if (!isRedactedField(name) || value.value == REDACTED) return@replace match.value
+            counter.increment()
+            val start = value.range.first - match.range.first
+            match.value.replaceRange(start, start + value.value.length, REDACTED)
+        }
+
     private fun redactJson(element: JsonElement, counter: Counter): JsonElement = when (element) {
         is JsonObject -> JsonObject(
             element.mapValues { (key, value) ->
@@ -103,6 +135,15 @@ internal class NetworkRedactor(config: DevNetworkConfig) {
     companion object {
         const val REDACTED = "[REDACTED]"
         private val ALWAYS_REDACTED_HEADERS = setOf("Authorization", "Proxy-Authorization", "Cookie", "Set-Cookie")
+
+        /** `<name attr="…">value</name>`, also with a namespace prefix. Group 2 is the local name, group 4 the value. */
+        private val XML_ELEMENT_REGEX = Regex("""<((?:[A-Za-z_][\w.\-]*:)?([A-Za-z_][\w.\-]*))(\s[^<>]*)?>([^<]*)</\1\s*>""")
+
+        /** `name="value"` or `name='value'`, as in XML attributes. Group 1 is the name, group 3 the value. */
+        private val QUOTED_ASSIGNMENT_REGEX = Regex("""(?<![\w.\-:])((?:[A-Za-z_][\w.\-]*:)?[A-Za-z_][\w.\-]*)\s*=\s*(["'])(.*?)\2""")
+
+        /** The whole text is `name=value&…` without whitespace. */
+        private val FORM_REGEX = Regex("""[^\s=&]+=[^\s&]*(?:&[^\s=&]+=[^\s&]*)*""")
 
         private fun normalizeFieldName(name: String): String =
             name.lowercase().replace("_", "").replace("-", "")

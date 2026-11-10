@@ -62,7 +62,8 @@ internal data class NetworkFilter(
 }
 
 internal fun List<NetworkEntry>.filteredAndSorted(filter: NetworkFilter, sort: NetworkSort): List<NetworkEntry> {
-    val filtered = filter(filter::matches)
+    // Requests are stored when they finish; the list follows when they started.
+    val filtered = filter(filter::matches).sortedBy { it.startedAtMillis }
     return when (sort) {
         NetworkSort.NewestFirst -> filtered.reversed()
         NetworkSort.OldestFirst -> filtered

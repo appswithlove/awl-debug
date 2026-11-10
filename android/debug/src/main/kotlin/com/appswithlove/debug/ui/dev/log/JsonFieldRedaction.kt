@@ -17,7 +17,10 @@ private val DEFAULT_REDACTED_FIELDS: Set<String> =
  * stringified JSON (`\"password\":\"…\"`) and on truncated JSON, where an unterminated value is
  * redacted to the end of the message. Keys match ignoring case, `_` and `-`.
  */
-internal fun String.redactJsonFields(fieldNames: Set<String> = DEFAULT_REDACTED_FIELDS): String {
+internal fun String.redactJsonFields(
+    fieldNames: Set<String> = DEFAULT_REDACTED_FIELDS,
+    onRedact: () -> Unit = {},
+): String {
     val result = StringBuilder()
     var copiedUntil = 0
     var searchFrom = 0
@@ -31,6 +34,7 @@ internal fun String.redactJsonFields(fieldNames: Set<String> = DEFAULT_REDACTED_
         val quote = match.groupValues[1]
         val valueEnd = valueEnd(valueStart, quote)
         result.append(this, copiedUntil, valueStart).append(quote).append(REDACTED).append(quote)
+        onRedact()
         copiedUntil = valueEnd
         searchFrom = valueEnd
     }

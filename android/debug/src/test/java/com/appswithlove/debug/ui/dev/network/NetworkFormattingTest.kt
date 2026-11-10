@@ -123,4 +123,13 @@ class NetworkFormattingTest {
         webSocket.toShareText() shouldContain "Response body:\n        (no body)"
         webSocket.toCurl() shouldNotContain "--data-raw"
     }
+
+    /** Entries are stored when their body finishes; a slow body must not move a request below later ones. */
+    @Test
+    fun filteredAndSorted_followsStartTime() {
+        val entries = listOf(networkEntry(id = 2), networkEntry(id = 1), networkEntry(id = 3))
+
+        entries.filteredAndSorted(NetworkFilter(), NetworkSort.OldestFirst).map { it.id } shouldBe listOf(1L, 2L, 3L)
+        entries.filteredAndSorted(NetworkFilter(), NetworkSort.NewestFirst).map { it.id } shouldBe listOf(3L, 2L, 1L)
+    }
 }
