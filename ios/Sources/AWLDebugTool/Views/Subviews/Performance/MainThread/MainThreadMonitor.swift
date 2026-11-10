@@ -21,6 +21,8 @@ final class MainThreadMonitor {
         interval: 0.1,
         historyCapacity: 600,
         queueName: "main.thread.monitor",
+        // A utility queue is starved exactly when the device is busy, and then misses the freezes it should report.
+        qos: .userInitiated,
         readSnapshot: { [weak self] in self?.readSnapshot() }
     )
 

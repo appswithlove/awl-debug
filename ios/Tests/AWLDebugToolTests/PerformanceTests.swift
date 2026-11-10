@@ -93,8 +93,7 @@ final class PerformanceTests: XCTestCase {
         monitor.start()
         defer { monitor.stop() }
 
-        // The monitor samples from a utility queue, which a busy CI runner can starve for a whole block; block again
-        // until a sample landed in one.
+        // A busy CI runner can still delay the sampling thread past a whole block; block again until a sample landed.
         for _ in 0..<3 where monitor.freezeCount == 0 {
             RunLoop.main.run(until: Date().addingTimeInterval(0.3))
             Thread.sleep(forTimeInterval: 1.5)
