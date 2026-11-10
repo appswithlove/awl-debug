@@ -21,6 +21,8 @@ The libraries compile against OkHttp 4.12, the lowest supported version. To test
 
 The example app in `android/example/` plants `DevLogTree`, fires an HTTP request, registers a demo extension section and has a switch that activates the tool.
 
+The network benchmarks in `NetworkCapturePerformanceTest` are skipped by default; run them with `AWL_BENCHMARKS=1 ./gradlew :debug:testDebugUnitTest --tests '*NetworkCapturePerformanceTest*'`.
+
 To try an unreleased version in another project, publish to the local Maven repository and put `mavenLocal()` first in that project's repositories:
 
 ```
