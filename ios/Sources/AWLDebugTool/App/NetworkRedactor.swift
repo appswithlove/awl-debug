@@ -9,7 +9,7 @@ struct NetworkRedactor {
 
     let config: AWLDebugConfig.NetworkConfig
     private let headerNames: Set<String>
-    private let fieldNames: Set<String>
+    let fieldNames: Set<String>
     private let queryNames: Set<String>
     private let streamMediaTypes: Set<String>
 
@@ -73,7 +73,9 @@ struct NetworkRedactor {
         let isJSON = Self.isJSON(mediaType)
         let isForm = mediaType == "application/x-www-form-urlencoded"
         guard isJSON || isForm else {
-            return cap(String(decoding: data, as: UTF8.self), contentType: contentType, totalBytes: totalBytes, isComplete: data.count == totalBytes)
+            // Plain text, XML or GraphQL can carry the same secrets; JSON sent with another content type too.
+            let text = redact(text: String(decoding: data, as: UTF8.self), count: &count)
+            return cap(text, contentType: contentType, totalBytes: totalBytes, isComplete: data.count == totalBytes)
         }
         guard totalBytes <= Self.maxRedactableBytes, data.count == totalBytes else {
             return Self.placeholderBody("(\(totalBytes) bytes, too large to redact)", contentType: contentType, totalBytes: totalBytes)
@@ -83,35 +85,16 @@ struct NetworkRedactor {
             let text = redact(pairs: String(decoding: data, as: UTF8.self), names: fieldNames, normalize: Self.normalizedFieldName, count: &count)
             return cap(text, contentType: contentType, totalBytes: totalBytes, isComplete: true)
         }
-        guard let json = try? JSONSerialization.jsonObject(with: data, options: .fragmentsAllowed),
-              let redacted = try? JSONSerialization.data(withJSONObject: redact(json: json, count: &count),
-                                                         options: [.fragmentsAllowed, .sortedKeys, .withoutEscapingSlashes]) else {
+        guard (try? JSONSerialization.jsonObject(with: data, options: .fragmentsAllowed)) != nil else {
             return Self.placeholderBody("(unparsable JSON, not shown)", contentType: contentType, totalBytes: totalBytes)
         }
-        return cap(String(decoding: redacted, as: UTF8.self), contentType: contentType, totalBytes: totalBytes, isComplete: true)
-    }
-
-    private func redact(json: Any, count: inout Int) -> Any {
-        if let object = json as? [String: Any] {
-            var result: [String: Any] = [:]
-            for (key, value) in object {
-                if fieldNames.contains(Self.normalizedFieldName(key)) {
-                    result[key] = Self.placeholder
-                    count += 1
-                } else {
-                    result[key] = redact(json: value, count: &count)
-                }
-            }
-            return result
-        }
-        if let array = json as? [Any] {
-            return array.map { redact(json: $0, count: &count) }
-        }
-        return json
+        // Redacted in the text, so key order, numbers and formatting stay as sent.
+        let text = String(decoding: data, as: UTF8.self).redactingJsonFields(fieldNames) { count += 1 }
+        return cap(text.redactingCredentials(count: &count), contentType: contentType, totalBytes: totalBytes, isComplete: true)
     }
 
     /// Redacts `name=value` pairs of a query string or form body, keeping everything else byte for byte.
-    private func redact(pairs: String, names: Set<String>, normalize: (String) -> String, count: inout Int) -> String {
+    func redact(pairs: String, names: Set<String>, normalize: (String) -> String, count: inout Int) -> String {
         pairs.split(separator: "&", omittingEmptySubsequences: false).map { pair -> String in
             let parts = pair.split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false)
             let rawName = String(parts[0])

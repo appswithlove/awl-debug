@@ -36,9 +36,32 @@ final class NetworkRedactionTests: XCTestCase {
     func testJSONFieldsAtAnyDepth() throws {
         let (body, count) = redact(body: #"{"user":{"password":"p","name":"n","items":[{"access_token":"t","id":1}]}}"#, contentType: "application/json; charset=utf-8")
         
-        XCTAssertEqual(body?.text, #"{"user":{"items":[{"access_token":"[REDACTED]","id":1}],"name":"n","password":"[REDACTED]"}}"#)
+        XCTAssertEqual(body?.text, #"{"user":{"password":"[REDACTED]","name":"n","items":[{"access_token":"[REDACTED]","id":1}]}}"#)
         XCTAssertEqual(count, 2)
         XCTAssertEqual(body?.truncated, false)
+    }
+    
+    func testJSONKeepsOrderNumbersAndFormatting() {
+        let (body, count) = redact(body: "{\n  \"b\": 1.50,\n  \"token\": \"t\",\n  \"a\": 10000000000000000001\n}", contentType: "application/json")
+        
+        XCTAssertEqual(body?.text, "{\n  \"b\": 1.50,\n  \"token\": \"[REDACTED]\",\n  \"a\": 10000000000000000001\n}")
+        XCTAssertEqual(count, 1)
+    }
+    
+    func testTextBodiesAreRedacted() {
+        let cases: [(body: String, contentType: String, expected: String)] = [
+            (#"{"password":"p","name":"n"}"#, "text/plain", #"{"password":"[REDACTED]","name":"n"}"#),
+            (#"<s:Envelope><ns:Password>p</ns:Password><user name="a" token='t'/></s:Envelope>"#, "application/soap+xml",
+             #"<s:Envelope><ns:Password>[REDACTED]</ns:Password><user name="a" token='[REDACTED]'/></s:Envelope>"#),
+            (#"{"query":"mutation { login }","variables":{"password":"p"}}"#, "application/graphql", #"{"query":"mutation { login }","variables":{"password":"[REDACTED]"}}"#),
+            ("user=a&password=p", "text/plain", "user=a&password=[REDACTED]"),
+            ("Authorization: Bearer abc.def", "text/plain", "Authorization: Bearer [REDACTED]"),
+        ]
+        for (text, contentType, expected) in cases {
+            let (body, count) = redact(body: text, contentType: contentType)
+            XCTAssertEqual(body?.text, expected, contentType)
+            XCTAssertGreaterThan(count, 0, contentType)
+        }
     }
     
     func testJSONFieldNamesIgnoreCaseAndSeparators() {

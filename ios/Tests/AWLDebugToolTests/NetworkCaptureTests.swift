@@ -61,7 +61,7 @@ final class NetworkCaptureTests: XCTestCase {
         XCTAssertEqual(log.requestHeaders.first { $0.name == "Authorization" }?.value, "[REDACTED]")
         XCTAssertEqual(log.requestHeaders.first { $0.name == "Cookie" }?.value, "[REDACTED]")
         XCTAssertEqual(log.responseHeaders.first { $0.name.lowercased() == "set-cookie" }?.value, "[REDACTED]")
-        XCTAssertEqual(log.responseBody?.text, #"{"user":{"items":[{"access_token":"[REDACTED]"}],"password":"[REDACTED]"}}"#)
+        XCTAssertEqual(log.responseBody?.text, #"{"user":{"password":"[REDACTED]","items":[{"access_token":"[REDACTED]"}]}}"#)
         XCTAssertEqual(log.requestBody?.text, #"{"password":"[REDACTED]"}"#)
         XCTAssertEqual(log.redactedCount, 7)
         XCTAssertEqual(server.receivedBody("/login"), request.httpBody)

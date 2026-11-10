@@ -55,7 +55,8 @@ extension String {
     /// Replaces the values of sensitive JSON fields with `"[REDACTED]"`, using the network module's default
     /// field list. Works on JSON inside free text, on stringified JSON (`\"password\":\"…\"`) and on truncated
     /// JSON, where an unterminated value is redacted to the end. Keys match ignoring case, `_` and `-`.
-    func redactingJsonFields(_ fieldNames: Set<String> = defaultRedactedFields) -> String {
+    /// - Parameter onRedact: Called once per redacted value.
+    func redactingJsonFields(_ fieldNames: Set<String> = defaultRedactedFields, onRedact: () -> Void = {}) -> String {
         let text = Array(utf16)
         let nsText = self as NSString
         var result: [UInt16] = []
@@ -72,6 +73,7 @@ extension String {
             let quote = Array(nsText.substring(with: match.range(at: 1)).utf16)
             let valueEnd = Self.jsonValueEnd(text, start: valueStart, quote: quote)
             result += text[copiedUntil..<valueStart] + quote + Array(NetworkRedactor.placeholder.utf16) + quote
+            onRedact()
             copiedUntil = valueEnd
             searchFrom = valueEnd
         }
