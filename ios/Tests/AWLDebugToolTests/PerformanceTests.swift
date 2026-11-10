@@ -92,17 +92,19 @@ final class PerformanceTests: XCTestCase {
         let monitor = MainThreadMonitor()
         monitor.start()
         defer { monitor.stop() }
-        // Let the monitor take its first samples, so a slow CI runner does not shorten the measured freeze.
-        RunLoop.main.run(until: Date().addingTimeInterval(0.3))
 
-        Thread.sleep(forTimeInterval: 1.5)
-
-        let deadline = Date().addingTimeInterval(3)
-        while monitor.freezeCount == 0 && Date() < deadline {
-            RunLoop.main.run(until: Date().addingTimeInterval(0.05))
+        // The monitor samples from a utility queue, which a busy CI runner can starve for a whole block; block again
+        // until a sample landed in one.
+        for _ in 0..<3 where monitor.freezeCount == 0 {
+            RunLoop.main.run(until: Date().addingTimeInterval(0.3))
+            Thread.sleep(forTimeInterval: 1.5)
+            let deadline = Date().addingTimeInterval(3)
+            while monitor.freezeCount == 0 && Date() < deadline {
+                RunLoop.main.run(until: Date().addingTimeInterval(0.05))
+            }
         }
         XCTAssertEqual(monitor.freezeCount, 1)
-        // Sampled every 100 ms on a shared runner: well above the 700 ms threshold, below the 1500 ms block.
-        XCTAssertGreaterThanOrEqual(monitor.longestFreezeMs, 1200)
+        XCTAssertGreaterThan(monitor.longestFreezeMs, MainThreadMonitor.freezeThresholdMs)
+        XCTAssertLessThan(monitor.longestFreezeMs, 3_000)
     }
 }

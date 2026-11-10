@@ -64,14 +64,21 @@ final class NetworkRedactionTests: XCTestCase {
         }
     }
     
-    /// A long token without a separator, such as Base64, must not make the patterns backtrack.
+    /// A long token without a separator, such as Base64, must not make the patterns backtrack: four times the input
+    /// may take about four times as long, not sixteen. Compared, not timed, because CI runners are slow.
     func testLongTokensAreRedactedInLinearTime() {
-        let token = String(repeating: "aB3_", count: 64 * 1024)
-        for text in [token, "<" + token, token + "=", "x " + token + " y=\"", "\"" + token, token + ":" + token] {
-            let start = Date()
-            _ = redact(body: text, contentType: "text/plain")
-            XCTAssertLessThan(Date().timeIntervalSince(start), 1, String(text.prefix(8)))
+        func fastest(_ length: Int) -> TimeInterval {
+            let token = String(repeating: "aB3_", count: length / 4)
+            let texts = [token, "<" + token, token + "=", "x " + token + " y=\"", "\"" + token, token + ":" + token]
+            return (0..<3).map { _ in
+                let start = Date()
+                texts.forEach { _ = redact(body: $0, contentType: "text/plain") }
+                return Date().timeIntervalSince(start)
+            }.min()!
         }
+        let short = fastest(64 * 1024)
+        let long = fastest(256 * 1024)
+        XCTAssertLessThan(long / short, 10, "64 KB: \(short) s, 256 KB: \(long) s")
     }
     
     func testJSONFieldNamesIgnoreCaseAndSeparators() {
