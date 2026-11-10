@@ -33,17 +33,18 @@ final class LogsListViewModel: ObservableObject {
         }
     }
 
+    /// Filters only hide what the user turned off; a method, status or host without a filter, such as status 0 of a failed request, stays visible.
     var filteredLogs: [NetworkLog] {
         let filteredByRequestMethods = searchedLogs.filter { log in
-            networkLogger.methods[log.method] ?? false
+            networkLogger.methods[log.method] ?? true
         }
 
         let filteredByResponseCodes = filteredByRequestMethods.filter { log in
-            networkLogger.codes[log.statusCode] ?? false
+            networkLogger.codes[log.statusCode] ?? true
         }
 
         let filteredByEndpoints = filteredByResponseCodes.filter { log in
-            networkLogger.endpoints[networkLogger.findFirstMatch(in: log.url, with: Constants.Regex.endpointsPattern) ?? ""] ?? false
+            networkLogger.endpoints[networkLogger.findFirstMatch(in: log.url, with: Constants.Regex.endpointsPattern) ?? ""] ?? true
         }
 
         return filteredByEndpoints.sorted { log1, log2 in
