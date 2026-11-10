@@ -46,7 +46,6 @@ class AWLDebugURLProtocol: URLProtocol {
         static let SkipCaptureKey = "AWLDebugSkipCapture"
     }
     
-    var session: URLSession?
     var sessionTask: URLSessionDataTask?
     var currentRequest: RequestInfo?
     
@@ -62,12 +61,12 @@ class AWLDebugURLProtocol: URLProtocol {
     private static let redirectDecisionGrace: CFTimeInterval = 0.25
     
     override public class func canInit(with request: URLRequest) -> Bool {
-        !isExcluded(request) && !PassThrough.isLongLived(request)
+        isHTTP(request) && !isExcluded(request) && !PassThrough.isLongLived(request)
     }
     
     /// URLSession asks this for each task; tasks this protocol cannot carry are left to the system and logged from their metadata.
     override public class func canInit(with task: URLSessionTask) -> Bool {
-        guard let request = task.currentRequest, !isExcluded(request) else {
+        guard let request = task.currentRequest, isHTTP(request), !isExcluded(request) else {
             return false
         }
         guard !PassThrough.isPassedThrough(task, request: request) else {
@@ -75,6 +74,12 @@ class AWLDebugURLProtocol: URLProtocol {
             return false
         }
         return true
+    }
+    
+    /// Other schemes belong to the system or to the app's own protocols. A WebSocket task's request has an http(s) URL.
+    private class func isHTTP(_ request: URLRequest) -> Bool {
+        let scheme = request.url?.scheme?.lowercased()
+        return scheme == "http" || scheme == "https"
     }
     
     private class func isExcluded(_ request: URLRequest) -> Bool {
@@ -134,9 +139,10 @@ class AWLDebugURLProtocol: URLProtocol {
     }
     
     private func startTask(with request: NSMutableURLRequest) {
-        session = URLSession(configuration: makeSessionConfiguration(), delegate: self, delegateQueue: nil)
-        sessionTask = session?.dataTask(with: request as URLRequest)
-        sessionTask?.resume()
+        let sessionTask = InnerSessions.shared.session(for: InnerSessions.appSession(of: task)).dataTask(with: request as URLRequest)
+        self.sessionTask = sessionTask
+        InnerSessions.shared.register(sessionTask, for: self)
+        sessionTask.resume()
     }
     
     override public func stopLoading() {
@@ -145,6 +151,9 @@ class AWLDebugURLProtocol: URLProtocol {
         resolvePendingChallenge(.cancelAuthenticationChallenge, nil)
         sessionTask?.cancel()
 //        currentRequest?.httpBody = request.httpBodyStream?.readfully()
+        if let sessionTask {
+            InnerSessions.shared.unregister(sessionTask)
+        }
         if let startDate = currentRequest?.date {
             currentRequest?.duration = Int(Date().timeIntervalSince(startDate) * 1000)
         }
@@ -152,23 +161,22 @@ class AWLDebugURLProtocol: URLProtocol {
         // Redacted off the URL loading thread, which all custom protocols share; unredacted values never leave `requestInfo`.
         let requestInfo = currentRequest
         currentRequest = nil
-        let session = session
         NetworkLogger.captureQueue.async {
-            session?.invalidateAndCancel()
             if let log = requestInfo?.makeLog() {
                 AWLDebugTool.shared.networkLogger.enqueueNetworkLog(log)
             }
         }
     }
     
-    private func makeSessionConfiguration() -> URLSessionConfiguration {
-        let configuration = URLSessionConfiguration.default
-        configuration.protocolClasses = configuration.protocolClasses?.filter { ObjectIdentifier($0) != ObjectIdentifier(AWLDebugURLProtocol.self) }
-        // The app's own session caches what this protocol forwards; a second cache here would answer requests without a network load or trust evaluation.
-        configuration.urlCache = nil
-        configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
-        configuration.timeoutIntervalForRequest = request.timeoutInterval
-        return configuration
+    /// Whether the app's session may store `response` in its cache, as its own HTTP loader would decide.
+    static func cacheStoragePolicy(for request: URLRequest, response: URLResponse) -> URLCache.StoragePolicy {
+        let cacheableStatusCodes: Set<Int> = [200, 203, 206, 301, 304, 404, 410]
+        guard let response = response as? HTTPURLResponse, cacheableStatusCodes.contains(response.statusCode) else {
+            return .notAllowed
+        }
+        let forbidsStoring = [response.value(forHTTPHeaderField: "Cache-Control"), request.value(forHTTPHeaderField: "Cache-Control")]
+            .contains { $0?.lowercased().contains("no-store") == true }
+        return forbidsStoring ? .notAllowed : .allowed
     }
     
     /// URLProtocol clients must be called on the thread that called `startLoading`.
@@ -226,7 +234,8 @@ extension AWLDebugURLProtocol: URLSessionDataDelegate {
     }
     
     public func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive response: URLResponse, completionHandler: @escaping (URLSession.ResponseDisposition) -> Void) {
-        let policy = URLCache.StoragePolicy(rawValue: request.cachePolicy.rawValue) ?? .notAllowed
+        // The app's session looks responses up in its cache before it starts this protocol, so it stores them too.
+        let policy = Self.cacheStoragePolicy(for: request, response: response)
         performOnClientThread { [self] in
             client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: policy)
             currentRequest?.initResponse(response: response)
@@ -260,14 +269,6 @@ extension AWLDebugURLProtocol: URLSessionDataDelegate {
         }
     }
     
-    public func urlSession(_ session: URLSession, didBecomeInvalidWithError error: Error?) {
-        guard let error = error else { return }
-        performOnClientThread { [self] in
-            currentRequest?.recordError(error)
-            client?.urlProtocol(self, didFailWithError: error)
-        }
-    }
-    
     public func urlSession(_ session: URLSession, task: URLSessionTask, didReceive challenge: URLAuthenticationChallenge, completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
         performOnClientThread({ [self] in
             guard let client = client else {
@@ -286,10 +287,6 @@ extension AWLDebugURLProtocol: URLSessionDataDelegate {
         }, whenStopped: {
             completionHandler(.cancelAuthenticationChallenge, nil)
         })
-    }
-    
-    public func urlSessionDidFinishEvents(forBackgroundURLSession session: URLSession) {
-        client?.urlProtocolDidFinishLoading(self)
     }
 }
 

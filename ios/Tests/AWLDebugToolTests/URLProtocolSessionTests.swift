@@ -113,6 +113,69 @@ final class URLProtocolSessionTests: XCTestCase {
         XCTAssertEqual(server.hitCount("/ok"), 0)
     }
     
+    func testAppSessionCacheAnswersRepeatedRequests() {
+        server.route("/cached", .init(headers: [("Cache-Control", "max-age=600")]))
+        let configuration = loggedConfiguration()
+        configuration.urlCache = URLCache(memoryCapacity: 1_000_000, diskCapacity: 0)
+        
+        for policy in [URLRequest.CachePolicy.useProtocolCachePolicy, .useProtocolCachePolicy, .returnCacheDataDontLoad] {
+            let (data, response, error) = load(URLRequest(url: server.url("/cached"), cachePolicy: policy), configuration: configuration)
+            XCTAssertNil(error)
+            XCTAssertEqual(response?.statusCode, 200)
+            XCTAssertEqual(data, Data("ok".utf8))
+        }
+        XCTAssertEqual(server.hitCount("/cached"), 1)
+    }
+    
+    func testAppSessionCookieSettingsApply() {
+        let storage = HTTPCookieStorage.sharedCookieStorage(forGroupContainerIdentifier: "awl-debug-tests-\(UUID())")
+        storage.setCookie(HTTPCookie(properties: [.name: "app", .value: "1", .domain: "127.0.0.1", .path: "/"])!)
+        let shared = HTTPCookie(properties: [.name: "shared", .value: "1", .domain: "127.0.0.1", .path: "/"])!
+        HTTPCookieStorage.shared.setCookie(shared)
+        defer { HTTPCookieStorage.shared.deleteCookie(shared) }
+        
+        let ownStorage = loggedConfiguration()
+        ownStorage.httpCookieStorage = storage
+        _ = load(URLRequest(url: server.url("/own")), configuration: ownStorage)
+        XCTAssertEqual(server.receivedHeaders("/own")["cookie"], "app=1")
+        
+        let noCookies = loggedConfiguration()
+        noCookies.httpCookieStorage = .shared
+        noCookies.httpShouldSetCookies = false
+        _ = load(URLRequest(url: server.url("/none")), configuration: noCookies)
+        XCTAssertNil(server.receivedHeaders("/none")["cookie"])
+    }
+    
+    func testOtherSchemesReachTheAppsOwnProtocol() {
+        let configuration = loggedConfiguration()
+        configuration.protocolClasses = [AWLDebugURLProtocol.self, AppSchemeProtocol.self]
+        
+        let (data, _, error) = load(URLRequest(url: URL(string: "awltest://resource")!), configuration: configuration)
+        
+        XCTAssertNil(error)
+        XCTAssertEqual(data, Data("app protocol".utf8))
+    }
+    
+    /// The app decides on a busy delegate queue; the redirect must still be followed instead of returning the 302.
+    func testRedirectIsFollowedWhenTheDelegateQueueIsBusy() {
+        server.route("/redirect", .init(status: "302 Found", headers: [("Location", "/ok")], body: Data()))
+        let queue = OperationQueue()
+        queue.maxConcurrentOperationCount = 1
+        let session = URLSession(configuration: loggedConfiguration(), delegate: FollowingRedirectDelegate(), delegateQueue: queue)
+        defer { session.invalidateAndCancel() }
+        let done = expectation(description: "done")
+        var status: Int?
+        session.dataTask(with: server.url("/redirect")) { _, response, _ in
+            status = (response as? HTTPURLResponse)?.statusCode
+            done.fulfill()
+        }.resume()
+        queue.addOperation { Thread.sleep(forTimeInterval: 0.8) }
+        wait(for: [done], timeout: 10)
+        
+        XCTAssertEqual(status, 200)
+        XCTAssertEqual(server.hitCount("/ok"), 1)
+    }
+    
     func testClientIsCalledOnStartLoadingThread() {
         let client = ThreadRecordingClient()
         let finished = expectation(description: "finished")
@@ -172,4 +235,27 @@ private final class BlockingRedirectDelegate: NSObject, URLSessionTaskDelegate {
         didReceiveRedirect = true
         completionHandler(nil)
     }
+}
+
+private final class FollowingRedirectDelegate: NSObject, URLSessionTaskDelegate {
+    
+    func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest, completionHandler: @escaping (URLRequest?) -> Void) {
+        completionHandler(request)
+    }
+}
+
+/// An app's own protocol for a custom scheme.
+private final class AppSchemeProtocol: URLProtocol {
+    
+    override class func canInit(with request: URLRequest) -> Bool { request.url?.scheme == "awltest" }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+    
+    override func startLoading() {
+        let response = URLResponse(url: request.url!, mimeType: "text/plain", expectedContentLength: 12, textEncodingName: nil)
+        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        client?.urlProtocol(self, didLoad: Data("app protocol".utf8))
+        client?.urlProtocolDidFinishLoading(self)
+    }
+    
+    override func stopLoading() {}
 }
