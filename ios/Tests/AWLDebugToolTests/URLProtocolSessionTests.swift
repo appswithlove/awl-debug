@@ -176,6 +176,19 @@ final class URLProtocolSessionTests: XCTestCase {
         XCTAssertEqual(server.hitCount("/ok"), 1)
     }
     
+    /// A declined redirect returns the 3xx as fast as without the tool; it waited a fixed 250 ms before.
+    func testDeclinedRedirectIsNotDelayed() {
+        server.route("/redirect", .init(status: "302 Found", headers: [("Location", "/ok")], body: Data()))
+        let durations = (0..<5).map { _ -> TimeInterval in
+            let start = Date()
+            let (_, response, _) = load(URLRequest(url: server.url("/redirect")), configuration: loggedConfiguration(), delegate: BlockingRedirectDelegate())
+            XCTAssertEqual(response?.statusCode, 302)
+            return Date().timeIntervalSince(start)
+        }
+        XCTAssertLessThan(durations.min()!, 0.2, "\(durations)")
+        XCTAssertEqual(server.hitCount("/ok"), 0)
+    }
+    
     /// The review scenario: the app decides about the redirect asynchronously, later than the protocol's grace period.
     func testSlowAsyncRedirectDecisionIsHonoured() {
         server.route("/redirect", .init(status: "302 Found", headers: [("Location", "/ok")], body: Data()))

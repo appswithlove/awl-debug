@@ -57,8 +57,6 @@ class AWLDebugURLProtocol: URLProtocol {
     private var isStopped = false
     /// Client callbacks held back after a redirect until the app's session has decided about it.
     private var heldCallbacks: [(run: () -> Void, whenStopped: (() -> Void)?)]?
-    /// Following a redirect stops this protocol well within this time; declining it does not signal anything.
-    private static let redirectDecisionGrace: CFTimeInterval = 0.25
     
     override public class func canInit(with request: URLRequest) -> Bool {
         isHTTP(request) && !isExcluded(request) && !PassThrough.isLongLived(request)
@@ -200,14 +198,16 @@ class AWLDebugURLProtocol: URLProtocol {
     /// After `wasRedirectedTo`, the app's session asks its delegate asynchronously. Callbacks that arrive in the
     /// meantime could end the task before it follows the redirect, so they wait: if the session follows, it stops
     /// this protocol and they are dropped; if it declines, it expects the redirect response and they are delivered.
-    /// Declining gives no signal, so they are delivered after a grace period. Without a redirect delegate the session
-    /// always follows and there is no grace; with one, the grace starts once the delegate's queue ran what was queued
-    /// before, so a busy queue cannot turn a followed redirect into a delivered 3xx.
+    /// Declining gives no signal. Without a redirect delegate the session always follows, so they wait for
+    /// `stopLoading`; with one, they are delivered once the delegate's queue ran what was queued before, so a declined
+    /// redirect is not delayed and a busy queue cannot turn a followed one into a delivered 3xx.
     private func holdCallbacksForRedirectDecision() {
         guard clientRunLoop != nil else { return }
         heldCallbacks = []
         guard let appSession = InnerSessions.appSession(of: task) else {
-            startRedirectDecisionGrace()
+            performOnClientThreadIgnoringHold { [weak self] in
+                self?.releaseHeldCallbacks()
+            }
             return
         }
         guard let delegateQueue = redirectDelegateQueue(of: appSession) else {
@@ -216,7 +216,7 @@ class AWLDebugURLProtocol: URLProtocol {
         delegateQueue.addOperation { [weak self] in
             delegateQueue.addOperation { [weak self] in
                 self?.performOnClientThreadIgnoringHold { [weak self] in
-                    self?.startRedirectDecisionGrace()
+                    self?.releaseHeldCallbacks()
                 }
             }
         }
@@ -230,16 +230,6 @@ class AWLDebugURLProtocol: URLProtocol {
             return nil
         }
         return appSession.delegateQueue
-    }
-    
-    private func startRedirectDecisionGrace() {
-        guard let clientRunLoop = clientRunLoop, heldCallbacks != nil, !isStopped else { return }
-        let timer = CFRunLoopTimerCreateWithHandler(nil, CFAbsoluteTimeGetCurrent() + Self.redirectDecisionGrace, 0, 0, 0) { [self] _ in
-            releaseHeldCallbacks()
-        }
-        for mode in clientRunLoopModes {
-            CFRunLoopAddTimer(clientRunLoop, timer, CFRunLoopMode(mode))
-        }
     }
     
     private func performOnClientThreadIgnoringHold(_ block: @escaping () -> Void) {
