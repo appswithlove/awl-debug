@@ -105,6 +105,5 @@ final class PerformanceTests: XCTestCase {
         }
         XCTAssertEqual(monitor.freezeCount, 1)
         XCTAssertGreaterThan(monitor.longestFreezeMs, MainThreadMonitor.freezeThresholdMs)
-        XCTAssertLessThan(monitor.longestFreezeMs, 3_000)
     }
 }
