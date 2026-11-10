@@ -71,7 +71,7 @@ class DevHttpLogInterceptor(
         val startNanos = System.nanoTime()
         val response = try {
             chain.proceed(capture.request)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             capture.recordLater(response = null, elapsedMs(startNanos), error = e, responseBytes = null) { null }
             throw e
         }
@@ -85,7 +85,9 @@ class DevHttpLogInterceptor(
             ResponseCapture.ReadAlong -> {
                 val body = bodyCapture.readAlong(response) { result ->
                     val responseBytes = contentLength ?: result.totalBytes.takeIf { result.isComplete }
-                    capture.recordLater(response, durationMs, result.error, responseBytes, result.bytes.size.toLong()) {
+                    // Like on iOS, the duration includes the body, so a slow body counts as slow.
+                    val bodyDurationMs = elapsedMs(startNanos)
+                    capture.recordLater(response, bodyDurationMs, result.error, responseBytes, result.bytes.size.toLong()) {
                         bodyCapture.response(response, result, capture.counter)
                     }
                 }

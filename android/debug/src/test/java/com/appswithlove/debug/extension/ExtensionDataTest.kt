@@ -84,6 +84,21 @@ class ExtensionDataTest {
         AwlDebugExtensions.networkSnapshot(maxEntries = 1).single().url shouldBe received.record.url
     }
 
+    /** An `Error` from one listener must not end the delivery thread or reach the app as an uncaught throwable. */
+    @Test
+    fun networkListener_throwingAnError_doesNotStopTheOthers() {
+        val failing = AwlDebugExtensions.addNetworkListener { throw AssertionError("listener bug") }
+        try {
+            repeat(2) { server.enqueue(MockResponse().setBody("ok")) }
+            repeat(2) { client().newCall(Request.Builder().url(server.url("/$it")).build()).execute().use { it.body?.string() } }
+
+            nextRecord().record.url shouldEndWith "/0"
+            nextRecord().record.url shouldEndWith "/1"
+        } finally {
+            failing.close()
+        }
+    }
+
     @Test
     fun networkListener_failedRequestsCarryAnErrorCode() {
         server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.NO_RESPONSE))

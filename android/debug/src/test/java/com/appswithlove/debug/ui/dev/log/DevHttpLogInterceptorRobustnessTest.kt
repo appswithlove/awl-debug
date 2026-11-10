@@ -91,6 +91,18 @@ class DevHttpLogInterceptorRobustnessTest {
     }
 
     @Test
+    fun slowBody_countsInTheDuration() {
+        server.enqueue(
+            MockResponse().setHeader("Content-Type", "text/plain").setBody("x".repeat(64))
+                .throttleBody(16, 200, java.util.concurrent.TimeUnit.MILLISECONDS)
+        )
+
+        client().newCall(Request.Builder().url(server.url("/")).build()).execute().use { it.body!!.string() }
+
+        (entry().durationMs >= 600) shouldBe true
+    }
+
+    @Test
     fun fullCaptureQueue_neverFailsTheCall() {
         server.enqueue(MockResponse().setBody("ok"))
         val rejecting = Executor { throw RejectedExecutionException() }
