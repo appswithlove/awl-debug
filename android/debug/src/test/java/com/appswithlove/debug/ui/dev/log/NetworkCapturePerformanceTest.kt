@@ -9,6 +9,8 @@ import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import okio.Buffer
 import org.junit.After
+import org.junit.Assume
+import org.junit.Before
 import org.junit.Test
 import java.lang.management.ManagementFactory
 import java.util.concurrent.TimeUnit
@@ -16,8 +18,14 @@ import java.util.concurrent.TimeUnit
 /**
  * Compares a client with [DevHttpLogInterceptor] to a plain one against a local server. Prints `PERF` lines; the
  * bounds are loose, so the tests only fail when capturing slows the app down by an order of magnitude.
+ * Skipped unless `AWL_BENCHMARKS=1`, because timing on shared CI runners is unreliable.
  */
 class NetworkCapturePerformanceTest {
+
+    @Before
+    fun requireBenchmarks() {
+        Assume.assumeTrue("Benchmarks run with AWL_BENCHMARKS=1", System.getenv("AWL_BENCHMARKS") == "1")
+    }
 
     private val server = MockWebServer().apply { start() }
     private val store = NetworkLogStore()

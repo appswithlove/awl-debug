@@ -49,16 +49,16 @@ Requires API 25 (Android 7.1). All artifacts are on [Maven Central](https://cent
 
 ```kotlin
 dependencies {
-    debugImplementation("com.appswithlove.debug:debug:2.0.2")
-    releaseImplementation("com.appswithlove.debug:debug-no-op:2.0.2")
+    debugImplementation("com.appswithlove.debug:debug:2.0.3")
+    releaseImplementation("com.appswithlove.debug:debug-no-op:2.0.3")
 }
 ```
 
 `debug-no-op` has the same API with empty bodies, so app code stays identical for both build types. Every additional build type needs its own line, otherwise it has neither artifact and fails to compile. Rule of thumb: `debug` for builds that stay inside the team, `debug-no-op` for anything that leaves the building:
 
 ```kotlin
-stagingImplementation("com.appswithlove.debug:debug:2.0.2")
-qaImplementation("com.appswithlove.debug:debug-no-op:2.0.2")
+stagingImplementation("com.appswithlove.debug:debug:2.0.3")
+qaImplementation("com.appswithlove.debug:debug-no-op:2.0.3")
 ```
 
 ### iOS
@@ -200,8 +200,9 @@ Values are redacted on the device before anything is stored:
 - `Authorization`, `Proxy-Authorization`, `Cookie`, `Set-Cookie` and userinfo in URLs, always
 - Header names in `redactHeaders`, case-insensitive
 - JSON, form and multipart fields in `redactJsonFields` and query parameters in `redactQueryParams`, at any depth; matching ignores case, `_` and `-`
+- In other text bodies such as plain text, XML or GraphQL: JSON fields, XML elements and attributes named like `redactJsonFields`, form data, and `Bearer` / `Basic` credentials
 
-Bodies are cut off after `maxBodyBytes`, after redaction. Streams (`text/event-stream`, `application/x-ndjson`, `streamContentTypes`) are never read, and on Android binary content and one-shot bodies are replaced with a placeholder. `captureBodies = false` stores no bodies.
+Bodies are cut off after `maxBodyBytes`, after redaction. Streams (`text/event-stream`, `application/x-ndjson`, `streamContentTypes`) are never read, and on Android binary content, one-shot bodies and request bodies of custom `RequestBody` classes are replaced with a placeholder. `captureBodies = false` stores no bodies.
 
 Capturing never holds back a response or reads a body ahead of the app: response bodies are copied while the app reads them, at most 1 MB per body is kept in memory, and redaction runs on a background thread. Finished requests reach the list in batches.
 
@@ -230,7 +231,7 @@ config.network = .init(redactHeaders: ["X-Api-Key"],
 ```
 
 - **Android:** use `addNetworkInterceptor()` instead to also see headers OkHttp adds, such as cookies. The library compiles against OkHttp 4.12 and works with OkHttp 5. A request is stored once the app read its response body to the end or closed it; a body closed early shows `(not read to the end, not captured)`. With `addInterceptor()`, WebSockets appear with their handshake (status 101); OkHttp does not call network interceptors for WebSockets. To leave a client out, don't add the interceptor to it.
-- **iOS:** a `URLProtocol` captures `URLSession.shared` and sessions created from `.default` or `.ephemeral` after `start`, including Ktor's Darwin engine. The tool never trusts a certificate by itself, so TLS behaves as without it.
+- **iOS:** a `URLProtocol` captures `http` and `https` requests of `URLSession.shared` and sessions created from `.default` or `.ephemeral` after `start`, including Ktor's Darwin engine. It loads them with the app session's configuration, so cache, cookies, credentials, proxy and TLS settings apply and connections are reused. The tool never trusts a certificate by itself, so TLS behaves as without it.
 
 ### WebSockets and streams on iOS
 

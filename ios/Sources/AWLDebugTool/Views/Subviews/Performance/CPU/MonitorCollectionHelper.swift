@@ -31,10 +31,10 @@ class MonitorCollectionHelper<T> {
     
     private let readSnapshot: () -> T?
     
-    init(interval: TimeInterval, historyCapacity: Int, queueName: String, readSnapshot: @escaping () -> T?) {
+    init(interval: TimeInterval, historyCapacity: Int, queueName: String, qos: DispatchQoS = .utility, readSnapshot: @escaping () -> T?) {
         self.interval = interval
         self.historyCapacity = historyCapacity
-        self.queue = DispatchQueue(label: queueName, qos: .utility)
+        self.queue = DispatchQueue(label: queueName, qos: qos)
         self.readSnapshot = readSnapshot
     }
     

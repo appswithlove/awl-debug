@@ -1,8 +1,9 @@
 import Foundation
 
 extension NetworkLogger {
-    /// Redacts finished requests off the URL loading thread and the main thread.
-    static let captureQueue = DispatchQueue(label: "AWLDebugTool.NetworkCapture", qos: .utility)
+    /// Redacts finished requests off the URL loading thread and the main thread. Not `.utility`: on a busy device
+    /// that starves for seconds, and requests reach the list late.
+    static let captureQueue = DispatchQueue(label: "AWLDebugTool.NetworkCapture", qos: .default)
 }
 
 /// Which requests `AWLDebugURLProtocol` leaves to the system. Loading them through the protocol would break them
@@ -61,9 +62,10 @@ final class PassThroughLogger: NSObject {
         }
         let logger = PassThroughLogger(request: task is URLSessionWebSocketTask ? webSocketRequest(request) : request, config: config)
         objc_setAssociatedObject(task, &associationKey, logger, .OBJC_ASSOCIATION_RETAIN)
-        let observation = task.observe(\.state, options: [.initial, .new]) { task, _ in
+        // Weak: the task keeps the logger, so a task that never completes releases both.
+        let observation = task.observe(\.state, options: [.initial, .new]) { [weak logger] task, _ in
             guard task.state == .completed else { return }
-            logger.finish(task)
+            logger?.finish(task)
         }
         logger.lock.lock()
         let isFinished = logger.isFinished

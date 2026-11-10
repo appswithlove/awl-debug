@@ -47,7 +47,8 @@ enum Constants {
     }
     
     struct Regex {
-        static let endpointsPattern = #"https?:\/\/[a-zA-Z0-9.-]+(?=\/)"#
+        /// Scheme and host with port, also for WebSockets and URLs without a path.
+        static let endpointsPattern = #"(?:https?|wss?):\/\/[^\/?#\s]+"#
     }
     
     struct UserDefaultsKey {

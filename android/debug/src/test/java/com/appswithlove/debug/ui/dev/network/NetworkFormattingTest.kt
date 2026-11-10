@@ -110,4 +110,26 @@ class NetworkFormattingTest {
         entries.filteredAndSorted(NetworkFilter(query = "offline"), NetworkSort.OldestFirst).map { it.id } shouldBe listOf(2L)
         entries.filteredAndSorted(NetworkFilter(query = "failed"), NetworkSort.OldestFirst).map { it.id } shouldBe listOf(2L)
     }
+
+    /** A WebSocket handshake as `DevHttpLogInterceptor` records it: status 101, no bodies. OkHttp reports ws(s) URLs as http(s). */
+    @Test
+    fun webSocketHandshake_isListedSearchedAndExported() {
+        val webSocket = networkEntry(id = 1, status = 101, url = "https://sync.example.com/sync/stream", responseBody = null)
+        val entries = listOf(webSocket, networkEntry(id = 2))
+
+        entries.filteredAndSorted(NetworkFilter(), NetworkSort.OldestFirst).map { it.id } shouldBe listOf(1L, 2L)
+        entries.filteredAndSorted(NetworkFilter(query = "101"), NetworkSort.OldestFirst).map { it.id } shouldBe listOf(1L)
+        webSocket.toShareText() shouldContain "GET 101 120ms https://sync.example.com/sync/stream\n"
+        webSocket.toShareText() shouldContain "Response body:\n        (no body)"
+        webSocket.toCurl() shouldNotContain "--data-raw"
+    }
+
+    /** Entries are stored when their body finishes; a slow body must not move a request below later ones. */
+    @Test
+    fun filteredAndSorted_followsStartTime() {
+        val entries = listOf(networkEntry(id = 2), networkEntry(id = 1), networkEntry(id = 3))
+
+        entries.filteredAndSorted(NetworkFilter(), NetworkSort.OldestFirst).map { it.id } shouldBe listOf(1L, 2L, 3L)
+        entries.filteredAndSorted(NetworkFilter(), NetworkSort.NewestFirst).map { it.id } shouldBe listOf(3L, 2L, 1L)
+    }
 }

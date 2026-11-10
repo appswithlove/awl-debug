@@ -84,6 +84,29 @@ class ExtensionDataTest {
         AwlDebugExtensions.networkSnapshot(maxEntries = 1).single().url shouldBe received.record.url
     }
 
+    /**
+     * An `Error` from one listener must not reach the default uncaught exception handler, which ends the process on
+     * Android, nor stop the other listeners.
+     */
+    @Test
+    fun networkListener_throwingAnError_doesNotStopTheOthers() {
+        val uncaught = LinkedBlockingQueue<Throwable>()
+        val previousHandler = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { _, throwable -> uncaught += throwable }
+        val failing = AwlDebugExtensions.addNetworkListener { throw AssertionError("listener bug") }
+        try {
+            repeat(2) { server.enqueue(MockResponse().setBody("ok")) }
+            repeat(2) { client().newCall(Request.Builder().url(server.url("/$it")).build()).execute().use { it.body?.string() } }
+
+            nextRecord().record.url shouldEndWith "/0"
+            nextRecord().record.url shouldEndWith "/1"
+            uncaught.poll(500, TimeUnit.MILLISECONDS) shouldBe null
+        } finally {
+            failing.close()
+            Thread.setDefaultUncaughtExceptionHandler(previousHandler)
+        }
+    }
+
     @Test
     fun networkListener_failedRequestsCarryAnErrorCode() {
         server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.NO_RESPONSE))

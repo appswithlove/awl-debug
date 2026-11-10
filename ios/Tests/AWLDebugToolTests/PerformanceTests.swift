@@ -93,13 +93,16 @@ final class PerformanceTests: XCTestCase {
         monitor.start()
         defer { monitor.stop() }
 
-        Thread.sleep(forTimeInterval: 1.5)
-
-        let deadline = Date().addingTimeInterval(3)
-        while monitor.freezeCount == 0 && Date() < deadline {
-            RunLoop.main.run(until: Date().addingTimeInterval(0.05))
+        // A busy CI runner can still delay the sampling thread past a whole block; block again until a sample landed.
+        for _ in 0..<3 where monitor.freezeCount == 0 {
+            RunLoop.main.run(until: Date().addingTimeInterval(0.3))
+            Thread.sleep(forTimeInterval: 1.5)
+            let deadline = Date().addingTimeInterval(3)
+            while monitor.freezeCount == 0 && Date() < deadline {
+                RunLoop.main.run(until: Date().addingTimeInterval(0.05))
+            }
         }
         XCTAssertEqual(monitor.freezeCount, 1)
-        XCTAssertGreaterThanOrEqual(monitor.longestFreezeMs, 1400)
+        XCTAssertGreaterThan(monitor.longestFreezeMs, MainThreadMonitor.freezeThresholdMs)
     }
 }

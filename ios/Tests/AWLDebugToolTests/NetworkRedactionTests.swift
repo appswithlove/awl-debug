@@ -36,9 +36,49 @@ final class NetworkRedactionTests: XCTestCase {
     func testJSONFieldsAtAnyDepth() throws {
         let (body, count) = redact(body: #"{"user":{"password":"p","name":"n","items":[{"access_token":"t","id":1}]}}"#, contentType: "application/json; charset=utf-8")
         
-        XCTAssertEqual(body?.text, #"{"user":{"items":[{"access_token":"[REDACTED]","id":1}],"name":"n","password":"[REDACTED]"}}"#)
+        XCTAssertEqual(body?.text, #"{"user":{"password":"[REDACTED]","name":"n","items":[{"access_token":"[REDACTED]","id":1}]}}"#)
         XCTAssertEqual(count, 2)
         XCTAssertEqual(body?.truncated, false)
+    }
+    
+    func testJSONKeepsOrderNumbersAndFormatting() {
+        let (body, count) = redact(body: "{\n  \"b\": 1.50,\n  \"token\": \"t\",\n  \"a\": 10000000000000000001\n}", contentType: "application/json")
+        
+        XCTAssertEqual(body?.text, "{\n  \"b\": 1.50,\n  \"token\": \"[REDACTED]\",\n  \"a\": 10000000000000000001\n}")
+        XCTAssertEqual(count, 1)
+    }
+    
+    func testTextBodiesAreRedacted() {
+        let cases: [(body: String, contentType: String, expected: String)] = [
+            (#"{"password":"p","name":"n"}"#, "text/plain", #"{"password":"[REDACTED]","name":"n"}"#),
+            (#"<s:Envelope><ns:Password>p</ns:Password><user name="a" token='t'/></s:Envelope>"#, "application/soap+xml",
+             #"<s:Envelope><ns:Password>[REDACTED]</ns:Password><user name="a" token='[REDACTED]'/></s:Envelope>"#),
+            (#"{"query":"mutation { login }","variables":{"password":"p"}}"#, "application/graphql", #"{"query":"mutation { login }","variables":{"password":"[REDACTED]"}}"#),
+            ("user=a&password=p", "text/plain", "user=a&password=[REDACTED]"),
+            ("Authorization: Bearer abc.def", "text/plain", "Authorization: Bearer [REDACTED]"),
+        ]
+        for (text, contentType, expected) in cases {
+            let (body, count) = redact(body: text, contentType: contentType)
+            XCTAssertEqual(body?.text, expected, contentType)
+            XCTAssertGreaterThan(count, 0, contentType)
+        }
+    }
+    
+    /// A long token without a separator, such as Base64, must not make the patterns backtrack: four times the input
+    /// may take about four times as long, not sixteen. Compared, not timed, because CI runners are slow.
+    func testLongTokensAreRedactedInLinearTime() {
+        func fastest(_ length: Int) -> TimeInterval {
+            let token = String(repeating: "aB3_", count: length / 4)
+            let texts = [token, "<" + token, token + "=", "x " + token + " y=\"", "\"" + token, token + ":" + token]
+            return (0..<3).map { _ in
+                let start = Date()
+                texts.forEach { _ = redact(body: $0, contentType: "text/plain") }
+                return Date().timeIntervalSince(start)
+            }.min()!
+        }
+        let short = fastest(64 * 1024)
+        let long = fastest(256 * 1024)
+        XCTAssertLessThan(long / short, 10, "64 KB: \(short) s, 256 KB: \(long) s")
     }
     
     func testJSONFieldNamesIgnoreCaseAndSeparators() {

@@ -46,7 +46,6 @@ class AWLDebugURLProtocol: URLProtocol {
         static let SkipCaptureKey = "AWLDebugSkipCapture"
     }
     
-    var session: URLSession?
     var sessionTask: URLSessionDataTask?
     var currentRequest: RequestInfo?
     
@@ -58,16 +57,14 @@ class AWLDebugURLProtocol: URLProtocol {
     private var isStopped = false
     /// Client callbacks held back after a redirect until the app's session has decided about it.
     private var heldCallbacks: [(run: () -> Void, whenStopped: (() -> Void)?)]?
-    /// Following a redirect stops this protocol well within this time; declining it does not signal anything.
-    private static let redirectDecisionGrace: CFTimeInterval = 0.25
     
     override public class func canInit(with request: URLRequest) -> Bool {
-        !isExcluded(request) && !PassThrough.isLongLived(request)
+        isHTTP(request) && !isExcluded(request) && !PassThrough.isLongLived(request)
     }
     
     /// URLSession asks this for each task; tasks this protocol cannot carry are left to the system and logged from their metadata.
     override public class func canInit(with task: URLSessionTask) -> Bool {
-        guard let request = task.currentRequest, !isExcluded(request) else {
+        guard let request = task.currentRequest, isHTTP(request), !isExcluded(request) else {
             return false
         }
         guard !PassThrough.isPassedThrough(task, request: request) else {
@@ -75,6 +72,12 @@ class AWLDebugURLProtocol: URLProtocol {
             return false
         }
         return true
+    }
+    
+    /// Other schemes belong to the system or to the app's own protocols. A WebSocket task's request has an http(s) URL.
+    private class func isHTTP(_ request: URLRequest) -> Bool {
+        let scheme = request.url?.scheme?.lowercased()
+        return scheme == "http" || scheme == "https"
     }
     
     private class func isExcluded(_ request: URLRequest) -> Bool {
@@ -134,9 +137,10 @@ class AWLDebugURLProtocol: URLProtocol {
     }
     
     private func startTask(with request: NSMutableURLRequest) {
-        session = URLSession(configuration: makeSessionConfiguration(), delegate: self, delegateQueue: nil)
-        sessionTask = session?.dataTask(with: request as URLRequest)
-        sessionTask?.resume()
+        let sessionTask = InnerSessions.shared.session(for: InnerSessions.appSession(of: task)).dataTask(with: request as URLRequest)
+        self.sessionTask = sessionTask
+        InnerSessions.shared.register(sessionTask, for: self)
+        sessionTask.resume()
     }
     
     override public func stopLoading() {
@@ -145,6 +149,9 @@ class AWLDebugURLProtocol: URLProtocol {
         resolvePendingChallenge(.cancelAuthenticationChallenge, nil)
         sessionTask?.cancel()
 //        currentRequest?.httpBody = request.httpBodyStream?.readfully()
+        if let sessionTask {
+            InnerSessions.shared.unregister(sessionTask)
+        }
         if let startDate = currentRequest?.date {
             currentRequest?.duration = Int(Date().timeIntervalSince(startDate) * 1000)
         }
@@ -152,23 +159,22 @@ class AWLDebugURLProtocol: URLProtocol {
         // Redacted off the URL loading thread, which all custom protocols share; unredacted values never leave `requestInfo`.
         let requestInfo = currentRequest
         currentRequest = nil
-        let session = session
         NetworkLogger.captureQueue.async {
-            session?.invalidateAndCancel()
             if let log = requestInfo?.makeLog() {
                 AWLDebugTool.shared.networkLogger.enqueueNetworkLog(log)
             }
         }
     }
     
-    private func makeSessionConfiguration() -> URLSessionConfiguration {
-        let configuration = URLSessionConfiguration.default
-        configuration.protocolClasses = configuration.protocolClasses?.filter { ObjectIdentifier($0) != ObjectIdentifier(AWLDebugURLProtocol.self) }
-        // The app's own session caches what this protocol forwards; a second cache here would answer requests without a network load or trust evaluation.
-        configuration.urlCache = nil
-        configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
-        configuration.timeoutIntervalForRequest = request.timeoutInterval
-        return configuration
+    /// Whether the app's session may store `response` in its cache, as its own HTTP loader would decide.
+    static func cacheStoragePolicy(for request: URLRequest, response: URLResponse) -> URLCache.StoragePolicy {
+        let cacheableStatusCodes: Set<Int> = [200, 203, 206, 301, 304, 404, 410]
+        guard let response = response as? HTTPURLResponse, cacheableStatusCodes.contains(response.statusCode) else {
+            return .notAllowed
+        }
+        let forbidsStoring = [response.value(forHTTPHeaderField: "Cache-Control"), request.value(forHTTPHeaderField: "Cache-Control")]
+            .contains { $0?.lowercased().contains("no-store") == true }
+        return forbidsStoring ? .notAllowed : .allowed
     }
     
     /// URLProtocol clients must be called on the thread that called `startLoading`.
@@ -192,15 +198,44 @@ class AWLDebugURLProtocol: URLProtocol {
     /// After `wasRedirectedTo`, the app's session asks its delegate asynchronously. Callbacks that arrive in the
     /// meantime could end the task before it follows the redirect, so they wait: if the session follows, it stops
     /// this protocol and they are dropped; if it declines, it expects the redirect response and they are delivered.
+    /// Declining gives no signal. Without a redirect delegate the session always follows, so they wait for
+    /// `stopLoading`; with one, they are delivered once the delegate's queue ran what was queued before, so a declined
+    /// redirect is not delayed and a busy queue cannot turn a followed one into a delivered 3xx.
     private func holdCallbacksForRedirectDecision() {
-        guard let clientRunLoop = clientRunLoop else { return }
+        guard clientRunLoop != nil else { return }
         heldCallbacks = []
-        let timer = CFRunLoopTimerCreateWithHandler(nil, CFAbsoluteTimeGetCurrent() + Self.redirectDecisionGrace, 0, 0, 0) { [self] _ in
-            releaseHeldCallbacks()
+        guard let appSession = InnerSessions.appSession(of: task) else {
+            performOnClientThreadIgnoringHold { [weak self] in
+                self?.releaseHeldCallbacks()
+            }
+            return
         }
-        for mode in clientRunLoopModes {
-            CFRunLoopAddTimer(clientRunLoop, timer, CFRunLoopMode(mode))
+        guard let delegateQueue = redirectDelegateQueue(of: appSession) else {
+            return
         }
+        delegateQueue.addOperation { [weak self] in
+            delegateQueue.addOperation { [weak self] in
+                self?.performOnClientThreadIgnoringHold { [weak self] in
+                    self?.releaseHeldCallbacks()
+                }
+            }
+        }
+    }
+    
+    /// The queue the app's redirect decision runs on; `nil` when no delegate decides about redirects.
+    private func redirectDelegateQueue(of appSession: URLSession) -> OperationQueue? {
+        let selector = #selector(URLSessionTaskDelegate.urlSession(_:task:willPerformHTTPRedirection:newRequest:completionHandler:))
+        let delegates: [AnyObject?] = [task?.delegate, appSession.delegate]
+        guard delegates.contains(where: { $0?.responds(to: selector) == true }) else {
+            return nil
+        }
+        return appSession.delegateQueue
+    }
+    
+    private func performOnClientThreadIgnoringHold(_ block: @escaping () -> Void) {
+        guard let clientRunLoop = clientRunLoop else { return }
+        CFRunLoopPerformBlock(clientRunLoop, clientRunLoopModes as CFArray, block)
+        CFRunLoopWakeUp(clientRunLoop)
     }
     
     private func releaseHeldCallbacks() {
@@ -226,7 +261,8 @@ extension AWLDebugURLProtocol: URLSessionDataDelegate {
     }
     
     public func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive response: URLResponse, completionHandler: @escaping (URLSession.ResponseDisposition) -> Void) {
-        let policy = URLCache.StoragePolicy(rawValue: request.cachePolicy.rawValue) ?? .notAllowed
+        // The app's session looks responses up in its cache before it starts this protocol, so it stores them too.
+        let policy = Self.cacheStoragePolicy(for: request, response: response)
         performOnClientThread { [self] in
             client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: policy)
             currentRequest?.initResponse(response: response)
@@ -260,14 +296,6 @@ extension AWLDebugURLProtocol: URLSessionDataDelegate {
         }
     }
     
-    public func urlSession(_ session: URLSession, didBecomeInvalidWithError error: Error?) {
-        guard let error = error else { return }
-        performOnClientThread { [self] in
-            currentRequest?.recordError(error)
-            client?.urlProtocol(self, didFailWithError: error)
-        }
-    }
-    
     public func urlSession(_ session: URLSession, task: URLSessionTask, didReceive challenge: URLAuthenticationChallenge, completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
         performOnClientThread({ [self] in
             guard let client = client else {
@@ -286,10 +314,6 @@ extension AWLDebugURLProtocol: URLSessionDataDelegate {
         }, whenStopped: {
             completionHandler(.cancelAuthenticationChallenge, nil)
         })
-    }
-    
-    public func urlSessionDidFinishEvents(forBackgroundURLSession session: URLSession) {
-        client?.urlProtocolDidFinishLoading(self)
     }
 }
 

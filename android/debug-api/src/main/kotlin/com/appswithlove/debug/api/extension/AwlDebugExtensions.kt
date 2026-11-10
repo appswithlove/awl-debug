@@ -93,8 +93,11 @@ object AwlDebugExtensions {
             networkListeners.forEach { registration ->
                 try {
                     registration.listener(record)
-                } catch (e: Exception) {
-                    // One failing listener must neither stop the others nor the app's request.
+                } catch (e: VirtualMachineError) {
+                    throw e
+                } catch (e: Throwable) {
+                    // One failing listener must neither stop the others nor crash the app: on Android an uncaught
+                    // throwable on this thread, such as an AssertionError, ends the process.
                     e.printStackTrace()
                 }
             }
